@@ -25,6 +25,16 @@ static constexpr uint32_t SpiClockDefaultHz = LW_SPI_CLOCK_DEFAULT_HZ;
 struct RpSpiTransportSettings : TransportSettingsBase
 {
     uint8_t spiIndex = 0;
+
+    static RpSpiTransportSettings normalize(RpSpiTransportSettings settings)
+    {
+        if (settings.clockRateHz == 0)
+        {
+            settings.clockRateHz = SpiClockDefaultHz;
+        }
+
+        return settings;
+    }
 };
 
 class RpSpiTransport : public ITransport

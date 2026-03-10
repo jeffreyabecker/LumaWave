@@ -28,6 +28,16 @@ static constexpr uart_parity_t UartParity = UART_PARITY_NONE;
 struct RpUartTransportSettings : TransportSettingsBase
 {
     uint8_t spiIndex = 0;
+
+    static RpUartTransportSettings normalize(RpUartTransportSettings settings)
+    {
+        if (settings.clockRateHz == 0)
+        {
+            settings.clockRateHz = UartClockDefaultHz;
+        }
+
+        return settings;
+    }
 };
 
 class RpUartTransport : public ITransport

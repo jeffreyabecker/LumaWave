@@ -20,9 +20,21 @@
 namespace lw::transports::rp2040
 {
 
+static constexpr uint32_t PioClockDefaultHz = LW_SPI_CLOCK_DEFAULT_HZ;
+
 struct RpPioTransportSettings : TransportSettingsBase
 {
     uint8_t pioIndex = 1;
+
+    static RpPioTransportSettings normalize(RpPioTransportSettings settings)
+    {
+        if (settings.clockRateHz == 0)
+        {
+            settings.clockRateHz = PioClockDefaultHz;
+        }
+
+        return settings;
+    }
 };
 
 class RpPioTransport : public ITransport

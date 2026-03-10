@@ -94,7 +94,7 @@ class BlendOutputRange
 
 } // namespace samplingtransition
 
-uint8_t mapTransitionProgressToBlend8(uint8_t transitionProgress, uint8_t transitionDuration)
+inline uint8_t mapTransitionProgressToBlend8(uint8_t transitionProgress, uint8_t transitionDuration)
 {
     if (transitionDuration == 0)
     {

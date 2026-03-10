@@ -20,7 +20,7 @@ struct RandomBackendSelector
     using Type = LW_PALETTE_RANDOM_BACKEND;
 };
 
-uint32_t nextRandom(uint32_t& state)
+inline uint32_t nextRandom(uint32_t& state)
 {
     using Backend = typename RandomBackendSelector::Type;
     return Backend::next(state);
