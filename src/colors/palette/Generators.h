@@ -91,7 +91,7 @@ class RainbowPaletteGenerator : public IPalette<TColor>
         rebuild();
     }
 
-    void update(uint8_t hueStep = 1) override
+    void update(uint32_t hueStep = 1) override
     {
         _hueOffset = static_cast<uint8_t>(_hueOffset + hueStep);
         rebuild();
@@ -141,14 +141,14 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
 
     void setSeed(uint32_t seed) { _rngState = seed; }
 
-    void update(uint8_t progressStep = 0) override
+    void update(uint32_t progressStep = 0) override
     {
-        const uint8_t step = (progressStep == 0) ? _progressStep : progressStep;
-        uint16_t nextProgress = static_cast<uint16_t>(_progress) + step;
+        const uint32_t step = (progressStep == 0) ? static_cast<uint32_t>(_progressStep) : progressStep;
+        const uint32_t nextProgress = static_cast<uint32_t>(_progress) + step;
+        const uint32_t cycleCount = nextProgress / 255u;
 
-        while (nextProgress >= 255u)
+        for (uint32_t cycle = 0; cycle < cycleCount; ++cycle)
         {
-            nextProgress = static_cast<uint16_t>(nextProgress - 255u);
             for (size_t i = 0; i < _stops.size(); ++i)
             {
                 _sourceColors[i] = _targetColors[i];
@@ -156,7 +156,7 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
             }
         }
 
-        _progress = static_cast<uint8_t>(nextProgress);
+        _progress = static_cast<uint8_t>(nextProgress % 255u);
         rebuild();
     }
 
@@ -200,18 +200,18 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
 
     void setSeed(uint32_t seed) { _rngState = seed; }
 
-    void update(uint8_t cycleStep = 0) override
+    void update(uint32_t cycleStep = 0) override
     {
-        const uint8_t step = (cycleStep == 0) ? _cycleStep : cycleStep;
-        uint16_t nextPhase = static_cast<uint16_t>(_phase) + step;
+        const uint32_t step = (cycleStep == 0) ? static_cast<uint32_t>(_cycleStep) : cycleStep;
+        const uint32_t nextPhase = static_cast<uint32_t>(_phase) + step;
+        const uint32_t cycleCount = nextPhase / 255u;
 
-        while (nextPhase >= 255u)
+        for (uint32_t cycle = 0; cycle < cycleCount; ++cycle)
         {
-            nextPhase = static_cast<uint16_t>(nextPhase - 255u);
             rotateCycle();
         }
 
-        _phase = static_cast<uint8_t>(nextPhase);
+        _phase = static_cast<uint8_t>(nextPhase % 255u);
         rebuild();
     }
 

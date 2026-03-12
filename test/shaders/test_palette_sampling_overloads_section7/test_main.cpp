@@ -15,7 +15,7 @@ struct PaletteLikeRgb8 : lw::colors::palettes::IPalette<lw::Rgb8Color>
 
     lw::span<const Stop> stops() const override { return _stops; }
 
-    void update(uint8_t = 0) override {}
+    void update(uint32_t = 0) override {}
 
   private:
     lw::span<const Stop> _stops;
@@ -136,9 +136,9 @@ void test_overload_explicit_blend_mode_option(void)
     lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
     options.blendMode = lw::colors::palettes::BlendMode::Nearest;
 
-    const size_t written = lw::colors::palettes::samplePalette(
-        makePalette(), lw::span<const uint8_t>(indices.data(), indices.size()),
-        lw::span<lw::Rgb8Color>(out.data(), out.size()), options);
+    const size_t written =
+        lw::colors::palettes::samplePalette(makePalette(), lw::span<const uint8_t>(indices.data(), indices.size()),
+                                            lw::span<lw::Rgb8Color>(out.data(), out.size()), options);
 
     TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(written));
     TEST_ASSERT_EQUAL_UINT8(0, out[0]['R']);

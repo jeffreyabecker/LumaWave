@@ -56,7 +56,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     virtual ~IPalette() = default;
 
     virtual StopsView stops() const = 0;
-    virtual void update(uint8_t step = 0) = 0;
+    virtual void update(uint32_t step = 0) = 0;
 };
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class Palette : public IPalette<TColor>
@@ -136,7 +136,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
-    void update(uint8_t = 0) override {}
+    void update(uint32_t = 0) override {}
 
     StorageType& storage() { return _stops; }
 

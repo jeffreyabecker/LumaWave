@@ -15,7 +15,7 @@ struct PaletteLikeRgb8 : lw::colors::palettes::IPalette<lw::Rgb8Color>
 
     lw::span<const Stop> stops() const override { return _stops; }
 
-    void update(uint8_t = 0) override {}
+    void update(uint32_t = 0) override {}
 
   private:
     lw::span<const Stop> _stops;
