@@ -1,6 +1,7 @@
 #include <unity.h>
 
 #include <array>
+#include <functional>
 #include <vector>
 
 #include "colors/Color.h"
@@ -105,6 +106,51 @@ void test_fill_pixels_indexed_uses_global_index(void)
         TEST_ASSERT_EQUAL_UINT8(static_cast<uint8_t>(i + 2U), pixels[i]['B']);
     }
 }
+
+void test_concatenate_accepts_span_of_view_references(void)
+{
+    std::array<Color, 2> left = {Color{1, 0, 0}, Color{2, 0, 0}};
+    std::array<Color, 3> right = {Color{3, 0, 0}, Color{4, 0, 0}, Color{5, 0, 0}};
+
+    std::vector<lw::span<Color>> leftChunks;
+    leftChunks.emplace_back(left.data(), left.size());
+    std::vector<lw::span<Color>> rightChunks;
+    rightChunks.emplace_back(right.data(), right.size());
+
+    lw::PixelView<Color> leftView{lw::span<lw::span<Color>>(leftChunks.data(), leftChunks.size())};
+    lw::PixelView<Color> rightView{lw::span<lw::span<Color>>(rightChunks.data(), rightChunks.size())};
+
+    std::array<std::reference_wrapper<lw::PixelView<Color>>, 2> views{leftView, rightView};
+    auto concatenated = lw::PixelView<Color>::concatenate(
+        lw::span<const std::reference_wrapper<lw::PixelView<Color>>>(views.data(), views.size()));
+
+    TEST_ASSERT_EQUAL_UINT32(5U, concatenated.size());
+    concatenated[4]['R'] = 99;
+
+    TEST_ASSERT_EQUAL_UINT8(99U, right[2]['R']);
+}
+
+void test_concatenate_accepts_span_of_const_view_references(void)
+{
+    std::array<Color, 1> left = {Color{7, 0, 0}};
+    std::array<Color, 1> right = {Color{8, 0, 0}};
+
+    std::vector<lw::span<Color>> leftChunks;
+    leftChunks.emplace_back(left.data(), left.size());
+    std::vector<lw::span<Color>> rightChunks;
+    rightChunks.emplace_back(right.data(), right.size());
+
+    const lw::PixelView<Color> leftView{lw::span<lw::span<Color>>(leftChunks.data(), leftChunks.size())};
+    const lw::PixelView<Color> rightView{lw::span<lw::span<Color>>(rightChunks.data(), rightChunks.size())};
+
+    std::array<std::reference_wrapper<const lw::PixelView<Color>>, 2> views{leftView, rightView};
+    const auto concatenated = lw::PixelView<Color>::concatenate(
+        lw::span<const std::reference_wrapper<const lw::PixelView<Color>>>(views.data(), views.size()));
+
+    TEST_ASSERT_EQUAL_UINT32(2U, concatenated.size());
+    TEST_ASSERT_EQUAL_UINT8(7U, concatenated[0]['R']);
+    TEST_ASSERT_EQUAL_UINT8(8U, concatenated[1]['R']);
+}
 } // namespace
 
 void setUp(void)
@@ -123,5 +169,7 @@ int main(int, char**)
     RUN_TEST(test_slice_clamps_to_bounds_and_handles_reverse_range);
     RUN_TEST(test_fill_pixels_solid_color_updates_all_chunks);
     RUN_TEST(test_fill_pixels_indexed_uses_global_index);
+    RUN_TEST(test_concatenate_accepts_span_of_view_references);
+    RUN_TEST(test_concatenate_accepts_span_of_const_view_references);
     return UNITY_END();
 }

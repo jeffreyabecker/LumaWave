@@ -202,7 +202,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
         }
 
         cursor = skipWhitespace(cursor + 1);
-        return tryParseRgb(cursor, color);
+        return tryParseColor(cursor, color);
     }
 
     static bool tryParseIndex(const char*& cursor, size_t& index)
@@ -224,34 +224,113 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
         return true;
     }
 
-    static bool tryParseRgb(const char*& cursor, TColor& color)
+    static bool tryParseColor(const char*& cursor, TColor& color)
     {
-        uint8_t components[3] = {};
-        for (size_t componentIndex = 0; componentIndex < 3; ++componentIndex)
+        const char* tokenStart = cursor;
+        const char* scan = cursor;
+
+        if (*scan == '#')
         {
-            int highNibble = hexNibble(*cursor);
-            if (highNibble < 0)
-            {
-                return false;
-            }
-            ++cursor;
-
-            int lowNibble = hexNibble(*cursor);
-            if (lowNibble < 0)
-            {
-                return false;
-            }
-            ++cursor;
-
-            components[componentIndex] =
-                static_cast<uint8_t>((static_cast<uint8_t>(highNibble) << 4) | static_cast<uint8_t>(lowNibble));
+            ++scan;
         }
 
-        color = TColor{};
-        color['R'] = static_cast<typename TColor::ComponentType>(components[0]);
-        color['G'] = static_cast<typename TColor::ComponentType>(components[1]);
-        color['B'] = static_cast<typename TColor::ComponentType>(components[2]);
+        if (scan[0] == '0' && (scan[1] == 'x' || scan[1] == 'X'))
+        {
+            scan += 2;
+        }
+
+        constexpr size_t DigitsPerComponent = sizeof(typename TColor::ComponentType) * 2u;
+        constexpr size_t ExpectedDigitCount = static_cast<size_t>(TColor::ChannelCount) * DigitsPerComponent;
+
+        size_t digitCount = 0;
+        while (hexNibble(*scan) >= 0)
+        {
+            ++digitCount;
+            ++scan;
+        }
+
+        if (digitCount != ExpectedDigitCount)
+        {
+            switch (digitCount)
+            {
+                case 6u:
+                    return tryParseAndUpscaleColor<Rgb8Color>(tokenStart, scan, cursor, color);
+
+                case 8u:
+                    return tryParseAndUpscaleColor<Rgbw8Color>(tokenStart, scan, cursor, color);
+
+                case 10u:
+                    return tryParseAndUpscaleColor<Rgbcw8Color>(tokenStart, scan, cursor, color);
+
+                case 12u:
+                    return tryParseAndUpscaleColor<Rgb16Color>(tokenStart, scan, cursor, color);
+
+                case 16u:
+                    return tryParseAndUpscaleColor<Rgbw16Color>(tokenStart, scan, cursor, color);
+
+                case 20u:
+                    return tryParseAndUpscaleColor<Rgbcw16Color>(tokenStart, scan, cursor, color);
+
+                default:
+                    return false;
+            }
+        }
+
+        color = ColorHexCodec::parseHex<TColor>(tokenStart);
+        cursor = scan;
         return true;
+    }
+
+    template <typename TSourceColor>
+    static bool tryParseAndUpscaleColor(const char* tokenStart, const char* tokenEnd, const char*& cursor,
+                                        TColor& color)
+    {
+        using SourceComponent = typename TSourceColor::ComponentType;
+        using TargetComponent = typename TColor::ComponentType;
+
+        constexpr bool ChannelsCompatible = TSourceColor::ChannelCount <= TColor::ChannelCount;
+        constexpr bool ComponentCompatible = sizeof(SourceComponent) <= sizeof(TargetComponent);
+
+        if constexpr (!ChannelsCompatible || !ComponentCompatible)
+        {
+            (void)tokenStart;
+            (void)tokenEnd;
+            (void)cursor;
+            (void)color;
+            return false;
+        }
+        else
+        {
+            const TSourceColor parsed = ColorHexCodec::parseHex<TSourceColor>(tokenStart);
+            color = upscaleParsedColor(parsed);
+            cursor = tokenEnd;
+            return true;
+        }
+    }
+
+    template <typename TSourceColor> static TColor upscaleParsedColor(const TSourceColor& source)
+    {
+        using SourceComponent = typename TSourceColor::ComponentType;
+        using TargetComponent = typename TColor::ComponentType;
+
+        TColor result{};
+        for (auto channel : TSourceColor::channelIndexes())
+        {
+            const SourceComponent value = source[channel];
+
+            if constexpr (sizeof(SourceComponent) == sizeof(TargetComponent))
+            {
+                result[channel] = static_cast<TargetComponent>(value);
+            }
+            else
+            {
+                const TargetComponent widened =
+                    static_cast<TargetComponent>((static_cast<TargetComponent>(value) << 8) | value);
+                result[channel] = widened;
+            }
+        }
+
+        return result;
     }
 
     static const char* skipWhitespace(const char* cursor)

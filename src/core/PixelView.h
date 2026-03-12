@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <type_traits>
@@ -40,6 +41,46 @@ template <typename TColor> class PixelView
 
         appendChunks(concatenated, first);
         (appendChunks(concatenated, others), ...);
+
+        return PixelView(std::move(concatenated));
+    }
+
+    static PixelView concatenate(span<const std::reference_wrapper<PixelView>> views)
+    {
+        std::vector<ChunkType> concatenated;
+        size_t totalChunks = 0;
+
+        for (const auto& viewRef : views)
+        {
+            totalChunks += viewRef.get().chunks().size();
+        }
+
+        concatenated.reserve(totalChunks);
+
+        for (const auto& viewRef : views)
+        {
+            appendChunks(concatenated, viewRef.get());
+        }
+
+        return PixelView(std::move(concatenated));
+    }
+
+    static PixelView concatenate(span<const std::reference_wrapper<const PixelView>> views)
+    {
+        std::vector<ChunkType> concatenated;
+        size_t totalChunks = 0;
+
+        for (const auto& viewRef : views)
+        {
+            totalChunks += viewRef.get().chunks().size();
+        }
+
+        concatenated.reserve(totalChunks);
+
+        for (const auto& viewRef : views)
+        {
+            appendChunks(concatenated, viewRef.get());
+        }
 
         return PixelView(std::move(concatenated));
     }
