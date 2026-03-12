@@ -61,6 +61,10 @@ class IndexRange
 
     constexpr IndexSentinel end() const { return IndexSentinel{}; }
 
+    constexpr size_t size() const { return _count; }
+
+    static constexpr IndexRange fromCount(size_t count) { return IndexRange(0, 1, count); }
+
   private:
     size_t _start;
     size_t _step;

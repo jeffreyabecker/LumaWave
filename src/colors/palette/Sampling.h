@@ -20,8 +20,22 @@ template <typename TRange>
 using SampleRangeStorageType =
     std::conditional_t<std::is_lvalue_reference<TRange>::value, TRange, std::remove_reference_t<TRange>>;
 
+template <typename TRange, typename = void> struct HasSizeMethod : std::false_type
+{
+};
+
+template <typename TRange>
+struct HasSizeMethod<TRange, std::void_t<decltype(std::declval<const TRange&>().size())>> : std::true_type
+{
+};
+
 template <typename TRange> size_t countRangeElements(TRange&& range)
 {
+    if constexpr (HasSizeMethod<std::remove_reference_t<TRange>>::value)
+    {
+        return static_cast<size_t>(range.size());
+    }
+
     size_t count = 0;
     for (auto it = range.begin(); it != range.end(); ++it)
     {
@@ -30,6 +44,7 @@ template <typename TRange> size_t countRangeElements(TRange&& range)
 
     return count;
 }
+} // namespace detail
 
 template <typename TColor, typename TSampler, typename TIndexIt, typename = std::enable_if_t<ColorType<TColor>>>
 class PaletteSampleIterator
@@ -86,19 +101,20 @@ class PaletteSampleIterator
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class SinglePaletteSampler
 {
   public:
-    SinglePaletteSampler(const IPalette<TColor>& palette, PaletteSampleOptions<TColor> options)
-        : _palette(palette), _options(options)
+    SinglePaletteSampler(const IPalette<TColor>& palette, PaletteSampleOptions<TColor> options, size_t offset = 0)
+        : _palette(palette), _options(options), _offset(offset)
     {
     }
 
     TColor operator()(size_t paletteIndex) const
     {
-        return samplePaletteAt<TColor>(_palette.stops(), paletteIndex, _options);
+        return samplePaletteAt<TColor>(_palette.stops(), paletteIndex + _offset, _options);
     }
 
   private:
     const IPalette<TColor>& _palette;
     PaletteSampleOptions<TColor> _options;
+    size_t _offset;
 };
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class TransitionPaletteSampler
@@ -132,13 +148,16 @@ class PaletteSampleRangeT
     using Iterator = PaletteSampleIterator<TColor, TSampler, decltype(std::declval<TStoredIndexRange&>().begin())>;
 
     PaletteSampleRangeT(TSampler sampler, TStoredIndexRange paletteIndexes)
-        : _sampler(std::move(sampler)), _paletteIndexes(paletteIndexes), _count(countRangeElements(_paletteIndexes))
+        : _sampler(std::move(sampler)), _paletteIndexes(paletteIndexes),
+          _count(detail::countRangeElements(_paletteIndexes))
     {
     }
 
     Iterator begin() const { return Iterator(&_sampler, _paletteIndexes.begin(), this, _count); }
 
     Iterator end() const { return Iterator(&_sampler, _paletteIndexes.begin(), this, 0); }
+
+    size_t size() const { return _count; }
 
   private:
     TSampler _sampler;
@@ -164,7 +183,6 @@ size_t writeSampleRange(TSampleRange&& sampleRange, TOutputRange&& outputColors)
 
     return written;
 }
-} // namespace detail
 
 template <
     typename TColor, typename TIndexRange,
@@ -173,8 +191,8 @@ auto paletteSamples(const IPalette<TColor>& palette, TIndexRange&& paletteIndexe
                     PaletteSampleOptions<TColor> options = {})
 {
     using StoredIndexRange = detail::SampleRangeStorageType<TIndexRange>;
-    using Sampler = detail::SinglePaletteSampler<TColor>;
-    using Range = detail::PaletteSampleRangeT<TColor, Sampler, StoredIndexRange>;
+    using Sampler = SinglePaletteSampler<TColor>;
+    using Range = PaletteSampleRangeT<TColor, Sampler, StoredIndexRange>;
 
     return Range(Sampler(palette, options), std::forward<TIndexRange>(paletteIndexes));
 }
@@ -187,8 +205,8 @@ auto paletteTransitionSamples(const IPalette<TColor>& paletteFrom, const IPalett
                               PaletteSampleOptions<TColor> options = {})
 {
     using StoredIndexRange = detail::SampleRangeStorageType<TIndexRange>;
-    using Sampler = detail::TransitionPaletteSampler<TColor>;
-    using Range = detail::PaletteSampleRangeT<TColor, Sampler, StoredIndexRange>;
+    using Sampler = TransitionPaletteSampler<TColor>;
+    using Range = PaletteSampleRangeT<TColor, Sampler, StoredIndexRange>;
 
     return Range(Sampler(paletteFrom, paletteTo, blendProgress8, options), std::forward<TIndexRange>(paletteIndexes));
 }
@@ -228,8 +246,8 @@ template <
 size_t samplePalette(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors,
                      PaletteSampleOptions<TColor> options = {})
 {
-    return detail::writeSampleRange(paletteSamples(palette, std::forward<TIndexRange>(paletteIndexes), options),
-                                    std::forward<TOutputRange>(outputColors));
+    return writeSampleRange(paletteSamples(palette, std::forward<TIndexRange>(paletteIndexes), options),
+                            std::forward<TOutputRange>(outputColors));
 }
 
 template <
@@ -251,10 +269,9 @@ size_t samplePalette(const IPalette<TColor>& paletteFrom, const IPalette<TColor>
                      TIndexRange&& paletteIndexes, TOutputRange&& outputColors, uint8_t blendProgress8,
                      PaletteSampleOptions<TColor> options = {})
 {
-    return detail::writeSampleRange(paletteTransitionSamples(paletteFrom, paletteTo,
-                                                             std::forward<TIndexRange>(paletteIndexes), blendProgress8,
-                                                             options),
-                                    std::forward<TOutputRange>(outputColors));
+    return writeSampleRange(paletteTransitionSamples(paletteFrom, paletteTo, std::forward<TIndexRange>(paletteIndexes),
+                                                     blendProgress8, options),
+                            std::forward<TOutputRange>(outputColors));
 }
 
 template <

@@ -41,6 +41,14 @@ void test_index_iterator_post_increment_returns_previous(void)
     TEST_ASSERT_EQUAL_size_t(1, *before);
     TEST_ASSERT_EQUAL_size_t(3, *it);
 }
+
+void test_index_range_size_returns_configured_count(void)
+{
+    const lw::IndexRange range(10, 7, 4);
+
+    TEST_ASSERT_EQUAL_size_t(4, range.size());
+    TEST_ASSERT_EQUAL_size_t(6, lw::IndexRange::fromCount(6).size());
+}
 } // namespace
 
 void setUp(void)
@@ -57,5 +65,6 @@ int main(int, char**)
     RUN_TEST(test_index_iterator_progresses_with_step);
     RUN_TEST(test_index_iterator_uses_size_t_without_uint8_wrap);
     RUN_TEST(test_index_iterator_post_increment_returns_previous);
+    RUN_TEST(test_index_range_size_returns_configured_count);
     return UNITY_END();
 }
