@@ -1,5 +1,6 @@
 #include <unity.h>
 
+#include <algorithm>
 #include <array>
 
 #include "core/IndexIterator.h"
@@ -161,6 +162,35 @@ void test_overload_palette_like_scalar_sample(void)
     TEST_ASSERT_EQUAL_UINT8(63, sampled[0]['G']);
     TEST_ASSERT_EQUAL_UINT8(63, sampled[0]['B']);
 }
+
+void test_palette_samples_range_supports_std_copy(void)
+{
+    const auto palette = makePalette();
+    std::array<lw::Rgb8Color, 3> out{};
+    lw::IndexRange paletteIndexes(0, 128, out.size());
+
+    const auto samples = lw::colors::palettes::paletteSamples(palette, paletteIndexes);
+    std::copy(samples.begin(), samples.end(), out.begin());
+
+    TEST_ASSERT_EQUAL_UINT8(0, out[0]['R']);
+    TEST_ASSERT_EQUAL_UINT8(127, out[1]['R']);
+    TEST_ASSERT_EQUAL_UINT8(255, out[2]['R']);
+}
+
+void test_palette_transition_samples_range_supports_std_copy(void)
+{
+    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
+    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
+    std::array<lw::Rgb8Color, 3> out{};
+    lw::IndexRange paletteIndexes(10, 30, out.size());
+
+    const auto samples = lw::colors::palettes::paletteTransitionSamples(from, to, paletteIndexes, 128);
+    std::copy(samples.begin(), samples.end(), out.begin());
+
+    TEST_ASSERT_EQUAL_UINT8(127, out[0]['R']);
+    TEST_ASSERT_EQUAL_UINT8(127, out[1]['R']);
+    TEST_ASSERT_EQUAL_UINT8(127, out[2]['R']);
+}
 } // namespace
 
 void setUp(void)
@@ -183,5 +213,7 @@ int main(int, char**)
     RUN_TEST(test_overload_palette_like_and_options);
     RUN_TEST(test_overload_explicit_blend_mode_option);
     RUN_TEST(test_overload_palette_like_scalar_sample);
+    RUN_TEST(test_palette_samples_range_supports_std_copy);
+    RUN_TEST(test_palette_transition_samples_range_supports_std_copy);
     return UNITY_END();
 }

@@ -36,8 +36,7 @@ template <typename TColor = lw::colors::DefaultColorType,
           typename TShader = lw::NilShader<TColor>>
 using Light = lw::busses::LightBus<TColor, TDriver, TShader>;
 
-template <typename TColor = lw::colors::DefaultColorType>
-using ReferenceLight = lw::busses::ReferenceLightBus<TColor>;
+template <typename TColor = lw::colors::DefaultColorType> using ReferenceLight = lw::busses::ReferenceLightBus<TColor>;
 
 #if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
 template <typename... TBuses> using CompositeStrip = lw::busses::CompositeBus<TBuses...>;
@@ -51,6 +50,8 @@ template <typename TColor = lw::colors::DefaultColorType> using AggregateStrip =
 template <typename TColor = lw::colors::DefaultColorType> using Palette = lw::colors::palettes::Palette<TColor>;
 template <typename TColor = lw::colors::DefaultColorType> using IPalette = lw::colors::palettes::IPalette<TColor>;
 
+using lw::colors::palettes::paletteSamples;
+using lw::colors::palettes::paletteTransitionSamples;
 using lw::colors::palettes::samplePalette;
 
 template <typename TColor = lw::colors::DefaultColorType> using IStrip = lw::IPixelBus<TColor>;

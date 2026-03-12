@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -13,6 +14,213 @@
 
 namespace lw::colors::palettes
 {
+namespace detail
+{
+template <typename TRange>
+using SampleRangeStorageType =
+    std::conditional_t<std::is_lvalue_reference<TRange>::value, TRange, std::remove_reference_t<TRange>>;
+
+template <typename TRange> size_t countRangeElements(TRange&& range)
+{
+    size_t count = 0;
+    for (auto it = range.begin(); it != range.end(); ++it)
+    {
+        ++count;
+    }
+
+    return count;
+}
+
+template <typename TColor, typename TSampler, typename TIndexIt, typename = std::enable_if_t<ColorType<TColor>>>
+class PaletteSampleIterator
+{
+  public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = TColor;
+    using difference_type = std::ptrdiff_t;
+    using reference = TColor;
+    using pointer = void;
+
+    PaletteSampleIterator(const TSampler* sampler, TIndexIt current, const void* ownerIdentity, size_t remaining)
+        : _sampler(sampler), _current(current), _ownerIdentity(ownerIdentity), _remaining(remaining)
+    {
+    }
+
+    reference operator*() const { return (*_sampler)(static_cast<size_t>(*_current)); }
+
+    PaletteSampleIterator& operator++()
+    {
+        if (_remaining > 0)
+        {
+            ++_current;
+            --_remaining;
+        }
+
+        return *this;
+    }
+
+    PaletteSampleIterator operator++(int)
+    {
+        PaletteSampleIterator copy = *this;
+        ++(*this);
+        return copy;
+    }
+
+    friend bool operator==(const PaletteSampleIterator& left, const PaletteSampleIterator& right)
+    {
+        return left._ownerIdentity == right._ownerIdentity && left._remaining == right._remaining;
+    }
+
+    friend bool operator!=(const PaletteSampleIterator& left, const PaletteSampleIterator& right)
+    {
+        return !(left == right);
+    }
+
+  private:
+    const TSampler* _sampler;
+    TIndexIt _current;
+    const void* _ownerIdentity;
+    size_t _remaining;
+};
+
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class SinglePaletteSampler
+{
+  public:
+    SinglePaletteSampler(const IPalette<TColor>& palette, PaletteSampleOptions<TColor> options)
+        : _palette(palette), _options(options)
+    {
+    }
+
+    TColor operator()(size_t paletteIndex) const
+    {
+        return samplePaletteAt<TColor>(_palette.stops(), paletteIndex, _options);
+    }
+
+  private:
+    const IPalette<TColor>& _palette;
+    PaletteSampleOptions<TColor> _options;
+};
+
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class TransitionPaletteSampler
+{
+  public:
+    TransitionPaletteSampler(const IPalette<TColor>& paletteFrom, const IPalette<TColor>& paletteTo,
+                             uint8_t blendProgress8, PaletteSampleOptions<TColor> options)
+        : _paletteFrom(paletteFrom), _paletteTo(paletteTo), _blendProgress8(blendProgress8), _options(options)
+    {
+    }
+
+    TColor operator()(size_t paletteIndex) const
+    {
+        const TColor from = samplePaletteAt<TColor>(_paletteFrom.stops(), paletteIndex, _options);
+        const TColor to = samplePaletteAt<TColor>(_paletteTo.stops(), paletteIndex, _options);
+        return lw::linearBlend(from, to, _blendProgress8);
+    }
+
+  private:
+    const IPalette<TColor>& _paletteFrom;
+    const IPalette<TColor>& _paletteTo;
+    uint8_t _blendProgress8;
+    PaletteSampleOptions<TColor> _options;
+};
+
+template <typename TColor, typename TSampler, typename TStoredIndexRange,
+          typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<TStoredIndexRange>::value>>
+class PaletteSampleRangeT
+{
+  public:
+    using Iterator = PaletteSampleIterator<TColor, TSampler, decltype(std::declval<TStoredIndexRange&>().begin())>;
+
+    PaletteSampleRangeT(TSampler sampler, TStoredIndexRange paletteIndexes)
+        : _sampler(std::move(sampler)), _paletteIndexes(paletteIndexes), _count(countRangeElements(_paletteIndexes))
+    {
+    }
+
+    Iterator begin() const { return Iterator(&_sampler, _paletteIndexes.begin(), this, _count); }
+
+    Iterator end() const { return Iterator(&_sampler, _paletteIndexes.begin(), this, 0); }
+
+  private:
+    TSampler _sampler;
+    TStoredIndexRange _paletteIndexes;
+    size_t _count;
+};
+
+template <typename TSampleRange, typename TOutputRange,
+          typename = std::enable_if_t<IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+size_t writeSampleRange(TSampleRange&& sampleRange, TOutputRange&& outputColors)
+{
+    auto sample = sampleRange.begin();
+    const auto sampleEnd = sampleRange.end();
+    auto output = outputColors.begin();
+    const auto outputEnd = outputColors.end();
+
+    size_t written = 0;
+    for (; sample != sampleEnd && output != outputEnd; ++sample, ++output)
+    {
+        *output = *sample;
+        ++written;
+    }
+
+    return written;
+}
+} // namespace detail
+
+template <
+    typename TColor, typename TIndexRange,
+    typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value>>
+auto paletteSamples(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes,
+                    PaletteSampleOptions<TColor> options = {})
+{
+    using StoredIndexRange = detail::SampleRangeStorageType<TIndexRange>;
+    using Sampler = detail::SinglePaletteSampler<TColor>;
+    using Range = detail::PaletteSampleRangeT<TColor, Sampler, StoredIndexRange>;
+
+    return Range(Sampler(palette, options), std::forward<TIndexRange>(paletteIndexes));
+}
+
+template <
+    typename TColor, typename TIndexRange,
+    typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value>>
+auto paletteTransitionSamples(const IPalette<TColor>& paletteFrom, const IPalette<TColor>& paletteTo,
+                              TIndexRange&& paletteIndexes, uint8_t blendProgress8,
+                              PaletteSampleOptions<TColor> options = {})
+{
+    using StoredIndexRange = detail::SampleRangeStorageType<TIndexRange>;
+    using Sampler = detail::TransitionPaletteSampler<TColor>;
+    using Range = detail::PaletteSampleRangeT<TColor, Sampler, StoredIndexRange>;
+
+    return Range(Sampler(paletteFrom, paletteTo, blendProgress8, options), std::forward<TIndexRange>(paletteIndexes));
+}
+
+template <
+    typename TColor, typename TIndexRange,
+    typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value>>
+auto paletteTransitionSamples(const IPalette<TColor>& paletteFrom, const IPalette<TColor>& paletteTo,
+                              TIndexRange&& paletteIndexes, uint8_t transitionProgress, uint8_t transitionDuration,
+                              PaletteSampleOptions<TColor> options = {})
+{
+    return paletteTransitionSamples(paletteFrom, paletteTo, std::forward<TIndexRange>(paletteIndexes),
+                                    mapTransitionProgressToBlend8(transitionProgress, transitionDuration), options);
+}
+
+template <
+    typename TColor, typename TIndexRange,
+    typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value>>
+auto paletteSamples(const IPalette<TColor>&&, TIndexRange&&, PaletteSampleOptions<TColor> = {}) = delete;
+
+template <
+    typename TColor, typename TIndexRange,
+    typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value>>
+auto paletteTransitionSamples(const IPalette<TColor>&&, const IPalette<TColor>&, TIndexRange&&, uint8_t,
+                              PaletteSampleOptions<TColor> = {}) = delete;
+
+template <
+    typename TColor, typename TIndexRange,
+    typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value>>
+auto paletteTransitionSamples(const IPalette<TColor>&, const IPalette<TColor>&&, TIndexRange&&, uint8_t,
+                              PaletteSampleOptions<TColor> = {}) = delete;
+
 template <
     typename TColor, typename TIndexRange, typename TOutputRange,
     typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value &&
@@ -20,14 +228,8 @@ template <
 size_t samplePalette(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors,
                      PaletteSampleOptions<TColor> options = {})
 {
-    if (options.blendMode == BlendMode::Nearest)
-    {
-        return sampleNearest<TColor>(palette, std::forward<TIndexRange>(paletteIndexes),
-                                     std::forward<TOutputRange>(outputColors), options);
-    }
-
-    return sampleInterpolated<TColor>(palette, std::forward<TIndexRange>(paletteIndexes),
-                                      std::forward<TOutputRange>(outputColors), options);
+    return detail::writeSampleRange(paletteSamples(palette, std::forward<TIndexRange>(paletteIndexes), options),
+                                    std::forward<TOutputRange>(outputColors));
 }
 
 template <
@@ -49,11 +251,10 @@ size_t samplePalette(const IPalette<TColor>& paletteFrom, const IPalette<TColor>
                      TIndexRange&& paletteIndexes, TOutputRange&& outputColors, uint8_t blendProgress8,
                      PaletteSampleOptions<TColor> options = {})
 {
-    const size_t writtenFrom = samplePalette(paletteFrom, paletteIndexes, outputColors, options);
-
-    samplingtransition::BlendOutputRange<TColor, TOutputRange> blendedOutput(outputColors, blendProgress8);
-    const size_t writtenTo = samplePalette(paletteTo, paletteIndexes, blendedOutput, options);
-    return (writtenFrom < writtenTo) ? writtenFrom : writtenTo;
+    return detail::writeSampleRange(paletteTransitionSamples(paletteFrom, paletteTo,
+                                                             std::forward<TIndexRange>(paletteIndexes), blendProgress8,
+                                                             options),
+                                    std::forward<TOutputRange>(outputColors));
 }
 
 template <
