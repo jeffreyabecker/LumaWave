@@ -39,7 +39,7 @@ struct Hd108ProtocolSettings : public ProtocolSettings
 };
 
 template <typename TInterfaceColor = Rgb8Color, typename TStripColor = TInterfaceColor>
-class Apa102Protocol : public IProtocol<TInterfaceColor>
+class Apa102Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
   public:
     using SettingsType = Apa102ProtocolSettings;
@@ -66,6 +66,7 @@ class Apa102Protocol : public IProtocol<TInterfaceColor>
         : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)},
           _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
     {
+        _gainValue = 0xff;
     }
 
     void begin() override {}
@@ -91,7 +92,7 @@ class Apa102Protocol : public IProtocol<TInterfaceColor>
         for (size_t index = 0; index < pixelLimit; ++index)
         {
             const auto& color = colors[index];
-            _byteBuffer[offset++] = 0xFF;
+            _byteBuffer[offset++] = encodedGainByte();
             for (size_t channel = 0; channel < StripChannelCount; ++channel)
             {
                 _byteBuffer[offset++] = toStripComponent(color[effectiveChannelOrder[channel]]);
@@ -106,10 +107,13 @@ class Apa102Protocol : public IProtocol<TInterfaceColor>
     size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
   private:
+    static constexpr uint8_t MaxGain = 0x1f;
     static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
     static constexpr size_t BytesPerPixel = 1 + StripChannelCount;
     static constexpr size_t StartFrameSize = 4;
     static constexpr size_t EndFrameFixedSize = 4;
+
+    uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
     static constexpr uint8_t toStripComponent(typename InterfaceColorType::ComponentType value)
     {
@@ -127,7 +131,7 @@ class Apa102Protocol : public IProtocol<TInterfaceColor>
 };
 
 template <typename TInterfaceColor = Rgb8Color, typename TStripColor = Rgb16Color>
-class Hd108Protocol : public IProtocol<TInterfaceColor>
+class Hd108Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
   public:
     using SettingsType = Hd108ProtocolSettings;
@@ -153,6 +157,7 @@ class Hd108Protocol : public IProtocol<TInterfaceColor>
         : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)},
           _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
     {
+        _gainValue = 0xff;
     }
 
     void begin() override {}
@@ -178,7 +183,7 @@ class Hd108Protocol : public IProtocol<TInterfaceColor>
         {
             const auto& color = colors[index];
             _byteBuffer[offset++] = 0xFF;
-            _byteBuffer[offset++] = 0xFF;
+            _byteBuffer[offset++] = encodedGainByte();
 
             for (size_t channel = 0; channel < StripChannelCount; ++channel)
             {
@@ -196,10 +201,13 @@ class Hd108Protocol : public IProtocol<TInterfaceColor>
     size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
   private:
+    static constexpr uint8_t MaxGain = 0x1f;
     static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
     static constexpr size_t BytesPerPixel = 2 + (StripChannelCount * 2);
     static constexpr size_t StartFrameSize = 16;
     static constexpr size_t EndFrameSize = 4;
+
+    uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
     static constexpr uint16_t toStripComponent(typename InterfaceColorType::ComponentType value)
     {

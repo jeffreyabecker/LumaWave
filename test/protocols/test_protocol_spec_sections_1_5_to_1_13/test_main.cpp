@@ -223,17 +223,17 @@ void test_1_8_3_sm168x_settings_trailer_encoding_masks(void)
 {
     lw::protocols::Sm168xProtocolSettings settings{};
     settings.channelOrder = "RGBCW";
-    settings.gains = {31, 32, 33, 1, 0};
 
     lw::protocols::Sm168xProtocol<lw::Rgbcw8Color, lw::Rgbcw8Color> protocol(1, std::move(settings));
+    protocol.setGain(128);
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Rgbcw8Color, 1>{lw::Rgbcw8Color{10, 11, 12, 13, 14}}, as_span(protocolBuffer));
 
     TEST_ASSERT_EQUAL_UINT32(9U, static_cast<uint32_t>(protocolBuffer.size()));
-    TEST_ASSERT_EQUAL_UINT8(0xF8, protocolBuffer[5]);
-    TEST_ASSERT_EQUAL_UINT8(0x02, protocolBuffer[6]);
-    TEST_ASSERT_EQUAL_UINT8(0x00, protocolBuffer[7]);
-    TEST_ASSERT_EQUAL_UINT8(0x9F, protocolBuffer[8]);
+    TEST_ASSERT_EQUAL_UINT8(0x84, protocolBuffer[5]);
+    TEST_ASSERT_EQUAL_UINT8(0x21, protocolBuffer[6]);
+    TEST_ASSERT_EQUAL_UINT8(0x08, protocolBuffer[7]);
+    TEST_ASSERT_EQUAL_UINT8(0x1F, protocolBuffer[8]);
 }
 
 void test_1_8_4_sm168x_oversized_and_order_safety(void)
@@ -302,18 +302,16 @@ void test_1_11_1_and_1_11_3_tlc59711_header_encoding_and_latch_guard(void)
     cfg.tmgrst = false;
     cfg.dsprpt = true;
     cfg.blank = true;
-    cfg.bcRed = 1;
-    cfg.bcGreen = 2;
-    cfg.bcBlue = 3;
 
     lw::protocols::Tlc59711ProtocolT<> protocol(1, lw::protocols::Tlc59711ProtocolSettings{{}, cfg});
+    protocol.setGain(128);
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Rgb8Color, 1>{lw::Rgb8Color{1, 2, 3}}, as_span(protocolBuffer));
 
     TEST_ASSERT_EQUAL_UINT8(0x97, protocolBuffer[0]);
-    TEST_ASSERT_EQUAL_UINT8(0x60, protocolBuffer[1]);
-    TEST_ASSERT_EQUAL_UINT8(0xC1, protocolBuffer[2]);
-    TEST_ASSERT_EQUAL_UINT8(0x01, protocolBuffer[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x70, protocolBuffer[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x20, protocolBuffer[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x40, protocolBuffer[3]);
 
     TEST_ASSERT_EQUAL_UINT32(28U, static_cast<uint32_t>(protocolBuffer.size()));
 }

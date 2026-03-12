@@ -85,11 +85,12 @@ void test_1_1_3_and_1_1_4_dotstar_fixed_brightness_and_luminance_serialization(v
     {
         lw::protocols::Apa102Protocol<> protocol(
             2, lw::protocols::Apa102ProtocolSettings{{}, lw::ChannelOrder::GRB::value});
+        protocol.setGain(128);
         auto protocolBuffer = bind_protocol_buffer(protocol);
         protocol.begin();
         protocol.update(colors, as_span(protocolBuffer));
 
-        const std::vector<uint8_t> expected{0xFF, 0x22, 0x11, 0x33, 0xFF, 0x55, 0x44, 0x66};
+        const std::vector<uint8_t> expected{0xF0, 0x22, 0x11, 0x33, 0xF0, 0x55, 0x44, 0x66};
         assert_bytes_equal(slice_bytes(protocolBuffer, 4, 8), expected);
     }
 
@@ -118,11 +119,12 @@ void test_1_1_3_and_1_1_4_dotstar_fixed_brightness_and_luminance_serialization(v
     {
         lw::protocols::Hd108Protocol<lw::Rgb8Color, lw::Rgb16Color> protocol(
             1, lw::protocols::Hd108ProtocolSettings{{}, lw::ChannelOrder::RGB::value});
+        protocol.setGain(128);
         auto protocolBuffer = bind_protocol_buffer(protocol);
         protocol.begin();
         protocol.update(std::array<lw::Rgb8Color, 1>{lw::Rgb8Color{0x12, 0x34, 0x56}}, as_span(protocolBuffer));
 
-        const std::vector<uint8_t> expected{0xFF, 0xFF, 0x12, 0x12, 0x34, 0x34, 0x56, 0x56};
+        const std::vector<uint8_t> expected{0xFF, 0xF0, 0x12, 0x12, 0x34, 0x34, 0x56, 0x56};
         assert_bytes_equal(slice_bytes(protocolBuffer, 16, 8), expected);
     }
 }

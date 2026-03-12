@@ -21,7 +21,7 @@ namespace lw::protocols
 //   dsprpt  ? true = enable auto display repeat (default true)
 //   blank   ? true = outputs blanked
 //
-// Brightness: 7-bit per channel group (0?127).
+// Brightness: 7-bit global gain replicated to each RGB channel group (0?127).
 //
 struct Tlc59711Settings
 {
@@ -32,10 +32,6 @@ struct Tlc59711Settings
     bool tmgrst{true};
     bool dsprpt{true};
     bool blank{false};
-
-    uint8_t bcRed{MaxBrightness};
-    uint8_t bcGreen{MaxBrightness};
-    uint8_t bcBlue{MaxBrightness};
 };
 
 struct Tlc59711ProtocolSettings : public ProtocolSettings
@@ -68,7 +64,8 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 //
 // Latch: ~20 ?s guard after transmission.
 //
-template <typename TInterfaceColor = Rgb8Color> class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgb8Color>
+class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>, public IHaveGain
 {
   public:
     using InterfaceColorType = TInterfaceColor;
@@ -91,6 +88,7 @@ template <typename TInterfaceColor = Rgb8Color> class Tlc59711ProtocolT : public
           _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip},
           _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
     {
+        _gainValue = 0xff;
         encodeHeader(_settings.config);
     }
 
@@ -117,6 +115,12 @@ template <typename TInterfaceColor = Rgb8Color> class Tlc59711ProtocolT : public
 
     void updateSettings(const Tlc59711Settings& settings) { encodeHeader(settings); }
 
+    void setGain(uint8_t gain) override
+    {
+        IHaveGain::setGain(gain);
+        encodeHeader(_settings.config);
+    }
+
   private:
     static constexpr size_t PixelsPerChip = 4;
     static constexpr size_t ChannelsPerChip = 12;
@@ -131,9 +135,10 @@ template <typename TInterfaceColor = Rgb8Color> class Tlc59711ProtocolT : public
 
     void encodeHeader(const Tlc59711Settings& config)
     {
-        uint8_t bcR = config.bcRed & 0x7F;
-        uint8_t bcG = config.bcGreen & 0x7F;
-        uint8_t bcB = config.bcBlue & 0x7F;
+        const uint8_t normalizedGain = normalizeGainValue(_gainValue, Tlc59711Settings::MaxBrightness);
+        uint8_t bcR = normalizedGain;
+        uint8_t bcG = normalizedGain;
+        uint8_t bcB = normalizedGain;
 
         // Control bits packed into one byte for convenience
         uint8_t ctrl = 0;

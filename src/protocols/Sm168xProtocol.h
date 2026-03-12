@@ -14,11 +14,10 @@ namespace lw::protocols
 struct Sm168xProtocolSettings : public ProtocolSettings
 {
     const char* channelOrder = ChannelOrder::RGB::value;
-    std::array<uint8_t, 5> gains = {15, 15, 15, 15, 15};
 };
 
 template <typename TInterfaceColor = Rgb8Color, typename TStripColor = TInterfaceColor>
-class Sm168xProtocol : public IProtocol<TInterfaceColor>
+class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
   public:
     using InterfaceColorType = TInterfaceColor;
@@ -44,6 +43,7 @@ class Sm168xProtocol : public IProtocol<TInterfaceColor>
         : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)},
           _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
     {
+        _gainValue = 0xff;
     }
 
     void begin() override {}
@@ -86,18 +86,14 @@ class Sm168xProtocol : public IProtocol<TInterfaceColor>
     static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
     static constexpr size_t SettingsSize = resolveSettingsSize(StripChannelCount);
 
-    uint8_t gainFromChannel(char channel) const
+    static constexpr uint8_t maxGain()
     {
-        size_t idx = channelIndexFromTag(channel);
-        idx = std::min(idx, _settings.gains.size() - 1);
-
-        const uint8_t gain = _settings.gains[idx];
         if constexpr (StripChannelCount == 5)
         {
-            return static_cast<uint8_t>(gain & 0x1f);
+            return 0x1f;
         }
 
-        return static_cast<uint8_t>(gain & 0x0f);
+        return 0x0f;
     }
 
     static constexpr size_t channelIndexFromTag(char channel)
@@ -160,9 +156,10 @@ class Sm168xProtocol : public IProtocol<TInterfaceColor>
     void encodeSettings()
     {
         uint8_t ic[5] = {0, 0, 0, 0, 0};
+        const uint8_t gain = maskedGain();
         for (size_t channel = 0; channel < StripChannelCount; ++channel)
         {
-            ic[channel] = gainFromChannel(_settings.channelOrder[channel]);
+            ic[channel] = gain;
         }
 
         uint8_t* encoded = _frameBuffer.data() + (_frameBuffer.size() - SettingsSize);
@@ -185,6 +182,8 @@ class Sm168xProtocol : public IProtocol<TInterfaceColor>
             encoded[3] = static_cast<uint8_t>((ic[4] << 7) | 0b00011111);
         }
     }
+
+    uint8_t maskedGain() const { return normalizeGainValue(_gainValue, maxGain()); }
 
     SettingsType _settings;
     size_t _requiredBufferSize{0};
