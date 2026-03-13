@@ -167,9 +167,9 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 
     const TColor& backFadeColor() const { return _backFadeColor; }
 
-    void update(uint32_t hueStep = 1) override
+    void update(uint32_t step = 1) override
     {
-        _hueOffset += hueStep;
+        _hueOffset += step;
         rebuild();
     }
 
