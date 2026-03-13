@@ -12,15 +12,21 @@ using Palette = lw::colors::palettes::Palette<lw::Rgb8Color>;
 
 static_assert(std::is_convertible<decltype(std::declval<const Palette&>().stops()), lw::span<const Stop>>::value,
               "Palette stops() must return a stop span");
-static_assert(lw::colors::palettes::IsPaletteLike<Palette>::value,
-              "Palette should satisfy IsPaletteLike");
+static_assert(lw::colors::palettes::IsPaletteLike<Palette>::value, "Palette should satisfy IsPaletteLike");
+static_assert(std::is_convertible<
+                  decltype(std::declval<const lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>&>().stops()),
+                  lw::span<const Stop>>::value,
+              "RainbowPaletteGenerator stops() must return a stop span");
+static_assert(lw::colors::palettes::IsPaletteLike<lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>>::value,
+              "RainbowPaletteGenerator must satisfy IsPaletteLike");
 static_assert(
-    std::is_convertible<decltype(std::declval<const lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>&>().stops()),
-                        lw::span<const Stop>>::value,
-    "RainbowPaletteGenerator stops() must return a stop span");
+    std::is_convertible<
+        decltype(std::declval<const lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>&>().stops()),
+        lw::span<const Stop>>::value,
+    "TemporalRainbowPaletteGenerator stops() must return a stop span");
 static_assert(
-    lw::colors::palettes::IsPaletteLike<lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>>::value,
-    "RainbowPaletteGenerator must satisfy IsPaletteLike");
+    lw::colors::palettes::IsPaletteLike<lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>>::value,
+    "TemporalRainbowPaletteGenerator must satisfy IsPaletteLike");
 static_assert(
     std::is_convertible<
         decltype(std::declval<const lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color>&>().stops()),
@@ -52,6 +58,89 @@ void test_rainbow_generator_stop_shape_and_update(void)
     const auto after = rainbow.stops();
 
     TEST_ASSERT_TRUE(!(after[0].color == firstBefore));
+}
+
+void test_temporal_rainbow_generator_is_two_stop_uniform_palette(void)
+{
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> generator;
+    const auto stops = generator.stops();
+
+    TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(stops.size()));
+    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(stops[0].index));
+    TEST_ASSERT_EQUAL_UINT32(255, static_cast<uint32_t>(stops[1].index));
+    TEST_ASSERT_TRUE(stops[0].color == stops[1].color);
+}
+
+void test_temporal_rainbow_generator_changes_uniform_color_over_time(void)
+{
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> generator;
+    const auto before = generator.stops();
+    const lw::Rgb8Color firstBefore = before[0].color;
+
+    generator.update();
+
+    const auto after = generator.stops();
+    TEST_ASSERT_TRUE(after[0].color == after[1].color);
+    TEST_ASSERT_TRUE(!(after[0].color == firstBefore));
+}
+
+void test_temporal_rainbow_generator_defaults_update_step_to_one(void)
+{
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> implicitStep;
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> explicitStep;
+
+    implicitStep.update();
+    explicitStep.update(1);
+
+    const auto implicitStops = implicitStep.stops();
+    const auto explicitStops = explicitStep.stops();
+
+    TEST_ASSERT_TRUE(implicitStops[0].color == explicitStops[0].color);
+    TEST_ASSERT_TRUE(implicitStops[1].color == explicitStops[1].color);
+}
+
+void test_temporal_rainbow_generator_exposes_fade_settings_defaults(void)
+{
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> generator;
+
+    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(generator.frontFade()));
+    TEST_ASSERT_TRUE(generator.frontFadeColor() == lw::Rgb8Color(0, 0, 0));
+    TEST_ASSERT_EQUAL_UINT32(255, static_cast<uint32_t>(generator.backFade()));
+    TEST_ASSERT_TRUE(generator.backFadeColor() == lw::Rgb8Color(0, 0, 0));
+
+    generator.setFrontFade(16);
+    generator.setFrontFadeColor(lw::Rgb8Color(1, 2, 3));
+    generator.setBackFade(192);
+    generator.setBackFadeColor(lw::Rgb8Color(4, 5, 6));
+
+    TEST_ASSERT_EQUAL_UINT32(16, static_cast<uint32_t>(generator.frontFade()));
+    TEST_ASSERT_TRUE(generator.frontFadeColor() == lw::Rgb8Color(1, 2, 3));
+    TEST_ASSERT_EQUAL_UINT32(192, static_cast<uint32_t>(generator.backFade()));
+    TEST_ASSERT_TRUE(generator.backFadeColor() == lw::Rgb8Color(4, 5, 6));
+}
+
+void test_temporal_rainbow_generator_applies_front_and_back_fades(void)
+{
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> generator(64, lw::Rgb8Color(0, 0, 0), 192,
+                                                                                   lw::Rgb8Color(255, 255, 255));
+    const auto stops = generator.stops();
+
+    TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(stops.size()));
+    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(stops[0].index));
+    TEST_ASSERT_TRUE(stops[0].color == lw::Rgb8Color(0, 0, 0));
+    TEST_ASSERT_EQUAL_UINT32(64, static_cast<uint32_t>(stops[1].index));
+    TEST_ASSERT_EQUAL_UINT32(192, static_cast<uint32_t>(stops[2].index));
+    TEST_ASSERT_TRUE(stops[1].color == stops[2].color);
+    TEST_ASSERT_EQUAL_UINT32(255, static_cast<uint32_t>(stops[3].index));
+    TEST_ASSERT_TRUE(stops[3].color == lw::Rgb8Color(255, 255, 255));
+
+    const lw::Rgb8Color frontMid = lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(stops, 32, {});
+    const lw::Rgb8Color backMid = lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(stops, 224, {});
+
+    TEST_ASSERT_TRUE(!(frontMid == stops[0].color));
+    TEST_ASSERT_TRUE(!(frontMid == stops[1].color));
+    TEST_ASSERT_TRUE(!(backMid == stops[2].color));
+    TEST_ASSERT_TRUE(!(backMid == stops[3].color));
 }
 
 void test_random_smooth_generator_is_deterministic(void)
@@ -148,6 +237,7 @@ void test_generators_satisfy_palette_like_usage(void)
     };
     const Palette solid(solidStops);
     lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(6);
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> temporalRainbow;
     lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smooth(6, 1u, 25);
     lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle(6, 2u, 25);
 
@@ -157,6 +247,8 @@ void test_generators_satisfy_palette_like_usage(void)
         lw::colors::palettes::samplePalette(solid, paletteIndexes, lw::span<lw::Rgb8Color>(out.data(), out.size()));
     const size_t rainbowWritten =
         lw::colors::palettes::samplePalette(rainbow, paletteIndexes, lw::span<lw::Rgb8Color>(out.data(), out.size()));
+    const size_t temporalRainbowWritten = lw::colors::palettes::samplePalette(
+        temporalRainbow, paletteIndexes, lw::span<lw::Rgb8Color>(out.data(), out.size()));
     const size_t smoothWritten =
         lw::colors::palettes::samplePalette(smooth, paletteIndexes, lw::span<lw::Rgb8Color>(out.data(), out.size()));
     const size_t cycleWritten =
@@ -164,6 +256,7 @@ void test_generators_satisfy_palette_like_usage(void)
 
     TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(solidWritten));
     TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(rainbowWritten));
+    TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(temporalRainbowWritten));
     TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(smoothWritten));
     TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(cycleWritten));
 }
@@ -181,6 +274,11 @@ int main(int, char**)
 {
     UNITY_BEGIN();
     RUN_TEST(test_rainbow_generator_stop_shape_and_update);
+    RUN_TEST(test_temporal_rainbow_generator_is_two_stop_uniform_palette);
+    RUN_TEST(test_temporal_rainbow_generator_changes_uniform_color_over_time);
+    RUN_TEST(test_temporal_rainbow_generator_defaults_update_step_to_one);
+    RUN_TEST(test_temporal_rainbow_generator_exposes_fade_settings_defaults);
+    RUN_TEST(test_temporal_rainbow_generator_applies_front_and_back_fades);
     RUN_TEST(test_random_smooth_generator_is_deterministic);
     RUN_TEST(test_random_smooth_generator_changes_over_time);
     RUN_TEST(test_random_cycle_generator_is_deterministic);

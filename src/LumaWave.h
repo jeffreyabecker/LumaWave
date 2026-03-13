@@ -95,6 +95,9 @@ template <typename TColor = lw::colors::DefaultColorType>
 using Rainbow = lw::colors::palettes::RainbowPaletteGenerator<TColor>;
 
 template <typename TColor = lw::colors::DefaultColorType>
+using TemporalRainbow = lw::colors::palettes::TemporalRainbowPaletteGenerator<TColor>;
+
+template <typename TColor = lw::colors::DefaultColorType>
 using RandomSmooth = lw::colors::palettes::RandomSmoothPaletteGenerator<TColor>;
 
 template <typename TColor = lw::colors::DefaultColorType>
