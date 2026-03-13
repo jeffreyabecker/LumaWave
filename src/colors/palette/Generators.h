@@ -169,7 +169,7 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 
     void update(uint32_t step = 1) override
     {
-        _hueOffset += step;
+        _stepIndex += step;
         rebuild();
     }
 
@@ -198,7 +198,7 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 
     void rebuild()
     {
-        const TColor liveColor = samplePaletteAt<TColor>(_rainbowGenerator.stops(), _hueOffset,
+        const TColor liveColor = samplePaletteAt<TColor>(_rainbowGenerator.stops(), _stepIndex,
                                                          PaletteSampleOptions<TColor>{.wrapMode = WrapMode::Circular,
                                                                                       .blendMode = BlendMode::Linear,
                                                                                       .quantizedLevels = 0});
@@ -235,7 +235,7 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 
     std::vector<PaletteStop<TColor>> _stops{};
     RainbowPaletteGenerator<TColor> _rainbowGenerator;
-    size_t _hueOffset = 0;
+    size_t _stepIndex = 0;
     size_t _frontFade{0};
     TColor _frontFadeColor{};
     size_t _backFade{255};
