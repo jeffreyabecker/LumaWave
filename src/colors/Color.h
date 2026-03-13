@@ -135,6 +135,16 @@ class RgbBasedColor
 
     constexpr bool operator==(const RgbBasedColor& other) const { return Channels == other.Channels; }
 
+    constexpr bool operator!=(const RgbBasedColor& other) const { return !(*this == other); }
+
+    constexpr bool operator<(const RgbBasedColor& other) const { return compareCanonical(other) < 0; }
+
+    constexpr bool operator<=(const RgbBasedColor& other) const { return compareCanonical(other) <= 0; }
+
+    constexpr bool operator>(const RgbBasedColor& other) const { return compareCanonical(other) > 0; }
+
+    constexpr bool operator>=(const RgbBasedColor& other) const { return compareCanonical(other) >= 0; }
+
     template <typename T = TComponent,
               typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint8_t>::value>>
     constexpr RgbBasedColor& operator=(uint32_t packed)
@@ -213,6 +223,33 @@ class RgbBasedColor
     }
 
   private:
+    constexpr int compareCanonical(const RgbBasedColor& other) const
+    {
+        constexpr std::array<char, 5> CanonicalChannels = {'R', 'G', 'B', 'C', 'W'};
+
+        for (char channel : CanonicalChannels)
+        {
+            if (!ColorChannelIndexRange<NChannels>::isSupportedChannelTag(channel))
+            {
+                continue;
+            }
+
+            const auto left = (*this)[channel];
+            const auto right = other[channel];
+            if (left < right)
+            {
+                return -1;
+            }
+
+            if (left > right)
+            {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
     std::array<InternalComponentType, InternalSize / sizeof(InternalComponentType)>
         Channels; // no {} here so we're trivially constructable
 };

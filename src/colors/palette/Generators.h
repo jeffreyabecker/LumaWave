@@ -124,48 +124,12 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
   public:
     using StopsView = span<const PaletteStop<TColor>>;
 
-    explicit TemporalRainbowPaletteGenerator(size_t frontFade = 0, TColor frontFadeColor = TColor{},
-                                             size_t backFade = 255, TColor backFadeColor = TColor{})
-        : _rainbowGenerator(), _frontFade(frontFade), _frontFadeColor(frontFadeColor), _backFade(backFade),
-          _backFadeColor(backFadeColor)
+    explicit TemporalRainbowPaletteGenerator() : _rainbowGenerator()
     {
-        normalizeFadeRange();
+        _stops[0].index = 0;
+        _stops[1].index = 255;
         rebuild();
     }
-
-    void setFrontFade(size_t frontFade)
-    {
-        _frontFade = frontFade;
-        normalizeFadeRange();
-        rebuild();
-    }
-
-    size_t frontFade() const { return _frontFade; }
-
-    void setFrontFadeColor(const TColor& frontFadeColor)
-    {
-        _frontFadeColor = frontFadeColor;
-        rebuild();
-    }
-
-    const TColor& frontFadeColor() const { return _frontFadeColor; }
-
-    void setBackFade(size_t backFade)
-    {
-        _backFade = backFade;
-        normalizeFadeRange();
-        rebuild();
-    }
-
-    size_t backFade() const { return _backFade; }
-
-    void setBackFadeColor(const TColor& backFadeColor)
-    {
-        _backFadeColor = backFadeColor;
-        rebuild();
-    }
-
-    const TColor& backFadeColor() const { return _backFadeColor; }
 
     void update(uint32_t step = 1) override
     {
@@ -176,70 +140,19 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
   private:
-    static constexpr size_t MaxPaletteIndex = 255u;
-
-    void normalizeFadeRange()
-    {
-        if (_frontFade > MaxPaletteIndex)
-        {
-            _frontFade = MaxPaletteIndex;
-        }
-
-        if (_backFade > MaxPaletteIndex)
-        {
-            _backFade = MaxPaletteIndex;
-        }
-
-        if (_frontFade > _backFade)
-        {
-            _frontFade = _backFade;
-        }
-    }
-
     void rebuild()
     {
         const TColor liveColor = samplePaletteAt<TColor>(_rainbowGenerator.stops(), _stepIndex,
                                                          PaletteSampleOptions<TColor>{.wrapMode = WrapMode::Circular,
                                                                                       .blendMode = BlendMode::Linear,
                                                                                       .quantizedLevels = 0});
-
-        _stops.clear();
-
-        if (_frontFade == 0u && _backFade == MaxPaletteIndex)
-        {
-            _stops.push_back(PaletteStop<TColor>{0u, liveColor});
-            _stops.push_back(PaletteStop<TColor>{MaxPaletteIndex, liveColor});
-            return;
-        }
-
-        if (_frontFade > 0u)
-        {
-            _stops.push_back(PaletteStop<TColor>{0u, _frontFadeColor});
-            _stops.push_back(PaletteStop<TColor>{_frontFade, liveColor});
-        }
-        else
-        {
-            _stops.push_back(PaletteStop<TColor>{0u, liveColor});
-        }
-
-        if (_backFade < MaxPaletteIndex)
-        {
-            _stops.push_back(PaletteStop<TColor>{_backFade, liveColor});
-            _stops.push_back(PaletteStop<TColor>{MaxPaletteIndex, _backFadeColor});
-        }
-        else
-        {
-            _stops.push_back(PaletteStop<TColor>{MaxPaletteIndex, liveColor});
-        }
+        _stops[0].color = liveColor;
+        _stops[1].color = liveColor;
     }
 
-    std::vector<PaletteStop<TColor>> _stops{};
+    std::array<PaletteStop<TColor>, 2> _stops{};
     RainbowPaletteGenerator<TColor> _rainbowGenerator;
     size_t _stepIndex = 0;
-    size_t _frontFade{0};
-    TColor _frontFadeColor{};
-    size_t _backFade{255};
-    TColor _backFadeColor{};
 };
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>

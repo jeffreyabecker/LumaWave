@@ -240,9 +240,35 @@ void test_1_3_1_equality_operator_correctness(void)
 
     TEST_ASSERT_TRUE(lhs == equal);
     TEST_ASSERT_FALSE(lhs == different);
+    TEST_ASSERT_FALSE(lhs != equal);
+    TEST_ASSERT_TRUE(lhs != different);
 }
 
-void test_1_3_2_channel_order_string_length_consistency(void)
+void test_1_3_2_ordering_operators_compare_canonical_channel_order(void)
+{
+    const lw::Rgb8Color lower{1, 2, 3};
+    const lw::Rgb8Color higherBlue{1, 2, 4};
+    const lw::Rgb8Color same{1, 2, 3};
+    const lw::Rgbcw16Color cPreferredLower{100, 200, 300, 600, 400};
+    const lw::Rgbcw16Color cPreferredHigher{100, 200, 300, 0, 500};
+
+    TEST_ASSERT_TRUE(lower < higherBlue);
+    TEST_ASSERT_TRUE(lower <= higherBlue);
+    TEST_ASSERT_TRUE(higherBlue > lower);
+    TEST_ASSERT_TRUE(higherBlue >= lower);
+
+    TEST_ASSERT_TRUE(lower <= same);
+    TEST_ASSERT_TRUE(lower >= same);
+    TEST_ASSERT_FALSE(lower < same);
+    TEST_ASSERT_FALSE(lower > same);
+
+    TEST_ASSERT_TRUE(cPreferredLower < cPreferredHigher);
+    TEST_ASSERT_TRUE(cPreferredLower <= cPreferredHigher);
+    TEST_ASSERT_TRUE(cPreferredHigher > cPreferredLower);
+    TEST_ASSERT_TRUE(cPreferredHigher >= cPreferredLower);
+}
+
+void test_1_3_3_channel_order_string_length_consistency(void)
 {
     TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(lw::ChannelOrder::RGB::length),
                              static_cast<uint32_t>(std::char_traits<char>::length(lw::ChannelOrder::RGB::value)));
@@ -647,7 +673,8 @@ int main(int argc, char** argv)
     RUN_TEST(test_1_2_3_unknown_channel_fallback_behavior);
     RUN_TEST(test_1_2_4_wc_fallback_on_lower_channel_colors);
     RUN_TEST(test_1_3_1_equality_operator_correctness);
-    RUN_TEST(test_1_3_2_channel_order_string_length_consistency);
+    RUN_TEST(test_1_3_2_ordering_operators_compare_canonical_channel_order);
+    RUN_TEST(test_1_3_3_channel_order_string_length_consistency);
     RUN_TEST(test_1_4_1_channel_map_accepts_struct_channel_members);
     RUN_TEST(test_1_4_2_channel_map_uses_relevant_members_for_color_depth);
     RUN_TEST(test_1_4_3_channel_source_exposes_expected_fields_by_color);
