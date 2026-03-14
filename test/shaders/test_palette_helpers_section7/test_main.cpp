@@ -188,6 +188,19 @@ void test_owned_palette_parse_allows_whitespace(void)
     TEST_ASSERT_EQUAL_UINT8(0x10, stops[2].color['B']);
 }
 
+void test_owned_palette_parse_rejects_missing_required_endpoints(void)
+{
+    const auto missingZero = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("1,112233|255,445566");
+    const auto missing255 = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233|254,445566");
+    const auto singleStop = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233");
+    const auto outOfRange = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233|256,445566");
+
+    TEST_ASSERT_TRUE(missingZero.stops().empty());
+    TEST_ASSERT_TRUE(missing255.stops().empty());
+    TEST_ASSERT_TRUE(singleStop.stops().empty());
+    TEST_ASSERT_TRUE(outOfRange.stops().empty());
+}
+
 void test_owned_palette_parse_supports_rgbw_and_rgbcw_8bit(void)
 {
     const auto rgbwPalette = lw::colors::palettes::Palette<lw::Rgbw8Color>::parse("0,11223344|255,AABBCCDD");
@@ -323,6 +336,7 @@ int main(int, char**)
     RUN_TEST(test_owned_palette_mutable_storage_updates_sampling);
     RUN_TEST(test_owned_palette_parse_reads_stops);
     RUN_TEST(test_owned_palette_parse_allows_whitespace);
+    RUN_TEST(test_owned_palette_parse_rejects_missing_required_endpoints);
     RUN_TEST(test_owned_palette_parse_supports_rgbw_and_rgbcw_8bit);
     RUN_TEST(test_owned_palette_parse_upscales_channel_count_at_same_bit_depth);
     RUN_TEST(test_owned_palette_parse_supports_rgbw_and_rgbcw_16bit);

@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "colors/palette/ModeEnums.h"
+#include "colors/palette/Types.h"
 
 namespace lw::colors::palettes
 {
@@ -13,167 +14,131 @@ constexpr size_t absoluteDistance(size_t left, size_t right)
     return (left >= right) ? (left - right) : (right - left);
 }
 
-struct WrapClamp
+namespace detail
 {
-    static constexpr bool isOutOfRange(size_t, size_t) { return false; }
+inline constexpr size_t PaletteDomainMinIndex = 0u;
+inline constexpr size_t PaletteDomainMaxIndex = 255u;
+inline constexpr size_t PaletteDomainSpan = PaletteDomainMaxIndex + 1u;
 
-    static constexpr size_t distance(size_t left, size_t right, size_t = 255) { return absoluteDistance(left, right); }
+struct NormalizedSampleIndex
+{
+    size_t value{0};
+    bool outOfRange{false};
+    bool usesBoundarySampling{false};
+    WrapMode wrapMode{WrapMode::Clamp};
+    size_t domainMaxIndex{PaletteDomainMaxIndex};
 
-    static constexpr size_t mapPositionToPaletteIndex(size_t pixelIndex, size_t pixelCount, size_t maxIndex = 255)
-    {
-        if (pixelCount == 0)
-        {
-            return 0;
-        }
-
-        if (pixelCount <= 1)
-        {
-            return 0;
-        }
-
-        const size_t clamped = (pixelIndex >= pixelCount) ? (pixelCount - 1) : pixelIndex;
-        return (clamped * maxIndex) / (pixelCount - 1);
-    }
+    constexpr size_t wrapDistance(size_t stopIndex) const;
 };
 
-struct WrapCircular
+template <typename TColor> constexpr size_t normalizedDomainSampleCount(PaletteSampleOptions<TColor> options)
 {
-    static constexpr bool isOutOfRange(size_t, size_t) { return false; }
+    return (options.scaledSampleCount == 0u) ? PaletteDomainSpan : options.scaledSampleCount;
+}
 
-    static constexpr size_t distance(size_t left, size_t right, size_t maxIndex = 255)
-    {
-        const size_t direct = WrapClamp::distance(left, right);
-        const size_t span = maxIndex + 1;
-
-        if (span == 0)
-        {
-            return direct;
-        }
-
-        if (direct >= span)
-        {
-            return direct % span;
-        }
-
-        return std::min(direct, span - direct);
-    }
-
-    static constexpr size_t mapPositionToPaletteIndex(size_t pixelIndex, size_t pixelCount, size_t maxIndex = 255)
-    {
-        if (pixelCount == 0)
-        {
-            return 0;
-        }
-
-        const size_t wrapped = pixelIndex % pixelCount;
-        return (wrapped * (maxIndex + 1)) / pixelCount;
-    }
-};
-
-struct WrapMirror
+template <typename TColor> constexpr size_t normalizedDomainMaxIndex(PaletteSampleOptions<TColor> options)
 {
-    static constexpr bool isOutOfRange(size_t, size_t) { return false; }
+    return normalizedDomainSampleCount(options) - 1u;
+}
 
-    static constexpr size_t distance(size_t left, size_t right, size_t = 255)
-    {
-        return WrapClamp::distance(left, right);
-    }
-
-    static constexpr size_t mapPositionToPaletteIndex(size_t pixelIndex, size_t pixelCount, size_t maxIndex = 255)
-    {
-        if (pixelCount <= 1)
-        {
-            return 0;
-        }
-
-        const size_t period = (pixelCount - 1) * 2;
-        const size_t pos = (period == 0) ? 0 : (pixelIndex % period);
-        const size_t mirrored = (pos <= (pixelCount - 1)) ? pos : (period - pos);
-        return (mirrored * maxIndex) / (pixelCount - 1);
-    }
-};
-
-struct WrapHoldFirst
+inline constexpr size_t circularDistance(size_t left, size_t right, size_t maxIndex)
 {
-    static constexpr bool isOutOfRange(size_t, size_t) { return false; }
+    const size_t direct = absoluteDistance(left, right);
+    const size_t span = maxIndex + 1u;
 
-    static constexpr size_t distance(size_t left, size_t right, size_t = 255)
+    if (span == 0u)
     {
-        return WrapClamp::distance(left, right);
+        return direct;
     }
 
-    static constexpr size_t mapPositionToPaletteIndex(size_t pixelIndex, size_t pixelCount, size_t maxIndex = 255)
+    if (direct >= span)
     {
-        if (pixelCount == 0 || pixelIndex >= pixelCount)
-        {
-            return 0;
-        }
-
-        if (pixelCount <= 1)
-        {
-            return 0;
-        }
-
-        return (pixelIndex * maxIndex) / (pixelCount - 1);
+        return direct % span;
     }
-};
 
-struct WrapHoldLast
+    return std::min(direct, span - direct);
+}
+
+inline constexpr size_t NormalizedSampleIndex::wrapDistance(size_t stopIndex) const
 {
-    static constexpr bool isOutOfRange(size_t, size_t) { return false; }
-
-    static constexpr size_t distance(size_t left, size_t right, size_t = 255)
+    switch (wrapMode)
     {
-        return WrapClamp::distance(left, right);
+        case WrapMode::Circular:
+            return circularDistance(stopIndex, value, domainMaxIndex);
+        case WrapMode::Clamp:
+        case WrapMode::Mirror:
+        case WrapMode::HoldFirst:
+        case WrapMode::HoldLast:
+        case WrapMode::Blackout:
+        default:
+            return absoluteDistance(stopIndex, value);
     }
+}
 
-    static constexpr size_t mapPositionToPaletteIndex(size_t pixelIndex, size_t pixelCount, size_t maxIndex = 255)
-    {
-        if (pixelCount == 0)
-        {
-            return maxIndex;
-        }
-
-        if (pixelCount <= 1)
-        {
-            return maxIndex;
-        }
-
-        if (pixelIndex >= pixelCount)
-        {
-            return maxIndex;
-        }
-
-        return (pixelIndex * maxIndex) / (pixelCount - 1);
-    }
-};
-
-struct WrapBlackout
+inline constexpr size_t mirrorSampleIndex(size_t sampleIndex, size_t domainSampleCount, size_t domainMaxIndex)
 {
-    static constexpr size_t distance(size_t left, size_t right, size_t = 255)
+    if (domainSampleCount <= 1u)
     {
-        return WrapClamp::distance(left, right);
+        return 0u;
     }
 
-    static constexpr bool isOutOfRange(size_t pixelIndex, size_t pixelCount)
+    const size_t period = (domainSampleCount - 1u) * 2u;
+    const size_t position = (period == 0u) ? 0u : (sampleIndex % period);
+    return (position <= domainMaxIndex) ? position : (period - position);
+}
+
+template <typename TColor>
+constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions<TColor> options, size_t sampleIndex)
+{
+    const size_t domainSampleCount = normalizedDomainSampleCount(options);
+    const size_t domainMaxIndex = normalizedDomainMaxIndex(options);
+
+    switch (options.wrapMode)
     {
-        return pixelCount == 0 || pixelIndex >= pixelCount;
+        case WrapMode::Blackout:
+            return NormalizedSampleIndex{sampleIndex, sampleIndex > domainMaxIndex, true, options.wrapMode,
+                                         domainMaxIndex};
+        case WrapMode::Clamp:
+            return NormalizedSampleIndex{(sampleIndex > domainMaxIndex) ? domainMaxIndex : sampleIndex, false, true,
+                                         options.wrapMode, domainMaxIndex};
+        case WrapMode::Circular:
+            return NormalizedSampleIndex{sampleIndex % domainSampleCount, false, false, options.wrapMode,
+                                         domainMaxIndex};
+        case WrapMode::Mirror:
+            return NormalizedSampleIndex{mirrorSampleIndex(sampleIndex, domainSampleCount, domainMaxIndex), false,
+                                         false, options.wrapMode, domainMaxIndex};
+        case WrapMode::HoldFirst:
+            return NormalizedSampleIndex{(sampleIndex > domainMaxIndex) ? 0u : sampleIndex, false, true,
+                                         options.wrapMode, domainMaxIndex};
+        case WrapMode::HoldLast:
+            return NormalizedSampleIndex{(sampleIndex > domainMaxIndex) ? domainMaxIndex : sampleIndex, false, true,
+                                         options.wrapMode, domainMaxIndex};
+        default:
+            return NormalizedSampleIndex{sampleIndex, false, false, options.wrapMode, domainMaxIndex};
     }
+}
 
-    static constexpr size_t mapPositionToPaletteIndex(size_t pixelIndex, size_t pixelCount, size_t maxIndex = 255)
+template <typename TColor> TColor lowerBoundarySample(WrapMode wrapMode, span<const PaletteStop<TColor>> stops)
+{
+    return (wrapMode == WrapMode::HoldLast) ? stops.back().color : stops.front().color;
+}
+
+template <typename TColor> TColor upperBoundarySample(WrapMode wrapMode, span<const PaletteStop<TColor>> stops)
+{
+    switch (wrapMode)
     {
-        if (isOutOfRange(pixelIndex, pixelCount))
-        {
-            return 0;
-        }
-
-        if (pixelCount <= 1)
-        {
-            return 0;
-        }
-
-        return (pixelIndex * maxIndex) / (pixelCount - 1);
+        case WrapMode::HoldFirst:
+            return stops.front().color;
+        case WrapMode::Blackout:
+            return TColor{};
+        case WrapMode::Clamp:
+        case WrapMode::HoldLast:
+        case WrapMode::Circular:
+        case WrapMode::Mirror:
+        default:
+            return stops.back().color;
     }
-};
+}
+} // namespace detail
 
 } // namespace lw::colors::palettes

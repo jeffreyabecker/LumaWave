@@ -11,10 +11,12 @@ using Stop = lw::colors::palettes::PaletteStop<lw::Rgb8Color>;
 
 constexpr std::array<Stop, 2> kWideStops = {Stop{0, lw::Rgb8Color(0, 0, 0)}, Stop{255, lw::Rgb8Color(255, 255, 255)}};
 
-constexpr std::array<Stop, 3> kRangeStops = {Stop{50, lw::Rgb8Color(10, 0, 0)}, Stop{120, lw::Rgb8Color(100, 0, 0)},
-                                             Stop{200, lw::Rgb8Color(200, 0, 0)}};
+constexpr std::array<Stop, 5> kRangeStops = {Stop{0, lw::Rgb8Color(10, 0, 0)}, Stop{50, lw::Rgb8Color(10, 0, 0)},
+                                             Stop{120, lw::Rgb8Color(100, 0, 0)}, Stop{200, lw::Rgb8Color(200, 0, 0)},
+                                             Stop{255, lw::Rgb8Color(200, 0, 0)}};
 
-constexpr std::array<Stop, 2> kTieStops = {Stop{0, lw::Rgb8Color(255, 0, 0)}, Stop{2, lw::Rgb8Color(0, 0, 255)}};
+constexpr std::array<Stop, 3> kTieStops = {Stop{0, lw::Rgb8Color(255, 0, 0)}, Stop{2, lw::Rgb8Color(0, 0, 255)},
+                                           Stop{255, lw::Rgb8Color(0, 0, 255)}};
 
 constexpr std::array<Stop, 4> kDuplicateIndexStops = {
     Stop{0, lw::Rgb8Color(0, 0, 0)}, Stop{128, lw::Rgb8Color(255, 0, 0)}, Stop{128, lw::Rgb8Color(0, 0, 255)},
@@ -162,17 +164,48 @@ void test_ordered_duplicate_indexes_form_hard_transition(void)
 
 void test_wrap_mode_index_mapping(void)
 {
-    TEST_ASSERT_EQUAL_UINT8(255, lw::colors::palettes::WrapClamp::mapPositionToPaletteIndex(100, 10));
-    TEST_ASSERT_EQUAL_UINT8(63, lw::colors::palettes::WrapMirror::mapPositionToPaletteIndex(7, 5));
-    TEST_ASSERT_EQUAL_UINT8(0, lw::colors::palettes::WrapHoldFirst::mapPositionToPaletteIndex(7, 5));
-    TEST_ASSERT_EQUAL_UINT8(255, lw::colors::palettes::WrapHoldLast::mapPositionToPaletteIndex(7, 5));
-    TEST_ASSERT_EQUAL_UINT8(64, lw::colors::palettes::WrapCircular::mapPositionToPaletteIndex(1, 4));
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> clampOptions;
+    clampOptions.scaledSampleCount = 10;
+
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> mirrorOptions;
+    mirrorOptions.wrapMode = lw::colors::palettes::WrapMode::Mirror;
+    mirrorOptions.scaledSampleCount = 5;
+
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> holdFirstOptions;
+    holdFirstOptions.wrapMode = lw::colors::palettes::WrapMode::HoldFirst;
+    holdFirstOptions.scaledSampleCount = 5;
+
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> holdLastOptions;
+    holdLastOptions.wrapMode = lw::colors::palettes::WrapMode::HoldLast;
+    holdLastOptions.scaledSampleCount = 5;
+
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> circularOptions;
+    circularOptions.wrapMode = lw::colors::palettes::WrapMode::Circular;
+    circularOptions.scaledSampleCount = 4;
+
+    const auto clamped = lw::colors::palettes::detail::normalizeForDomain(clampOptions, 100u);
+    const auto mirrored = lw::colors::palettes::detail::normalizeForDomain(mirrorOptions, 7u);
+    const auto heldFirst = lw::colors::palettes::detail::normalizeForDomain(holdFirstOptions, 7u);
+    const auto heldLast = lw::colors::palettes::detail::normalizeForDomain(holdLastOptions, 7u);
+    const auto circular = lw::colors::palettes::detail::normalizeForDomain(circularOptions, 1u);
+
+    TEST_ASSERT_FALSE(clamped.outOfRange);
+    TEST_ASSERT_FALSE(mirrored.outOfRange);
+    TEST_ASSERT_FALSE(heldFirst.outOfRange);
+    TEST_ASSERT_FALSE(heldLast.outOfRange);
+    TEST_ASSERT_FALSE(circular.outOfRange);
+
+    TEST_ASSERT_EQUAL_UINT8(9, clamped.value);
+    TEST_ASSERT_EQUAL_UINT8(1, mirrored.value);
+    TEST_ASSERT_EQUAL_UINT8(0, heldFirst.value);
+    TEST_ASSERT_EQUAL_UINT8(4, heldLast.value);
+    TEST_ASSERT_EQUAL_UINT8(1, circular.value);
 }
 
 void test_wrap_blackout_out_of_range_sampling(void)
 {
     std::array<lw::Rgb8Color, 3> out{};
-    const std::array<size_t, 3> paletteIndexes = {50u, 251u, 452u};
+    const std::array<size_t, 3> paletteIndexes = {50u, 255u, 452u};
     const lw::colors::palettes::Palette<lw::Rgb8Color> palette(rangeStops());
     lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
     options.wrapMode = lw::colors::palettes::WrapMode::Blackout;
@@ -181,7 +214,7 @@ void test_wrap_blackout_out_of_range_sampling(void)
 
     TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(written));
     TEST_ASSERT_EQUAL_UINT8(10, out[0]['R']);
-    TEST_ASSERT_EQUAL_UINT8(0, out[1]['R']);
+    TEST_ASSERT_EQUAL_UINT8(200, out[1]['R']);
     TEST_ASSERT_EQUAL_UINT8(0, out[2]['R']);
 }
 
@@ -192,8 +225,24 @@ void test_wrap_hold_first_last_with_linear_sampling(void)
     lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> holdLastOptions;
     holdLastOptions.wrapMode = lw::colors::palettes::WrapMode::HoldLast;
 
-    const lw::Rgb8Color firstHeld = sampleScalar(rangePalette(), 10, holdFirstOptions);
-    const lw::Rgb8Color lastHeld = sampleScalar(rangePalette(), 10, holdLastOptions);
+    const lw::Rgb8Color firstHeld = sampleScalar(rangePalette(), 300, holdFirstOptions);
+    const lw::Rgb8Color lastHeld = sampleScalar(rangePalette(), 300, holdLastOptions);
+
+    TEST_ASSERT_EQUAL_UINT8(10, firstHeld['R']);
+    TEST_ASSERT_EQUAL_UINT8(200, lastHeld['R']);
+}
+
+void test_wrap_hold_first_last_with_nearest_sampling(void)
+{
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> holdFirstOptions;
+    holdFirstOptions.wrapMode = lw::colors::palettes::WrapMode::HoldFirst;
+    holdFirstOptions.blendMode = lw::colors::palettes::BlendMode::Nearest;
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> holdLastOptions;
+    holdLastOptions.wrapMode = lw::colors::palettes::WrapMode::HoldLast;
+    holdLastOptions.blendMode = lw::colors::palettes::BlendMode::Nearest;
+
+    const lw::Rgb8Color firstHeld = sampleScalar(rangePalette(), 300, holdFirstOptions);
+    const lw::Rgb8Color lastHeld = sampleScalar(rangePalette(), 300, holdLastOptions);
 
     TEST_ASSERT_EQUAL_UINT8(10, firstHeld['R']);
     TEST_ASSERT_EQUAL_UINT8(200, lastHeld['R']);
@@ -209,8 +258,8 @@ void test_blend_mode_cost_smoke(void)
     lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> gammaOptions;
     gammaOptions.blendMode = lw::colors::palettes::BlendMode::GammaLinear;
 
-    const size_t linearCount = lw::colors::palettes::samplePalette(
-        widePalette(), paletteIndexes, lw::span<lw::Rgb8Color>(out.data(), out.size()));
+    const size_t linearCount = lw::colors::palettes::samplePalette(widePalette(), paletteIndexes,
+                                                                   lw::span<lw::Rgb8Color>(out.data(), out.size()));
     const size_t smoothCount = lw::colors::palettes::samplePalette(
         widePalette(), paletteIndexes, lw::span<lw::Rgb8Color>(out.data(), out.size()), smoothOptions);
     const size_t gammaCount = lw::colors::palettes::samplePalette(
@@ -241,6 +290,7 @@ int main(int, char**)
     RUN_TEST(test_wrap_mode_index_mapping);
     RUN_TEST(test_wrap_blackout_out_of_range_sampling);
     RUN_TEST(test_wrap_hold_first_last_with_linear_sampling);
+    RUN_TEST(test_wrap_hold_first_last_with_nearest_sampling);
     RUN_TEST(test_blend_mode_cost_smoke);
     return UNITY_END();
 }

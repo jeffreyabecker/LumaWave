@@ -14,7 +14,6 @@
 #include "core/Compat.h"
 #include "colors/Color.h"
 #include "colors/palette/ModeEnums.h"
-#include "colors/palette/WrapModes.h"
 
 namespace lw::colors::palettes
 {
@@ -36,6 +35,34 @@ struct PaletteTypeCodes
     static constexpr uint32_t RandomSmoothPaletteGenerator = makePaletteTypeCode('R', 'N', 'S', 'M');
     static constexpr uint32_t RandomCyclePaletteGenerator = makePaletteTypeCode('R', 'N', 'C', 'L');
 };
+
+template <typename TStops> bool isValidPaletteStops(const TStops& stops)
+{
+    if (stops.size() < 2u)
+    {
+        return false;
+    }
+
+    if (stops.front().index != 0u || stops.back().index != 255u)
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < stops.size(); ++i)
+    {
+        if (stops[i].index > 255u)
+        {
+            return false;
+        }
+
+        if (i > 0u && stops[i].index < stops[i - 1u].index)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
 } // namespace detail
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteSampleOptions
@@ -46,6 +73,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struc
     BlendMode blendMode{BlendMode::Linear};
     TieBreakPolicy tieBreakPolicy{TieBreakPolicy::Stable};
     uint8_t quantizedLevels{8};
+    size_t scaledSampleCount{0};
 };
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteStop
@@ -110,17 +138,39 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
 
     Palette() : IPalette<TColor>(TypeCode) {}
 
-    explicit Palette(StorageType stops) : IPalette<TColor>(TypeCode), _stops(std::move(stops)) {}
+    explicit Palette(StorageType stops) : IPalette<TColor>(TypeCode), _stops(std::move(stops))
+    {
+        if (!detail::isValidPaletteStops(_stops))
+        {
+            _stops.clear();
+        }
+    }
 
-    explicit Palette(StopsView stops) : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end()) {}
+    explicit Palette(StopsView stops) : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
+    {
+        if (!detail::isValidPaletteStops(_stops))
+        {
+            _stops.clear();
+        }
+    }
 
     template <size_t N>
     explicit Palette(const std::array<PaletteStop<TColor>, N>& stops)
         : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
     {
+        if (!detail::isValidPaletteStops(_stops))
+        {
+            _stops.clear();
+        }
     }
 
-    Palette(std::initializer_list<PaletteStop<TColor>> stops) : IPalette<TColor>(TypeCode), _stops(stops) {}
+    Palette(std::initializer_list<PaletteStop<TColor>> stops) : IPalette<TColor>(TypeCode), _stops(stops)
+    {
+        if (!detail::isValidPaletteStops(_stops))
+        {
+            _stops.clear();
+        }
+    }
 
     static Palette parse(const char* stops)
     {
@@ -240,7 +290,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
             }
         }
 
-        return !parsedStops.empty();
+        return detail::isValidPaletteStops(parsedStops);
     }
 
     static bool tryParseStop(const char*& cursor, size_t& index, TColor& color)

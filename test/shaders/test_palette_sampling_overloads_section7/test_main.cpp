@@ -165,76 +165,6 @@ void test_overload_palette_like_scalar_sample(void)
     TEST_ASSERT_EQUAL_UINT8(63, sampled[0]['B']);
 }
 
-void test_scaled_palette_sampler_stretches_indexes_using_integer_mapping(void)
-{
-    const auto palette = makePalette();
-    const lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options{};
-    using BaseSampler = lw::colors::palettes::SinglePaletteSampler<lw::Rgb8Color>;
-    const lw::colors::palettes::ScaledPaletteSampler<lw::Rgb8Color, BaseSampler> sampler(BaseSampler(palette, options),
-                                                                                         256u, 1024u);
-
-    const lw::Rgb8Color first = sampler(0u);
-    const lw::Rgb8Color middleA = sampler(511u);
-    const lw::Rgb8Color middleB = sampler(512u);
-    const lw::Rgb8Color last = sampler(1023u);
-
-    TEST_ASSERT_TRUE(first == lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(palette.stops(), 0u, options));
-    TEST_ASSERT_TRUE(middleA == lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(palette.stops(), 127u, options));
-    TEST_ASSERT_TRUE(middleB == lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(palette.stops(), 127u, options));
-    TEST_ASSERT_TRUE(last == lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(palette.stops(), 255u, options));
-}
-
-void test_scaled_palette_sampler_reuses_cached_color_for_repeated_mapped_indexes(void)
-{
-    struct CountingPalette : lw::colors::palettes::IPalette<lw::Rgb8Color>
-    {
-        explicit CountingPalette(lw::span<const Stop> value) : IPalette(0x504C5432u), _stops(value) {}
-
-        lw::span<const Stop> stops() const override
-        {
-            ++stopsCallCount;
-            return _stops;
-        }
-
-        void update(uint32_t = 0) override {}
-
-        lw::span<const Stop> _stops;
-        mutable uint32_t stopsCallCount{0};
-    };
-
-    const CountingPalette palette(makeStopsSpan());
-    using BaseSampler = lw::colors::palettes::SinglePaletteSampler<lw::Rgb8Color>;
-    const lw::colors::palettes::ScaledPaletteSampler<lw::Rgb8Color, BaseSampler> sampler(BaseSampler(palette, {}), 2u,
-                                                                                         4u);
-
-    const lw::Rgb8Color first = sampler(0u);
-    const lw::Rgb8Color second = sampler(1u);
-    const lw::Rgb8Color third = sampler(2u);
-    const lw::Rgb8Color fourth = sampler(3u);
-
-    TEST_ASSERT_TRUE(first == second);
-    TEST_ASSERT_TRUE(second == third);
-    TEST_ASSERT_TRUE(!(third == fourth));
-    TEST_ASSERT_EQUAL_UINT32(2u, palette.stopsCallCount);
-}
-
-void test_scaled_palette_sampler_wraps_transition_sampler(void)
-{
-    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
-    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
-    using BaseSampler = lw::colors::palettes::TransitionPaletteSampler<lw::Rgb8Color>;
-    const lw::colors::palettes::ScaledPaletteSampler<lw::Rgb8Color, BaseSampler> sampler(
-        BaseSampler(from, to, 128u, {}), 256u, 1024u);
-
-    const lw::Rgb8Color first = sampler(0u);
-    const lw::Rgb8Color middle = sampler(512u);
-    const lw::Rgb8Color last = sampler(1023u);
-
-    TEST_ASSERT_EQUAL_UINT8(127u, first['R']);
-    TEST_ASSERT_EQUAL_UINT8(127u, middle['R']);
-    TEST_ASSERT_EQUAL_UINT8(127u, last['R']);
-}
-
 void test_palette_samples_range_supports_std_copy(void)
 {
     const auto palette = makePalette();
@@ -285,9 +215,6 @@ int main(int, char**)
     RUN_TEST(test_overload_palette_like_and_options);
     RUN_TEST(test_overload_explicit_blend_mode_option);
     RUN_TEST(test_overload_palette_like_scalar_sample);
-    RUN_TEST(test_scaled_palette_sampler_stretches_indexes_using_integer_mapping);
-    RUN_TEST(test_scaled_palette_sampler_reuses_cached_color_for_repeated_mapped_indexes);
-    RUN_TEST(test_scaled_palette_sampler_wraps_transition_sampler);
     RUN_TEST(test_palette_samples_range_supports_std_copy);
     RUN_TEST(test_palette_transition_samples_range_supports_std_copy);
     return UNITY_END();

@@ -25,13 +25,13 @@ void test_palette_first_pass_compile(void)
 
     lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
 
-    lw::colors::palettes::PaletteStop<lw::Rgb8Color> stop{};
-    stop.index = 0;
-    stop.color = lw::Rgb8Color(1, 2, 3);
+    lw::colors::palettes::PaletteStop<lw::Rgb8Color> invalidStop{};
+    invalidStop.index = 0;
+    invalidStop.color = lw::Rgb8Color(1, 2, 3);
 
-    lw::colors::palettes::Palette<lw::Rgb8Color> palette(
-        lw::span<const lw::colors::palettes::PaletteStop<lw::Rgb8Color>>(&stop, 1));
-    TEST_ASSERT_TRUE(palette.stops().size() == 1);
+    lw::colors::palettes::Palette<lw::Rgb8Color> invalidPalette(
+        lw::span<const lw::colors::palettes::PaletteStop<lw::Rgb8Color>>(&invalidStop, 1));
+    TEST_ASSERT_TRUE(invalidPalette.stops().empty());
 
     std::array<lw::colors::palettes::PaletteStop<lw::Rgb8Color>, 2> sampleStops = {
         lw::colors::palettes::PaletteStop<lw::Rgb8Color>{0, lw::Rgb8Color(0, 0, 0)},
