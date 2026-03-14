@@ -11,6 +11,16 @@ namespace
 {
 using Color = lw::Rgb8Color;
 
+void test_default_constructed_view_is_empty(void)
+{
+    lw::PixelView<Color> view;
+
+    TEST_ASSERT_EQUAL_UINT32(0U, view.size());
+    TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(view.chunks().size()));
+    TEST_ASSERT_TRUE(view.begin() == view.end());
+    TEST_ASSERT_TRUE(view.cbegin() == view.cend());
+}
+
 void test_slice_returns_expected_subsection(void)
 {
     std::array<Color, 6> pixels = {Color{1, 2, 3},    Color{4, 5, 6},    Color{7, 8, 9},
@@ -164,6 +174,7 @@ void tearDown(void)
 int main(int, char**)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_default_constructed_view_is_empty);
     RUN_TEST(test_slice_returns_expected_subsection);
     RUN_TEST(test_slice_write_through_updates_underlying_storage);
     RUN_TEST(test_slice_clamps_to_bounds_and_handles_reverse_range);

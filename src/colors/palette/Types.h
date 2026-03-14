@@ -18,6 +18,26 @@
 
 namespace lw::colors::palettes
 {
+namespace detail
+{
+constexpr uint32_t makePaletteTypeCode(char a, char b, char c, char d)
+{
+    return (static_cast<uint32_t>(static_cast<uint8_t>(a)) << 24U) |
+           (static_cast<uint32_t>(static_cast<uint8_t>(b)) << 16U) |
+           (static_cast<uint32_t>(static_cast<uint8_t>(c)) << 8U) | static_cast<uint32_t>(static_cast<uint8_t>(d));
+}
+
+struct PaletteTypeCodes
+{
+    static constexpr uint32_t Palette = makePaletteTypeCode('P', 'A', 'L', 'T');
+    static constexpr uint32_t StaticPalette = makePaletteTypeCode('S', 'P', 'A', 'L');
+    static constexpr uint32_t RainbowPaletteGenerator = makePaletteTypeCode('R', 'B', 'O', 'W');
+    static constexpr uint32_t TemporalRainbowPaletteGenerator = makePaletteTypeCode('T', 'R', 'B', 'W');
+    static constexpr uint32_t RandomSmoothPaletteGenerator = makePaletteTypeCode('R', 'N', 'S', 'M');
+    static constexpr uint32_t RandomCyclePaletteGenerator = makePaletteTypeCode('R', 'N', 'C', 'L');
+};
+} // namespace detail
+
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteSampleOptions
 {
     typename TColor::ComponentType brightnessScale{std::numeric_limits<typename TColor::ComponentType>::max()};
@@ -49,15 +69,36 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struc
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class IPalette
 {
+  protected:
+    explicit constexpr IPalette(uint32_t typeCode) : _typeCode(typeCode) {}
+
+    uint32_t _typeCode;
+
   public:
     using ColorType = TColor;
     using StopsView = span<const PaletteStop<TColor>>;
 
     virtual ~IPalette() = default;
 
+    constexpr uint32_t typeCode() const { return _typeCode; }
+
     virtual StopsView stops() const = 0;
+    virtual void syncTo(IPalette<TColor>* that) { (void)that; }
     virtual void update(uint32_t step = 0) = 0;
 };
+
+namespace detail
+{
+template <typename TDerived, typename TColor> TDerived* syncTarget(IPalette<TColor>* that)
+{
+    if (that == nullptr || that->typeCode() != TDerived::TypeCode)
+    {
+        return nullptr;
+    }
+
+    return static_cast<TDerived*>(that);
+}
+} // namespace detail
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class Palette : public IPalette<TColor>
 {
@@ -65,18 +106,21 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     using StopsView = typename IPalette<TColor>::StopsView;
     using StorageType = std::vector<PaletteStop<TColor>>;
 
-    Palette() = default;
+    static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::Palette;
 
-    explicit Palette(StorageType stops) : _stops(std::move(stops)) {}
+    Palette() : IPalette<TColor>(TypeCode) {}
 
-    explicit Palette(StopsView stops) : _stops(stops.begin(), stops.end()) {}
+    explicit Palette(StorageType stops) : IPalette<TColor>(TypeCode), _stops(std::move(stops)) {}
+
+    explicit Palette(StopsView stops) : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end()) {}
 
     template <size_t N>
-    explicit Palette(const std::array<PaletteStop<TColor>, N>& stops) : _stops(stops.begin(), stops.end())
+    explicit Palette(const std::array<PaletteStop<TColor>, N>& stops)
+        : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
     {
     }
 
-    Palette(std::initializer_list<PaletteStop<TColor>> stops) : _stops(stops) {}
+    Palette(std::initializer_list<PaletteStop<TColor>> stops) : IPalette<TColor>(TypeCode), _stops(stops) {}
 
     static Palette parse(const char* stops)
     {
@@ -137,6 +181,17 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
     void update(uint32_t = 0) override {}
+
+    void syncTo(IPalette<TColor>* that) override
+    {
+        Palette<TColor>* target = detail::syncTarget<Palette<TColor>, TColor>(that);
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        target->_stops = _stops;
+    }
 
     StorageType& storage() { return _stops; }
 

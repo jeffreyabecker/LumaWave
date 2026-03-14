@@ -10,6 +10,19 @@ namespace
 using Stop = lw::colors::palettes::PaletteStop<lw::Rgb8Color>;
 using Palette = lw::colors::palettes::Palette<lw::Rgb8Color>;
 
+template <typename TPalette> void assert_same_stops(const TPalette& a, const TPalette& b)
+{
+    const auto sa = a.stops();
+    const auto sb = b.stops();
+
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(sa.size()), static_cast<uint32_t>(sb.size()));
+    for (size_t i = 0; i < sa.size(); ++i)
+    {
+        TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(sa[i].index), static_cast<uint32_t>(sb[i].index));
+        TEST_ASSERT_TRUE(sa[i].color == sb[i].color);
+    }
+}
+
 static_assert(std::is_convertible<decltype(std::declval<const Palette&>().stops()), lw::span<const Stop>>::value,
               "Palette stops() must return a stop span");
 static_assert(lw::colors::palettes::IsPaletteLike<Palette>::value, "Palette should satisfy IsPaletteLike");
@@ -216,6 +229,111 @@ void test_generators_satisfy_palette_like_usage(void)
     TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(smoothWritten));
     TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(cycleWritten));
 }
+
+void test_palette_type_codes_are_initialized_and_unique_per_implementation(void)
+{
+    const Palette solid;
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow;
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> temporalRainbow;
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smooth;
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle;
+
+    TEST_ASSERT_NOT_EQUAL(0u, solid.typeCode());
+    TEST_ASSERT_NOT_EQUAL(0u, rainbow.typeCode());
+    TEST_ASSERT_NOT_EQUAL(0u, temporalRainbow.typeCode());
+    TEST_ASSERT_NOT_EQUAL(0u, smooth.typeCode());
+    TEST_ASSERT_NOT_EQUAL(0u, cycle.typeCode());
+
+    TEST_ASSERT_EQUAL_UINT32(Palette::TypeCode, solid.typeCode());
+    TEST_ASSERT_EQUAL_UINT32(lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>::TypeCode,
+                             rainbow.typeCode());
+    TEST_ASSERT_EQUAL_UINT32(lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>::TypeCode,
+                             temporalRainbow.typeCode());
+    TEST_ASSERT_EQUAL_UINT32(lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color>::TypeCode,
+                             smooth.typeCode());
+    TEST_ASSERT_EQUAL_UINT32(lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color>::TypeCode,
+                             cycle.typeCode());
+
+    TEST_ASSERT_NOT_EQUAL(solid.typeCode(), rainbow.typeCode());
+    TEST_ASSERT_NOT_EQUAL(solid.typeCode(), temporalRainbow.typeCode());
+    TEST_ASSERT_NOT_EQUAL(solid.typeCode(), smooth.typeCode());
+    TEST_ASSERT_NOT_EQUAL(solid.typeCode(), cycle.typeCode());
+    TEST_ASSERT_NOT_EQUAL(rainbow.typeCode(), temporalRainbow.typeCode());
+    TEST_ASSERT_NOT_EQUAL(rainbow.typeCode(), smooth.typeCode());
+    TEST_ASSERT_NOT_EQUAL(rainbow.typeCode(), cycle.typeCode());
+    TEST_ASSERT_NOT_EQUAL(temporalRainbow.typeCode(), smooth.typeCode());
+    TEST_ASSERT_NOT_EQUAL(temporalRainbow.typeCode(), cycle.typeCode());
+    TEST_ASSERT_NOT_EQUAL(smooth.typeCode(), cycle.typeCode());
+}
+
+void test_generator_sync_copies_internal_state_for_same_type(void)
+{
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowSource(6, 0.8f, 0.5f, 17);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowTarget(10, 1.0f, 1.0f, 99);
+    rainbowSource.update(13);
+    rainbowTarget.update(7);
+    rainbowSource.syncTo(&rainbowTarget);
+    assert_same_stops(rainbowSource, rainbowTarget);
+    rainbowSource.update(5);
+    rainbowTarget.update(5);
+    assert_same_stops(rainbowSource, rainbowTarget);
+
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> temporalSource;
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> temporalTarget;
+    temporalSource.update(23);
+    temporalTarget.update(2);
+    temporalSource.syncTo(&temporalTarget);
+    assert_same_stops(temporalSource, temporalTarget);
+    temporalSource.update(9);
+    temporalTarget.update(9);
+    assert_same_stops(temporalSource, temporalTarget);
+
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smoothSource(6, 111u, 19);
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smoothTarget(4, 222u, 5);
+    smoothSource.update();
+    smoothSource.update();
+    smoothTarget.update();
+    smoothSource.syncTo(&smoothTarget);
+    assert_same_stops(smoothSource, smoothTarget);
+    smoothSource.update();
+    smoothTarget.update();
+    assert_same_stops(smoothSource, smoothTarget);
+
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycleSource(5, 333u, 41);
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycleTarget(7, 444u, 9);
+    cycleSource.update();
+    cycleSource.update();
+    cycleTarget.update();
+    cycleSource.syncTo(&cycleTarget);
+    assert_same_stops(cycleSource, cycleTarget);
+    cycleSource.update();
+    cycleTarget.update();
+    assert_same_stops(cycleSource, cycleTarget);
+}
+
+void test_generator_sync_ignores_mismatched_type_and_null_target(void)
+{
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(6, 0.9f, 0.7f, 33);
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle(6, 555u, 12);
+
+    rainbow.update(4);
+    const auto before = cycle.stops();
+    std::array<Stop, 6> beforeStops{};
+    for (size_t i = 0; i < beforeStops.size(); ++i)
+    {
+        beforeStops[i] = before[i];
+    }
+
+    rainbow.syncTo(nullptr);
+    rainbow.syncTo(&cycle);
+
+    const auto after = cycle.stops();
+    for (size_t i = 0; i < beforeStops.size(); ++i)
+    {
+        TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(beforeStops[i].index), static_cast<uint32_t>(after[i].index));
+        TEST_ASSERT_TRUE(beforeStops[i].color == after[i].color);
+    }
+}
 } // namespace
 
 void setUp(void)
@@ -238,5 +356,8 @@ int main(int, char**)
     RUN_TEST(test_random_cycle_generator_is_deterministic);
     RUN_TEST(test_random_cycle_generator_rotates_and_samples);
     RUN_TEST(test_generators_satisfy_palette_like_usage);
+    RUN_TEST(test_palette_type_codes_are_initialized_and_unique_per_implementation);
+    RUN_TEST(test_generator_sync_copies_internal_state_for_same_type);
+    RUN_TEST(test_generator_sync_ignores_mismatched_type_and_null_target);
     return UNITY_END();
 }

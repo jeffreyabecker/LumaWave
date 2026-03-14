@@ -64,11 +64,12 @@ class RainbowPaletteGenerator : public IPalette<TColor>
 {
   public:
     using StopsView = span<const PaletteStop<TColor>>;
+    static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
 
     explicit RainbowPaletteGenerator(size_t stopCount = 16, float saturation = 1.0f, float brightness = 1.0f,
                                      uint8_t hueOffset = 0)
-        : _stops(detail::palettegen::normalizeStopCount(stopCount)), _saturation(saturation), _brightness(brightness),
-          _hueOffset(hueOffset)
+        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
+          _saturation(saturation), _brightness(brightness), _hueOffset(hueOffset)
     {
         detail::palettegen::assignEvenStopIndexes(_stops);
         rebuild();
@@ -100,6 +101,20 @@ class RainbowPaletteGenerator : public IPalette<TColor>
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
+    void syncTo(IPalette<TColor>* that) override
+    {
+        RainbowPaletteGenerator<TColor>* target = detail::syncTarget<RainbowPaletteGenerator<TColor>, TColor>(that);
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        target->_stops = _stops;
+        target->_saturation = _saturation;
+        target->_brightness = _brightness;
+        target->_hueOffset = _hueOffset;
+    }
+
   private:
     void rebuild()
     {
@@ -123,8 +138,9 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 {
   public:
     using StopsView = span<const PaletteStop<TColor>>;
+    static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::TemporalRainbowPaletteGenerator;
 
-    explicit TemporalRainbowPaletteGenerator() : _rainbowGenerator()
+    explicit TemporalRainbowPaletteGenerator() : IPalette<TColor>(TypeCode), _rainbowGenerator()
     {
         _stops[0].index = 0;
         _stops[1].index = 255;
@@ -138,6 +154,20 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
     }
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
+
+    void syncTo(IPalette<TColor>* that) override
+    {
+        TemporalRainbowPaletteGenerator<TColor>* target =
+            detail::syncTarget<TemporalRainbowPaletteGenerator<TColor>, TColor>(that);
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        target->_stops = _stops;
+        target->_rainbowGenerator = _rainbowGenerator;
+        target->_stepIndex = _stepIndex;
+    }
 
   private:
     void rebuild()
@@ -160,9 +190,10 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
 {
   public:
     using StopsView = span<const PaletteStop<TColor>>;
+    static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomSmoothPaletteGenerator;
 
     explicit RandomSmoothPaletteGenerator(size_t stopCount = 8, uint32_t seed = 0xC0FFEE11u, uint8_t progressStep = 12)
-        : _stops(detail::palettegen::normalizeStopCount(stopCount)),
+        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
           _sourceColors(detail::palettegen::normalizeStopCount(stopCount)),
           _targetColors(detail::palettegen::normalizeStopCount(stopCount)), _rngState(seed), _progressStep(progressStep)
     {
@@ -200,6 +231,23 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
+    void syncTo(IPalette<TColor>* that) override
+    {
+        RandomSmoothPaletteGenerator<TColor>* target =
+            detail::syncTarget<RandomSmoothPaletteGenerator<TColor>, TColor>(that);
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        target->_stops = _stops;
+        target->_sourceColors = _sourceColors;
+        target->_targetColors = _targetColors;
+        target->_rngState = _rngState;
+        target->_progress = _progress;
+        target->_progressStep = _progressStep;
+    }
+
   private:
     void rebuild()
     {
@@ -222,9 +270,10 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
 {
   public:
     using StopsView = span<const PaletteStop<TColor>>;
+    static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomCyclePaletteGenerator;
 
     explicit RandomCyclePaletteGenerator(size_t stopCount = 8, uint32_t seed = 0x13579BDFu, uint8_t cycleStep = 8)
-        : _stops(detail::palettegen::normalizeStopCount(stopCount)),
+        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
           _colors(detail::palettegen::normalizeStopCount(stopCount)), _rngState(seed), _cycleStep(cycleStep)
     {
         detail::palettegen::assignEvenStopIndexes(_stops);
@@ -254,6 +303,22 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
     }
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
+
+    void syncTo(IPalette<TColor>* that) override
+    {
+        RandomCyclePaletteGenerator<TColor>* target =
+            detail::syncTarget<RandomCyclePaletteGenerator<TColor>, TColor>(that);
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        target->_stops = _stops;
+        target->_colors = _colors;
+        target->_rngState = _rngState;
+        target->_phase = _phase;
+        target->_cycleStep = _cycleStep;
+    }
 
   private:
     void rotateCycle()

@@ -11,7 +11,9 @@ using Stop = lw::colors::palettes::PaletteStop<lw::Rgb8Color>;
 
 struct PaletteLikeRgb8 : lw::colors::palettes::IPalette<lw::Rgb8Color>
 {
-    explicit PaletteLikeRgb8(lw::span<const Stop> value) : _stops(value) {}
+    static constexpr uint32_t TypeCode = 0x504C5433u;
+
+    explicit PaletteLikeRgb8(lw::span<const Stop> value) : IPalette(TypeCode), _stops(value) {}
 
     lw::span<const Stop> stops() const override { return _stops; }
 

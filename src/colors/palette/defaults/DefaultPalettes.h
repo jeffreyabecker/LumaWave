@@ -15,21 +15,34 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
 {
   public:
     using StopsView = typename IPalette<TColor>::StopsView;
+    static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::StaticPalette;
 
-    StaticPalette() = default;
+    StaticPalette() : IPalette<TColor>(TypeCode) {}
 
     // Caller convention: stops are expected in non-decreasing index order.
     // Duplicate indexes are allowed and create zero-width transitions.
-    explicit StaticPalette(StopsView stops) : _stops(stops) {}
+    explicit StaticPalette(StopsView stops) : IPalette<TColor>(TypeCode), _stops(stops) {}
 
     template <size_t N>
-    explicit StaticPalette(const std::array<PaletteStop<TColor>, N>& stops) : _stops(stops.data(), stops.size())
+    explicit StaticPalette(const std::array<PaletteStop<TColor>, N>& stops)
+        : IPalette<TColor>(TypeCode), _stops(stops.data(), stops.size())
     {
     }
 
     StopsView stops() const override { return _stops; }
 
     void update(uint32_t = 0) override {}
+
+    void syncTo(IPalette<TColor>* that) override
+    {
+        StaticPalette<TColor>* target = detail::syncTarget<StaticPalette<TColor>, TColor>(that);
+        if (target == nullptr)
+        {
+            return;
+        }
+
+        target->_stops = _stops;
+    }
 
   private:
     StopsView _stops{};

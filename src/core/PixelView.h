@@ -25,6 +25,8 @@ template <typename TColor> class PixelView
     class iterator;
     class const_iterator;
 
+    PixelView() = default;
+
     explicit PixelView(span<ChunkType> chunks) : _chunks(chunks) {}
 
     [[nodiscard]] PixelView operator+(const PixelView& other) const { return concatenate(*this, other); }
