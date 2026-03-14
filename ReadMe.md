@@ -46,6 +46,12 @@ lib_deps =
 	Makuna/NpbNext@^2.8.4
 ```
 
+For repository validation, the automated test suite is hosted in the `native-test` environment:
+
+```powershell
+pio test -e native-test
+```
+
 ## Installing This Library From GitHub (advanced, you want to contribute)
 Create a directory in your Arduino\Library folder named "LumaWave"
 Clone (Git) this project into that folder.  

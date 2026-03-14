@@ -117,6 +117,17 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     size_t _offset;
 };
 
+template <typename TValue> class ConstantSampler
+{
+  public:
+    explicit constexpr ConstantSampler(TValue value) : _value(value) {}
+
+    constexpr TValue operator()(size_t) const { return _value; }
+
+  private:
+    TValue _value;
+};
+
 template <typename TColor, typename TSampler, typename = std::enable_if_t<ColorType<TColor>>> class ScaledPaletteSampler
 {
   public:
@@ -167,27 +178,47 @@ template <typename TColor, typename TSampler, typename = std::enable_if_t<ColorT
     mutable TColor _cachedColor{};
 };
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class TransitionPaletteSampler
+template <typename TColor, typename TSamplerFrom, typename TSamplerTo, typename TBlendProgressSampler,
+          typename TBlendDomain = uint8_t, typename = std::enable_if_t<ColorType<TColor>>>
+class TransitionSampler
 {
   public:
-    TransitionPaletteSampler(const IPalette<TColor>& paletteFrom, const IPalette<TColor>& paletteTo,
-                             uint8_t blendProgress8, PaletteSampleOptions<TColor> options)
-        : _paletteFrom(paletteFrom), _paletteTo(paletteTo), _blendProgress8(blendProgress8), _options(options)
+    TransitionSampler(TSamplerFrom sampleFrom, TSamplerTo sampleTo, TBlendProgressSampler sampleProgress)
+        : _sampleFrom(std::move(sampleFrom)), _sampleTo(std::move(sampleTo)), _sampleProgress(std::move(sampleProgress))
     {
     }
 
     TColor operator()(size_t paletteIndex) const
     {
-        const TColor from = samplePaletteAt<TColor>(_paletteFrom.stops(), paletteIndex, _options);
-        const TColor to = samplePaletteAt<TColor>(_paletteTo.stops(), paletteIndex, _options);
-        return lw::linearBlendProgress8(from, to, _blendProgress8);
+        const TColor from = _sampleFrom(paletteIndex);
+        const TColor to = _sampleTo(paletteIndex);
+        const TBlendDomain progress = static_cast<TBlendDomain>(_sampleProgress(paletteIndex));
+        return lw::linearBlendProgress(from, to, progress);
     }
 
   private:
-    const IPalette<TColor>& _paletteFrom;
-    const IPalette<TColor>& _paletteTo;
-    uint8_t _blendProgress8;
-    PaletteSampleOptions<TColor> _options;
+    TSamplerFrom _sampleFrom;
+    TSamplerTo _sampleTo;
+    TBlendProgressSampler _sampleProgress;
+};
+
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class TransitionPaletteSampler
+{
+  public:
+    using SamplerType = TransitionSampler<TColor, SinglePaletteSampler<TColor>, SinglePaletteSampler<TColor>,
+                                          ConstantSampler<uint8_t>, uint8_t>;
+
+    TransitionPaletteSampler(const IPalette<TColor>& paletteFrom, const IPalette<TColor>& paletteTo,
+                             uint8_t blendProgress8, PaletteSampleOptions<TColor> options)
+        : _sampler(SinglePaletteSampler<TColor>(paletteFrom, options), SinglePaletteSampler<TColor>(paletteTo, options),
+                   ConstantSampler<uint8_t>(blendProgress8))
+    {
+    }
+
+    TColor operator()(size_t paletteIndex) const { return _sampler(paletteIndex); }
+
+  private:
+    SamplerType _sampler;
 };
 
 template <typename TColor, typename TSampler, typename TStoredIndexRange,

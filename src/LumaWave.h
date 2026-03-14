@@ -132,12 +132,12 @@ inline constexpr lw::colors::palettes::TieBreakPolicy Right = lw::colors::palett
 namespace BlendWrap
 {
 
-using Clamp = lw::colors::palettes::WrapClamp;
-using Circular = lw::colors::palettes::WrapCircular;
-using Mirror = lw::colors::palettes::WrapMirror;
-using HoldFirst = lw::colors::palettes::WrapHoldFirst;
-using HoldLast = lw::colors::palettes::WrapHoldLast;
-using Blackout = lw::colors::palettes::WrapBlackout;
+inline constexpr lw::colors::palettes::WrapMode Clamp = lw::colors::palettes::WrapMode::Clamp;
+inline constexpr lw::colors::palettes::WrapMode Circular = lw::colors::palettes::WrapMode::Circular;
+inline constexpr lw::colors::palettes::WrapMode Mirror = lw::colors::palettes::WrapMode::Mirror;
+inline constexpr lw::colors::palettes::WrapMode HoldFirst = lw::colors::palettes::WrapMode::HoldFirst;
+inline constexpr lw::colors::palettes::WrapMode HoldLast = lw::colors::palettes::WrapMode::HoldLast;
+inline constexpr lw::colors::palettes::WrapMode Blackout = lw::colors::palettes::WrapMode::Blackout;
 
 } // namespace BlendWrap
 

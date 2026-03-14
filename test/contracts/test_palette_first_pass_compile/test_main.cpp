@@ -20,8 +20,9 @@ void test_palette_first_pass_compile(void)
                   "blend::Nearest must map to BlendMode::Nearest");
     static_assert(lw::colors::palettes::blend::Midpoint == lw::colors::palettes::BlendMode::HoldMidpoint,
                   "blend::Midpoint must map to BlendMode::HoldMidpoint");
-    static_assert(std::is_class<lw::colors::palettes::WrapClamp>::value, "WrapClamp must be class");
-    static_assert(std::is_class<lw::colors::palettes::WrapCircular>::value, "WrapCircular must be class");
+    static_assert(std::is_enum<lw::colors::palettes::WrapMode>::value, "WrapMode must be an enum");
+    static_assert(lw::colors::palettes::WrapMode::Clamp != lw::colors::palettes::WrapMode::Circular,
+                  "WrapMode values must remain distinct");
 
     lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
 

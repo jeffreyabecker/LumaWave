@@ -36,6 +36,13 @@ lw::colors::palettes::Palette<lw::Rgb8Color> makePalette()
     return lw::colors::palettes::Palette<lw::Rgb8Color>(makeStopsSpan());
 }
 
+template <typename TValue> struct ConstantValueSampler
+{
+    TValue value;
+
+    constexpr TValue operator()(size_t) const { return value; }
+};
+
 void test_overload_stops_index_iter_output_span(void)
 {
     std::array<lw::Rgb8Color, 3> out{};
@@ -193,6 +200,42 @@ void test_palette_transition_samples_range_supports_std_copy(void)
     TEST_ASSERT_EQUAL_UINT8(127, out[1]['R']);
     TEST_ASSERT_EQUAL_UINT8(127, out[2]['R']);
 }
+
+void test_transition_sampler_supports_progress8_domain(void)
+{
+    using PaletteSampler = lw::colors::palettes::SinglePaletteSampler<lw::Rgb8Color>;
+    using ProgressSampler = ConstantValueSampler<uint8_t>;
+    using Sampler =
+        lw::colors::palettes::TransitionSampler<lw::Rgb8Color, PaletteSampler, PaletteSampler, ProgressSampler>;
+
+    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
+    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
+
+    const Sampler sampler(PaletteSampler(from, {}), PaletteSampler(to, {}), ProgressSampler{128u});
+    const lw::Rgb8Color blended = sampler(17u);
+
+    TEST_ASSERT_EQUAL_UINT8(127, blended['R']);
+    TEST_ASSERT_EQUAL_UINT8(127, blended['G']);
+    TEST_ASSERT_EQUAL_UINT8(127, blended['B']);
+}
+
+void test_transition_sampler_supports_progress16_domain(void)
+{
+    using PaletteSampler = lw::colors::palettes::SinglePaletteSampler<lw::Rgb8Color>;
+    using ProgressSampler = ConstantValueSampler<uint16_t>;
+    using Sampler = lw::colors::palettes::TransitionSampler<lw::Rgb8Color, PaletteSampler, PaletteSampler,
+                                                            ProgressSampler, uint16_t>;
+
+    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
+    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
+
+    const Sampler sampler(PaletteSampler(from, {}), PaletteSampler(to, {}), ProgressSampler{32768u});
+    const lw::Rgb8Color blended = sampler(17u);
+
+    TEST_ASSERT_EQUAL_UINT8(127, blended['R']);
+    TEST_ASSERT_EQUAL_UINT8(127, blended['G']);
+    TEST_ASSERT_EQUAL_UINT8(127, blended['B']);
+}
 } // namespace
 
 void setUp(void)
@@ -217,5 +260,7 @@ int main(int, char**)
     RUN_TEST(test_overload_palette_like_scalar_sample);
     RUN_TEST(test_palette_samples_range_supports_std_copy);
     RUN_TEST(test_palette_transition_samples_range_supports_std_copy);
+    RUN_TEST(test_transition_sampler_supports_progress8_domain);
+    RUN_TEST(test_transition_sampler_supports_progress16_domain);
     return UNITY_END();
 }

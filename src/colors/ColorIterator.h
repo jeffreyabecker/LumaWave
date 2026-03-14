@@ -48,6 +48,7 @@ template <typename TColor> class ColorIteratorT
     using iterator_category = std::random_access_iterator_tag;
     using value_type = TColor;
     using difference_type = std::ptrdiff_t;
+    using pointer = TColor*;
     using reference = TColor&;
 
 #if __cplusplus >= 202002L
