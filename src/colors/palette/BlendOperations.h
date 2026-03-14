@@ -17,7 +17,7 @@ TColor applyQuantizedBlend(const TColor& left, const TColor& right, uint8_t prog
     constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
     const uint32_t step = maxValue / (clampedLevels - 1u);
 
-    TColor out = lw::linearBlend(left, right, progress);
+    TColor out = lw::linearBlendProgress8(left, right, progress);
     for (char channel : TColor::channelIndexes())
     {
         const uint32_t value = static_cast<uint32_t>(out[channel]);
@@ -43,11 +43,11 @@ TColor applyBlendMode(BlendMode blendMode, const TColor& left, const TColor& rig
         case BlendMode::HoldMidpoint:
             return (progress < 128) ? left : right;
         case BlendMode::Smoothstep:
-            return lw::linearBlend(left, right, lw::smoothstep8<TColor>(progress));
+            return lw::linearBlendProgress8(left, right, lw::smoothstep8<TColor>(progress));
         case BlendMode::Cubic:
-            return lw::linearBlend(left, right, lw::cubicEaseInOut8<TColor>(progress));
+            return lw::linearBlendProgress8(left, right, lw::cubicEaseInOut8<TColor>(progress));
         case BlendMode::Cosine:
-            return lw::linearBlend(left, right, lw::cosineLike8<TColor>(progress));
+            return lw::linearBlendProgress8(left, right, lw::cosineLike8<TColor>(progress));
         case BlendMode::GammaLinear:
         {
             using Component = typename TColor::ComponentType;
@@ -74,7 +74,7 @@ TColor applyBlendMode(BlendMode blendMode, const TColor& left, const TColor& rig
             using Component = typename TColor::ComponentType;
             constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
 
-            TColor out = lw::linearBlend(left, right, progress);
+            TColor out = lw::linearBlendProgress8(left, right, progress);
             uint8_t channelOrdinal = 0;
             for (char channel : TColor::channelIndexes())
             {
@@ -94,7 +94,7 @@ TColor applyBlendMode(BlendMode blendMode, const TColor& left, const TColor& rig
         case BlendMode::Nearest:
         case BlendMode::Linear:
         default:
-            return lw::linearBlend(left, right, progress);
+            return lw::linearBlendProgress8(left, right, progress);
     }
 }
 

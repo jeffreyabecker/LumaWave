@@ -102,7 +102,7 @@ template <typename TColor> struct ScalarColorMathBackend
         }
     }
 
-    static constexpr TColor linearBlend(const TColor& left, const TColor& right, float progress)
+    static constexpr TColor linearBlendUnitFloat(const TColor& left, const TColor& right, float progress)
     {
         using SignedWide = std::conditional_t<(sizeof(ComponentType) <= 2), int32_t, int64_t>;
 
@@ -117,7 +117,7 @@ template <typename TColor> struct ScalarColorMathBackend
         return blended;
     }
 
-    static constexpr TColor linearBlend(const TColor& left, const TColor& right, uint8_t progress)
+    static constexpr TColor linearBlendProgress8(const TColor& left, const TColor& right, uint8_t progress)
     {
         using UnsignedWide = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
 
@@ -133,6 +133,25 @@ template <typename TColor> struct ScalarColorMathBackend
             const UnsignedWide numerator =
                 (leftValue * inverseProgress) + (rightValue * progressWide) + static_cast<UnsignedWide>(1u);
             blended[channel] = static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(256u));
+        }
+
+        return blended;
+    }
+
+    static constexpr TColor linearBlendProgress16(const TColor& left, const TColor& right, uint16_t progress)
+    {
+        using UnsignedWide = uint64_t;
+
+        TColor blended;
+        for (auto channel : TColor::channelIndexes())
+        {
+            const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
+            const UnsignedWide rightValue = static_cast<UnsignedWide>(right[channel]);
+            const UnsignedWide progressWide = static_cast<UnsignedWide>(progress);
+            const UnsignedWide inverseProgress = static_cast<UnsignedWide>(65536u) - progressWide;
+            const UnsignedWide numerator =
+                (leftValue * inverseProgress) + (rightValue * progressWide) + static_cast<UnsignedWide>(1u);
+            blended[channel] = static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(65536u));
         }
 
         return blended;

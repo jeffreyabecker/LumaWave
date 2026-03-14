@@ -253,7 +253,7 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
     {
         for (size_t i = 0; i < _stops.size(); ++i)
         {
-            _stops[i].color = lw::linearBlend(_sourceColors[i], _targetColors[i], _progress);
+            _stops[i].color = lw::linearBlendProgress8(_sourceColors[i], _targetColors[i], _progress);
         }
     }
 
@@ -337,7 +337,7 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
         for (size_t i = 0; i < stopCount; ++i)
         {
             const size_t next = (i + 1u) % stopCount;
-            _stops[i].color = lw::linearBlend(_colors[i], _colors[next], _phase);
+            _stops[i].color = lw::linearBlendProgress8(_colors[i], _colors[next], _phase);
         }
     }
 

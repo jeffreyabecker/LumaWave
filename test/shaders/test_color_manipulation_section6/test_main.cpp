@@ -51,9 +51,9 @@ void test_6_2_1_linear_blend_float_endpoints_and_midpoint(void)
     const lw::Rgb8Color left(10, 20, 30);
     const lw::Rgb8Color right(110, 220, 130);
 
-    const auto at0 = lw::linearBlend(left, right, 0.0f);
-    const auto at1 = lw::linearBlend(left, right, 1.0f);
-    const auto atHalf = lw::linearBlend(left, right, 0.5f);
+    const auto at0 = lw::linearBlendUnitFloat(left, right, 0.0f);
+    const auto at1 = lw::linearBlendUnitFloat(left, right, 1.0f);
+    const auto atHalf = lw::linearBlendUnitFloat(left, right, 0.5f);
 
     TEST_ASSERT_EQUAL_UINT8(10, at0['R']);
     TEST_ASSERT_EQUAL_UINT8(20, at0['G']);
@@ -73,9 +73,9 @@ void test_6_2_2_linear_blend_uint8_rounding_rgb8(void)
     const lw::Rgb8Color left(0, 10, 255);
     const lw::Rgb8Color right(255, 110, 0);
 
-    const auto at0 = lw::linearBlend(left, right, static_cast<uint8_t>(0));
-    const auto at255 = lw::linearBlend(left, right, static_cast<uint8_t>(255));
-    const auto at128 = lw::linearBlend(left, right, static_cast<uint8_t>(128));
+    const auto at0 = lw::linearBlendProgress8(left, right, static_cast<uint8_t>(0));
+    const auto at255 = lw::linearBlendProgress8(left, right, static_cast<uint8_t>(255));
+    const auto at128 = lw::linearBlendProgress8(left, right, static_cast<uint8_t>(128));
 
     TEST_ASSERT_EQUAL_UINT8(0, at0['R']);
     TEST_ASSERT_EQUAL_UINT8(10, at0['G']);
@@ -95,14 +95,36 @@ void test_6_2_3_linear_blend_uint8_rounding_rgb16(void)
     const lw::Rgb16Color left(0, 1000, 65535);
     const lw::Rgb16Color right(65535, 3000, 0);
 
-    const auto at128 = lw::linearBlend(left, right, static_cast<uint8_t>(128));
+    const auto at128 = lw::linearBlendProgress8(left, right, static_cast<uint8_t>(128));
 
     TEST_ASSERT_EQUAL_UINT16(32767, at128['R']);
     TEST_ASSERT_EQUAL_UINT16(2000, at128['G']);
     TEST_ASSERT_EQUAL_UINT16(32767, at128['B']);
 }
 
-void test_6_2_4_bilinear_blend_weighted_interpolation(void)
+void test_6_2_4_linear_blend_uint16_rounding_rgb8(void)
+{
+    const lw::Rgb8Color left(0, 10, 255);
+    const lw::Rgb8Color right(255, 110, 0);
+
+    const auto at0 = lw::linearBlendProgress16(left, right, static_cast<uint16_t>(0));
+    const auto at65535 = lw::linearBlendProgress16(left, right, static_cast<uint16_t>(65535));
+    const auto at32768 = lw::linearBlendProgress16(left, right, static_cast<uint16_t>(32768));
+
+    TEST_ASSERT_EQUAL_UINT8(0, at0['R']);
+    TEST_ASSERT_EQUAL_UINT8(10, at0['G']);
+    TEST_ASSERT_EQUAL_UINT8(255, at0['B']);
+
+    TEST_ASSERT_EQUAL_UINT8(254, at65535['R']);
+    TEST_ASSERT_EQUAL_UINT8(109, at65535['G']);
+    TEST_ASSERT_EQUAL_UINT8(0, at65535['B']);
+
+    TEST_ASSERT_EQUAL_UINT8(127, at32768['R']);
+    TEST_ASSERT_EQUAL_UINT8(60, at32768['G']);
+    TEST_ASSERT_EQUAL_UINT8(127, at32768['B']);
+}
+
+void test_6_2_5_bilinear_blend_weighted_interpolation(void)
 {
     const lw::Rgb8Color c00(0, 0, 0);
     const lw::Rgb8Color c01(100, 100, 100);
@@ -137,14 +159,19 @@ struct OverrideBackend
         }
     }
 
-    static constexpr lw::Rgbw8Color linearBlend(const lw::Rgbw8Color&, const lw::Rgbw8Color&, float)
+    static constexpr lw::Rgbw8Color linearBlendUnitFloat(const lw::Rgbw8Color&, const lw::Rgbw8Color&, float)
     {
         return lw::Rgbw8Color(7, 7, 7, 7);
     }
 
-    static constexpr lw::Rgbw8Color linearBlend(const lw::Rgbw8Color&, const lw::Rgbw8Color&, uint8_t)
+    static constexpr lw::Rgbw8Color linearBlendProgress8(const lw::Rgbw8Color&, const lw::Rgbw8Color&, uint8_t)
     {
         return lw::Rgbw8Color(9, 9, 9, 9);
+    }
+
+    static constexpr lw::Rgbw8Color linearBlendProgress16(const lw::Rgbw8Color&, const lw::Rgbw8Color&, uint16_t)
+    {
+        return lw::Rgbw8Color(11, 11, 11, 11);
     }
 };
 } // namespace
@@ -164,8 +191,9 @@ void test_6_3_1_backend_selector_override_hook(void)
     const lw::Rgbw8Color left(1, 2, 3, 4);
     const lw::Rgbw8Color right(9, 8, 7, 6);
 
-    const auto byFloat = lw::linearBlend(left, right, 0.25f);
-    const auto byUint8 = lw::linearBlend(left, right, static_cast<uint8_t>(64));
+    const auto byFloat = lw::linearBlendUnitFloat(left, right, 0.25f);
+    const auto byUint8 = lw::linearBlendProgress8(left, right, static_cast<uint8_t>(64));
+    const auto byUint16 = lw::linearBlendProgress16(left, right, static_cast<uint16_t>(16384));
 
     TEST_ASSERT_EQUAL_UINT8(7, byFloat['R']);
     TEST_ASSERT_EQUAL_UINT8(7, byFloat['G']);
@@ -176,6 +204,11 @@ void test_6_3_1_backend_selector_override_hook(void)
     TEST_ASSERT_EQUAL_UINT8(9, byUint8['G']);
     TEST_ASSERT_EQUAL_UINT8(9, byUint8['B']);
     TEST_ASSERT_EQUAL_UINT8(9, byUint8['W']);
+
+    TEST_ASSERT_EQUAL_UINT8(11, byUint16['R']);
+    TEST_ASSERT_EQUAL_UINT8(11, byUint16['G']);
+    TEST_ASSERT_EQUAL_UINT8(11, byUint16['B']);
+    TEST_ASSERT_EQUAL_UINT8(11, byUint16['W']);
 }
 } // namespace
 
@@ -199,7 +232,8 @@ int main(int argc, char** argv)
     RUN_TEST(test_6_2_1_linear_blend_float_endpoints_and_midpoint);
     RUN_TEST(test_6_2_2_linear_blend_uint8_rounding_rgb8);
     RUN_TEST(test_6_2_3_linear_blend_uint8_rounding_rgb16);
-    RUN_TEST(test_6_2_4_bilinear_blend_weighted_interpolation);
+    RUN_TEST(test_6_2_4_linear_blend_uint16_rounding_rgb8);
+    RUN_TEST(test_6_2_5_bilinear_blend_weighted_interpolation);
     RUN_TEST(test_6_3_1_backend_selector_override_hook);
     return UNITY_END();
 }

@@ -180,7 +180,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     {
         const TColor from = samplePaletteAt<TColor>(_paletteFrom.stops(), paletteIndex, _options);
         const TColor to = samplePaletteAt<TColor>(_paletteTo.stops(), paletteIndex, _options);
-        return lw::linearBlend(from, to, _blendProgress8);
+        return lw::linearBlendProgress8(from, to, _blendProgress8);
     }
 
   private:

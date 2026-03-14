@@ -53,17 +53,24 @@ constexpr void lighten(TColor& color, typename TColor::ComponentType delta)
 }
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
-constexpr TColor linearBlend(const TColor& left, const TColor& right, float progress)
+constexpr TColor linearBlendUnitFloat(const TColor& left, const TColor& right, float progress)
 {
     using Backend = typename ColorMathBackendSelector<TColor>::Type;
-    return Backend::linearBlend(left, right, progress);
+    return Backend::linearBlendUnitFloat(left, right, progress);
 }
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
-constexpr TColor linearBlend(const TColor& left, const TColor& right, uint8_t progress)
+constexpr TColor linearBlendProgress8(const TColor& left, const TColor& right, uint8_t progress)
 {
     using Backend = typename ColorMathBackendSelector<TColor>::Type;
-    return Backend::linearBlend(left, right, progress);
+    return Backend::linearBlendProgress8(left, right, progress);
+}
+
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
+constexpr TColor linearBlendProgress16(const TColor& left, const TColor& right, uint16_t progress)
+{
+    using Backend = typename ColorMathBackendSelector<TColor>::Type;
+    return Backend::linearBlendProgress16(left, right, progress);
 }
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
@@ -126,17 +133,24 @@ constexpr void lighten(TColor& color, typename TColor::ComponentType delta)
 }
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
-constexpr TColor linearBlend(const TColor& left, const TColor& right, float progress)
+constexpr TColor linearBlendUnitFloat(const TColor& left, const TColor& right, float progress)
 {
     using Backend = typename ColorMathBackendSelector<TColor>::Type;
-    return Backend::linearBlend(left, right, progress);
+    return Backend::linearBlendUnitFloat(left, right, progress);
 }
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
-constexpr TColor linearBlend(const TColor& left, const TColor& right, uint8_t progress)
+constexpr TColor linearBlendProgress8(const TColor& left, const TColor& right, uint8_t progress)
 {
     using Backend = typename ColorMathBackendSelector<TColor>::Type;
-    return Backend::linearBlend(left, right, progress);
+    return Backend::linearBlendProgress8(left, right, progress);
+}
+
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
+constexpr TColor linearBlendProgress16(const TColor& left, const TColor& right, uint16_t progress)
+{
+    using Backend = typename ColorMathBackendSelector<TColor>::Type;
+    return Backend::linearBlendProgress16(left, right, progress);
 }
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
