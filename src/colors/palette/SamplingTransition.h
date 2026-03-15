@@ -20,7 +20,7 @@ template <typename TColor, typename TOutputIt, typename = std::enable_if_t<Color
 
     BlendAssignProxy& operator=(const TColor& sampled)
     {
-        *_output = lw::linearBlendProgress8(*_output, sampled, _blendProgress);
+        *_output = lw::colors::linearBlendProgress8(*_output, sampled, _blendProgress);
         return *this;
     }
 

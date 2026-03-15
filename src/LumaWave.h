@@ -16,8 +16,6 @@ using Rgb16Color = lw::Rgb16Color;
 using Rgbw16Color = lw::Rgbw16Color;
 using Rgbcw16Color = lw::Rgbcw16Color;
 using Color = lw::colors::DefaultColorType;
-using HsbColor = lw::colors::HsbColor;
-using HslColor = lw::colors::HslColor;
 
 template <typename TColor> using PixelView = lw::PixelView<TColor>;
 
@@ -58,16 +56,6 @@ template <typename TColor = lw::colors::DefaultColorType> using IStrip = lw::IPi
 using TopologySettings = lw::TopologySettings;
 using Topology = lw::Topology;
 using GridMapping = lw::GridMapping;
-
-namespace HueBlend
-{
-
-using Shortest = lw::colors::HueBlendShortestDistance;
-using Longest = lw::colors::HueBlendLongestDistance;
-using Clockwise = lw::colors::HueBlendClockwiseDirection;
-using CounterClockwise = lw::colors::HueBlendCounterClockwiseDirection;
-
-} // namespace HueBlend
 
 namespace ChannelOrder
 {

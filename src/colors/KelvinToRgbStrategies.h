@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <limits>
 
+#include "ColorMath.h"
+
 namespace lw::colors
 {
 
@@ -16,13 +18,6 @@ template <typename TComponent> struct KelvinToRgbExactStrategy
     static constexpr uint16_t MaxKelvin = 65000;
 
     static constexpr uint16_t clampKelvin(uint16_t kelvin) { return std::clamp(kelvin, MinKelvin, MaxKelvin); }
-
-    static TComponent scale255ToComponent(int32_t value)
-    {
-        const uint64_t numerator =
-            static_cast<uint64_t>(value) * static_cast<uint64_t>(std::numeric_limits<TComponent>::max()) + 127u;
-        return static_cast<TComponent>(numerator / 255u);
-    }
 
     static std::array<TComponent, 3> convert(uint16_t kelvin)
     {
@@ -53,9 +48,9 @@ template <typename TComponent> struct KelvinToRgbExactStrategy
             blue = 255;
         }
 
-        return {scale255ToComponent(std::clamp(red, int32_t{0}, int32_t{255})),
-                scale255ToComponent(std::clamp(green, int32_t{0}, int32_t{255})),
-                scale255ToComponent(std::clamp(blue, int32_t{0}, int32_t{255}))};
+        return {scaleComponent<TComponent>(static_cast<uint8_t>(std::clamp(red, int32_t{0}, int32_t{255}))),
+                scaleComponent<TComponent>(static_cast<uint8_t>(std::clamp(green, int32_t{0}, int32_t{255}))),
+                scaleComponent<TComponent>(static_cast<uint8_t>(std::clamp(blue, int32_t{0}, int32_t{255})))};
     }
 };
 
@@ -92,30 +87,18 @@ template <typename TComponent> struct KelvinToRgbLut64Strategy
 
         const auto& left = Table[segmentIndex];
         const auto& right = Table[segmentIndex + 1];
-        return {
-            KelvinToRgbExactStrategy<TComponent>::scale255ToComponent(interpolate8(left[0], right[0], segmentFraction)),
-            KelvinToRgbExactStrategy<TComponent>::scale255ToComponent(interpolate8(left[1], right[1], segmentFraction)),
-            KelvinToRgbExactStrategy<TComponent>::scale255ToComponent(
-                interpolate8(left[2], right[2], segmentFraction))};
+        return {interpolateComponent<TComponent>(left[0], right[0], segmentFraction, TableRangeKelvin),
+                interpolateComponent<TComponent>(left[1], right[1], segmentFraction, TableRangeKelvin),
+                interpolateComponent<TComponent>(left[2], right[2], segmentFraction, TableRangeKelvin)};
     }
 
   private:
     using Rgb8 = std::array<uint8_t, 3>;
 
-    static int32_t interpolate8(uint8_t left, uint8_t right, uint32_t segmentFraction)
-    {
-        const int32_t delta = static_cast<int32_t>(right) - static_cast<int32_t>(left);
-        const int32_t numerator = static_cast<int32_t>(left) * static_cast<int32_t>(TableRangeKelvin) +
-                                  delta * static_cast<int32_t>(segmentFraction) +
-                                  static_cast<int32_t>(TableRangeKelvin / 2u);
-        return numerator / static_cast<int32_t>(TableRangeKelvin);
-    }
-
     static std::array<TComponent, 3> scaleEntry(const Rgb8& entry)
     {
-        return {KelvinToRgbExactStrategy<TComponent>::scale255ToComponent(entry[0]),
-                KelvinToRgbExactStrategy<TComponent>::scale255ToComponent(entry[1]),
-                KelvinToRgbExactStrategy<TComponent>::scale255ToComponent(entry[2])};
+        return {scaleComponent<TComponent>(entry[0]), scaleComponent<TComponent>(entry[1]),
+                scaleComponent<TComponent>(entry[2])};
     }
 
     static constexpr std::array<Rgb8, TablePointCount> makeTable()

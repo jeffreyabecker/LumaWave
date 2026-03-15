@@ -62,10 +62,6 @@
 #define LW_COLOR_MINIMUM_COMPONENT_SIZE 8
 #endif
 
-#ifndef LW_COLOR_MATH_BACKEND
-#define LW_COLOR_MATH_BACKEND lw::colors::detail::ScalarColorMathBackend
-#endif
-
 #ifndef LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
 #define LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES 0
 #endif
@@ -74,18 +70,6 @@
 #define LW_HAS_TEMPLATE_COMBINATORIAL_TYPES 0
 #else
 #define LW_HAS_TEMPLATE_COMBINATORIAL_TYPES 1
-#endif
-
-#ifndef LW_PALETTE_RANDOM_BACKEND
-#if defined(ARDUINO_ARCH_ESP32)
-#define LW_PALETTE_RANDOM_BACKEND lw::colors::palettes::detail::palettegen::Esp32RandomBackend
-#elif defined(ARDUINO_ARCH_ESP8266)
-#define LW_PALETTE_RANDOM_BACKEND lw::colors::palettes::detail::palettegen::Esp8266RandomBackend
-#elif defined(ARDUINO_ARCH_RP2040)
-#define LW_PALETTE_RANDOM_BACKEND lw::colors::palettes::detail::palettegen::Rp2040RandomBackend
-#else
-#define LW_PALETTE_RANDOM_BACKEND lw::colors::palettes::detail::palettegen::XorShift32RandomBackend
-#endif
 #endif
 
 #if !defined(LW_HAS_STD_SPAN)

@@ -268,8 +268,8 @@ void test_palette_type_codes_are_initialized_and_unique_per_implementation(void)
 
 void test_generator_sync_copies_internal_state_for_same_type(void)
 {
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowSource(6, 0.8f, 0.5f, 17);
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowTarget(10, 1.0f, 1.0f, 99);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowSource(6, 204u, 128u, 17);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowTarget(10, 255u, 255u, 99);
     rainbowSource.update(13);
     rainbowTarget.update(7);
     rainbowSource.syncTo(&rainbowTarget);
@@ -313,7 +313,7 @@ void test_generator_sync_copies_internal_state_for_same_type(void)
 
 void test_generator_sync_ignores_mismatched_type_and_null_target(void)
 {
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(6, 0.9f, 0.7f, 33);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(6, 230u, 179u, 33);
     lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle(6, 555u, 12);
 
     rainbow.update(4);

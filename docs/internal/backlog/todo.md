@@ -11,3 +11,4 @@
 
 - [ ] Pallets implementation plan: [pallets.md](pallets.md)
 - [ ] Aggressive internal namespace reorganization plan: [namespace-reorg-aggressive-plan.md](namespace-reorg-aggressive-plan.md)
+- [ ] ColorMath utility promotion plan: [color-math-refactors.md](color-math-refactors.md)

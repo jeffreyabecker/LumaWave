@@ -148,7 +148,7 @@ The main gap is animation testing (`NeoPixelAnimator`), which has no LumaWave eq
 | Internal upsizing | None — each type is exactly its wire size | `LW_COLOR_MINIMUM_COMPONENT_COUNT` / `LW_COLOR_MINIMUM_COMPONENT_SIZE` ensure minimum RGBW-8 internal representation |
 | Access model | Named members (`R`, `G`, `B`, `W`) + `operator[]` | `operator[](char channel)` using channel name (`'R'`, `'G'`, `'B'`, `'W'`, `'C'`) |
 | Cross-type conversion | Explicit constructors between types | Implicit via parameterised type with widening/narrowing rules |
-| HslColor / HsbColor | Float-based, with conversions to RgbColor | Float-based, with conversions |
+| HSL / HSB conversion surface | Class-based wrappers | Direct `hslToRgb(...)` / `hsbToRgb(...)` helpers |
 | Packed int conversion | Via `HtmlColor` (uint32_t) | Direct `uint32_t` / `uint64_t` ↔ RGBW conversions |
 
 #### Deeper Analysis: Color Type Design
@@ -163,7 +163,7 @@ The main gap is animation testing (`NeoPixelAnimator`), which has no LumaWave eq
 
 | Feature | NeoPixelBus | LumaWave |
 |---------|-------------|----------|
-| HSL / HSB | Yes (`HslColor`, `HsbColor`) | Yes |
+| HSL / HSB | Yes | Yes (`hslToRgb`, `hsbToRgb`) |
 | Hue-aware blending | `NeoHueBlend` (shortest, longest, CW, CCW) | `HueBlend` |
 | Linear blend | `LinearBlend()`, `BilinearBlend()` per color type | Color math utilities |
 | HTML named colours | `HtmlColor` with lookup table | `ColorHexCodec` |

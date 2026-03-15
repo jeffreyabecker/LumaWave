@@ -193,7 +193,7 @@ class TransitionSampler
         const TColor from = _sampleFrom(paletteIndex);
         const TColor to = _sampleTo(paletteIndex);
         const TBlendDomain progress = static_cast<TBlendDomain>(_sampleProgress(paletteIndex));
-        return lw::linearBlendProgress(from, to, progress);
+        return lw::colors::linearBlendProgress(from, to, progress);
     }
 
   private:

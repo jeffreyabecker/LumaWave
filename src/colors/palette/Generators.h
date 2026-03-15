@@ -8,23 +8,48 @@
 #include <vector>
 
 #include "colors/ColorMath.h"
-#include "colors/HsbColor.h"
-#include "colors/palette/RandomBackend.h"
 #include "colors/palette/Types.h"
+
+#if defined(ARDUINO_ARCH_ESP32)
+#include <esp_system.h>
+#elif defined(ARDUINO_ARCH_ESP8266)
+#include <osapi.h>
+#elif defined(ARDUINO_ARCH_RP2040)
+#if defined(__has_include)
+#if __has_include(<pico/rand.h>)
+#define LW_PALETTEGEN_HAS_PICO_RAND 1
+#include <pico/rand.h>
+#elif __has_include(<Arduino.h>)
+#define LW_PALETTEGEN_HAS_ARDUINO_RANDOM 1
+#include <Arduino.h>
+#endif
+#endif
+#endif
 
 namespace lw::colors::palettes
 {
 namespace detail::palettegen
 {
-struct RandomBackendSelector
-{
-    using Type = LW_PALETTE_RANDOM_BACKEND;
-};
-
 inline uint32_t nextRandom(uint32_t& state)
 {
-    using Backend = typename RandomBackendSelector::Type;
-    return Backend::next(state);
+#if defined(ARDUINO_ARCH_ESP32)
+    state = esp_random();
+#elif defined(ARDUINO_ARCH_ESP8266)
+    state = static_cast<uint32_t>(os_random());
+#elif defined(ARDUINO_ARCH_RP2040) && defined(LW_PALETTEGEN_HAS_PICO_RAND)
+    state = get_rand_32();
+#elif defined(ARDUINO_ARCH_RP2040) && defined(LW_PALETTEGEN_HAS_ARDUINO_RANDOM)
+    state = static_cast<uint32_t>(random(static_cast<long>(0x7FFFFFFFL)));
+#else
+    if (state == 0u)
+    {
+        state = 0x6D2B79F5u;
+    }
+    state ^= (state << 13u);
+    state ^= (state >> 17u);
+    state ^= (state << 5u);
+#endif
+    return state;
 }
 
 template <typename TComponent> TComponent randomComponent(uint32_t& state)
@@ -63,11 +88,12 @@ template <typename TColor, RequireColorChannelsInRange<TColor, 3, 5> = 0>
 class RainbowPaletteGenerator : public IPalette<TColor>
 {
   public:
+    using ComponentType = typename TColor::ComponentType;
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
 
-    explicit RainbowPaletteGenerator(size_t stopCount = 16, float saturation = 1.0f, float brightness = 1.0f,
-                                     uint8_t hueOffset = 0)
+    explicit RainbowPaletteGenerator(size_t stopCount = 16, ComponentType saturation = TColor::MaxComponent,
+                                     ComponentType brightness = TColor::MaxComponent, ComponentType hueOffset = 0)
         : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
           _saturation(saturation), _brightness(brightness), _hueOffset(hueOffset)
     {
@@ -75,19 +101,19 @@ class RainbowPaletteGenerator : public IPalette<TColor>
         rebuild();
     }
 
-    void setSaturation(float saturation)
+    void setSaturation(ComponentType saturation)
     {
         _saturation = saturation;
         rebuild();
     }
 
-    void setBrightness(float brightness)
+    void setBrightness(ComponentType brightness)
     {
         _brightness = brightness;
         rebuild();
     }
 
-    void setHueOffset(uint8_t hueOffset)
+    void setHueOffset(ComponentType hueOffset)
     {
         _hueOffset = hueOffset;
         rebuild();
@@ -95,7 +121,7 @@ class RainbowPaletteGenerator : public IPalette<TColor>
 
     void update(uint32_t hueStep = 1) override
     {
-        _hueOffset = static_cast<uint8_t>(_hueOffset + hueStep);
+        _hueOffset = static_cast<ComponentType>(_hueOffset + static_cast<ComponentType>(hueStep));
         rebuild();
     }
 
@@ -121,16 +147,17 @@ class RainbowPaletteGenerator : public IPalette<TColor>
         const size_t stopCount = _stops.size();
         for (size_t i = 0; i < stopCount; ++i)
         {
-            const uint8_t hue = static_cast<uint8_t>(_hueOffset + static_cast<uint8_t>((i * 256ull) / stopCount));
-            const float hue01 = static_cast<float>(hue) / 255.0f;
-            _stops[i].color = toRgb<TColor>(HsbColor(hue01, _saturation, _brightness));
+            const uint64_t span = static_cast<uint64_t>(TColor::MaxComponent) + 1ull;
+            const ComponentType hue = static_cast<ComponentType>(
+                _hueOffset + static_cast<ComponentType>((static_cast<uint64_t>(i) * span) / stopCount));
+            _stops[i].color = lw::colors::hsbToRgb<TColor>(hue, _saturation, _brightness);
         }
     }
 
     std::vector<PaletteStop<TColor>> _stops{};
-    float _saturation{1.0f};
-    float _brightness{1.0f};
-    uint8_t _hueOffset{0};
+    ComponentType _saturation{TColor::MaxComponent};
+    ComponentType _brightness{TColor::MaxComponent};
+    ComponentType _hueOffset{0};
 };
 
 template <typename TColor, RequireColorChannelsInRange<TColor, 3, 5> = 0>
@@ -253,7 +280,7 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
     {
         for (size_t i = 0; i < _stops.size(); ++i)
         {
-            _stops[i].color = lw::linearBlendProgress8(_sourceColors[i], _targetColors[i], _progress);
+            _stops[i].color = lw::colors::linearBlendProgress8(_sourceColors[i], _targetColors[i], _progress);
         }
     }
 
@@ -337,7 +364,7 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
         for (size_t i = 0; i < stopCount; ++i)
         {
             const size_t next = (i + 1u) % stopCount;
-            _stops[i].color = lw::linearBlendProgress8(_colors[i], _colors[next], _phase);
+            _stops[i].color = lw::colors::linearBlendProgress8(_colors[i], _colors[next], _phase);
         }
     }
 
