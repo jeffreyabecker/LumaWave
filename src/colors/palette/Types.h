@@ -95,6 +95,20 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struc
     TColor color{};
 };
 
+enum class PaletteSettingValueType : uint8_t
+{
+    UnsignedSize,
+    UnsignedColorComponent,
+    UInt32,
+    UInt8,
+};
+
+struct PaletteSettingDescriptor
+{
+    const char* key;
+    PaletteSettingValueType valueType;
+};
+
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class IPalette
 {
   protected:
@@ -104,6 +118,10 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
 
   public:
     using ColorType = TColor;
+    using SettingsEntry = std::pair<const char*, const char*>;
+        using SettingsDescriptor = PaletteSettingDescriptor;
+    using SettingsView = span<const SettingsEntry>;
+        using SettingsDescriptorView = span<const SettingsDescriptor>;
     using StopsView = span<const PaletteStop<TColor>>;
 
     virtual ~IPalette() = default;
@@ -112,6 +130,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
 
     virtual StopsView stops() const = 0;
     virtual void syncTo(IPalette<TColor>* that) { (void)that; }
+    virtual void updateSettings(SettingsView settings) { (void)settings; }
     virtual void update(uint32_t step = 0) = 0;
 };
 
@@ -135,6 +154,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     using StorageType = std::vector<PaletteStop<TColor>>;
 
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::Palette;
+        inline static constexpr std::array<PaletteSettingDescriptor, 0> AllowedSettings{};
 
     Palette() : IPalette<TColor>(TypeCode) {}
 

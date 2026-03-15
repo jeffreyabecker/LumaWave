@@ -4,11 +4,15 @@
 
 #include "core/IndexIterator.h"
 #include "colors/palette/Palette.h"
+#include "colors/palette/defaults/DefaultPalettes.h"
 
 namespace
 {
 using Stop = lw::colors::palettes::PaletteStop<lw::Rgb8Color>;
 using Palette = lw::colors::palettes::Palette<lw::Rgb8Color>;
+using PaletteSetting = std::pair<const char*, const char*>;
+using SettingDescriptor = lw::colors::palettes::PaletteSettingDescriptor;
+using SettingValueType = lw::colors::palettes::PaletteSettingValueType;
 
 template <typename TPalette> void assert_same_stops(const TPalette& a, const TPalette& b)
 {
@@ -56,6 +60,28 @@ static_assert(
 static_assert(
     lw::colors::palettes::IsPaletteLike<lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color>>::value,
     "RandomCyclePaletteGenerator must satisfy IsPaletteLike");
+static_assert(Palette::AllowedSettings.size() == 0u, "Palette should expose an empty AllowedSettings descriptor");
+static_assert(lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings.size() == 4u,
+              "RainbowPaletteGenerator should expose four allowed settings");
+static_assert(lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings.size() == 5u,
+              "TemporalRainbowPaletteGenerator should expose five allowed settings");
+static_assert(lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color>::AllowedSettings.size() == 3u,
+              "RandomSmoothPaletteGenerator should expose three allowed settings");
+static_assert(lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color>::AllowedSettings.size() == 3u,
+              "RandomCyclePaletteGenerator should expose three allowed settings");
+
+template <size_t N>
+void assert_allowed_settings_equal(const std::array<SettingDescriptor, N>& actual,
+                                   const std::array<SettingDescriptor, N>& expected)
+{
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(expected.size()), static_cast<uint32_t>(actual.size()));
+    for (size_t i = 0; i < expected.size(); ++i)
+    {
+        TEST_ASSERT_EQUAL_STRING(expected[i].key, actual[i].key);
+        TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(expected[i].valueType),
+                                 static_cast<uint32_t>(actual[i].valueType));
+    }
+}
 
 void test_rainbow_generator_stop_shape_and_update(void)
 {
@@ -390,6 +416,156 @@ void test_generator_sync_ignores_mismatched_type_and_null_target(void)
         TEST_ASSERT_TRUE(beforeStops[i].color == after[i].color);
     }
 }
+
+void test_palette_update_settings_defaults_to_noop_for_static_palettes(void)
+{
+    const std::array<Stop, 2> staticStops = {
+        Stop{0, lw::Rgb8Color(12, 34, 56)},
+        Stop{255, lw::Rgb8Color(12, 34, 56)},
+    };
+    Palette palette(staticStops);
+    lw::colors::palettes::IPalette<lw::Rgb8Color>* interfacePalette = &palette;
+    const std::array<PaletteSetting, 2> settings = {
+        PaletteSetting{"stop_count", "9"},
+        PaletteSetting{"seed", "1234"},
+    };
+
+    interfacePalette->updateSettings(lw::span<const PaletteSetting>(settings.data(), settings.size()));
+
+    const auto stops = palette.stops();
+    TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(stops.size()));
+    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(stops[0].index));
+    TEST_ASSERT_EQUAL_UINT32(255, static_cast<uint32_t>(stops[1].index));
+    TEST_ASSERT_TRUE(stops[0].color == lw::Rgb8Color(12, 34, 56));
+    TEST_ASSERT_TRUE(stops[1].color == lw::Rgb8Color(12, 34, 56));
+}
+
+void test_rainbow_generator_update_settings_applies_snake_case_keys(void)
+{
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow;
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> expected;
+    lw::colors::palettes::IPalette<lw::Rgb8Color>* interfacePalette = &rainbow;
+    const std::array<PaletteSetting, 4> settings = {
+        PaletteSetting{"stop_count", "5"},
+        PaletteSetting{"saturation", "111"},
+        PaletteSetting{"brightness", "203"},
+        PaletteSetting{"hue_offset", "17"},
+    };
+
+    interfacePalette->updateSettings(lw::span<const PaletteSetting>(settings.data(), settings.size()));
+
+    expected.setStopCount(5);
+    expected.setSaturation(111);
+    expected.setBrightness(203);
+    expected.setHueOffset(17);
+    assert_same_stops(rainbow, expected);
+}
+
+void test_temporal_rainbow_update_settings_applies_snake_case_keys(void)
+{
+    lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> temporal;
+    lw::colors::palettes::IPalette<lw::Rgb8Color>* interfacePalette = &temporal;
+    const std::array<PaletteSetting, 5> settings = {
+        PaletteSetting{"stop_count", "7"},  PaletteSetting{"saturation", "128"}, PaletteSetting{"brightness", "200"},
+        PaletteSetting{"hue_offset", "29"}, PaletteSetting{"step_index", "11"},
+    };
+
+    interfacePalette->updateSettings(lw::span<const PaletteSetting>(settings.data(), settings.size()));
+
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> expectedRainbow;
+    expectedRainbow.setStopCount(7);
+    expectedRainbow.setSaturation(128);
+    expectedRainbow.setBrightness(200);
+    expectedRainbow.setHueOffset(29);
+
+    const lw::Rgb8Color expectedColor = lw::colors::palettes::samplePaletteAt<lw::Rgb8Color>(
+        expectedRainbow.stops(), 11,
+        lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color>{.wrapMode = lw::colors::palettes::WrapMode::Circular,
+                                                                  .blendMode = lw::colors::palettes::BlendMode::Linear,
+                                                                  .quantizedLevels = 0});
+    const auto stops = temporal.stops();
+
+    TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(stops.size()));
+    TEST_ASSERT_TRUE(stops[0].color == expectedColor);
+    TEST_ASSERT_TRUE(stops[1].color == expectedColor);
+}
+
+void test_random_generators_update_settings_applies_snake_case_keys(void)
+{
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smooth;
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> expectedSmooth;
+    lw::colors::palettes::IPalette<lw::Rgb8Color>* smoothInterface = &smooth;
+    const std::array<PaletteSetting, 3> smoothSettings = {
+        PaletteSetting{"stop_count", "6"},
+        PaletteSetting{"seed", "2468"},
+        PaletteSetting{"progress_step", "21"},
+    };
+
+    smoothInterface->updateSettings(lw::span<const PaletteSetting>(smoothSettings.data(), smoothSettings.size()));
+    expectedSmooth.setStopCount(6);
+    expectedSmooth.setSeed(2468u);
+    expectedSmooth.setProgressStep(21);
+    smooth.update();
+    expectedSmooth.update();
+    assert_same_stops(smooth, expectedSmooth);
+
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle;
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> expectedCycle;
+    lw::colors::palettes::IPalette<lw::Rgb8Color>* cycleInterface = &cycle;
+    const std::array<PaletteSetting, 3> cycleSettings = {
+        PaletteSetting{"stop_count", "6"},
+        PaletteSetting{"seed", "1357"},
+        PaletteSetting{"cycle_step", "34"},
+    };
+
+    cycleInterface->updateSettings(lw::span<const PaletteSetting>(cycleSettings.data(), cycleSettings.size()));
+    expectedCycle.setStopCount(6);
+    expectedCycle.setSeed(1357u);
+    expectedCycle.setCycleStep(34);
+    cycle.update();
+    expectedCycle.update();
+    assert_same_stops(cycle, expectedCycle);
+}
+
+void test_palette_implementations_expose_allowed_settings_descriptors(void)
+{
+    constexpr std::array<SettingDescriptor, 4> expectedRainbow{{
+        SettingDescriptor{"stop_count", SettingValueType::UnsignedSize},
+        SettingDescriptor{"saturation", SettingValueType::UnsignedColorComponent},
+        SettingDescriptor{"brightness", SettingValueType::UnsignedColorComponent},
+        SettingDescriptor{"hue_offset", SettingValueType::UnsignedColorComponent},
+    }};
+    constexpr std::array<SettingDescriptor, 5> expectedTemporal{{
+        SettingDescriptor{"stop_count", SettingValueType::UnsignedSize},
+        SettingDescriptor{"saturation", SettingValueType::UnsignedColorComponent},
+        SettingDescriptor{"brightness", SettingValueType::UnsignedColorComponent},
+        SettingDescriptor{"hue_offset", SettingValueType::UnsignedColorComponent},
+        SettingDescriptor{"step_index", SettingValueType::UnsignedSize},
+    }};
+    constexpr std::array<SettingDescriptor, 3> expectedSmooth{{
+        SettingDescriptor{"stop_count", SettingValueType::UnsignedSize},
+        SettingDescriptor{"seed", SettingValueType::UInt32},
+        SettingDescriptor{"progress_step", SettingValueType::UInt8},
+    }};
+    constexpr std::array<SettingDescriptor, 3> expectedCycle{{
+        SettingDescriptor{"stop_count", SettingValueType::UnsignedSize},
+        SettingDescriptor{"seed", SettingValueType::UInt32},
+        SettingDescriptor{"cycle_step", SettingValueType::UInt8},
+    }};
+
+    TEST_ASSERT_EQUAL_UINT32(0u, static_cast<uint32_t>(Palette::AllowedSettings.size()));
+    TEST_ASSERT_EQUAL_UINT32(0u,
+                             static_cast<uint32_t>(lw::colors::palettes::StaticPalette<lw::Rgb8Color>::AllowedSettings
+                                                       .size()));
+    assert_allowed_settings_equal(lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings,
+                                  expectedRainbow);
+    assert_allowed_settings_equal(
+        lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings, expectedTemporal);
+    assert_allowed_settings_equal(lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color>::AllowedSettings,
+                                  expectedSmooth);
+    assert_allowed_settings_equal(lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color>::AllowedSettings,
+                                  expectedCycle);
+}
 } // namespace
 
 void setUp(void)
@@ -415,5 +591,10 @@ int main(int, char**)
     RUN_TEST(test_palette_type_codes_are_initialized_and_unique_per_implementation);
     RUN_TEST(test_generator_sync_copies_internal_state_for_same_type);
     RUN_TEST(test_generator_sync_ignores_mismatched_type_and_null_target);
+    RUN_TEST(test_palette_update_settings_defaults_to_noop_for_static_palettes);
+    RUN_TEST(test_rainbow_generator_update_settings_applies_snake_case_keys);
+    RUN_TEST(test_palette_implementations_expose_allowed_settings_descriptors);
+    RUN_TEST(test_temporal_rainbow_update_settings_applies_snake_case_keys);
+    RUN_TEST(test_random_generators_update_settings_applies_snake_case_keys);
     return UNITY_END();
 }

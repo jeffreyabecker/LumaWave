@@ -16,6 +16,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
   public:
     using StopsView = typename IPalette<TColor>::StopsView;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::StaticPalette;
+        inline static constexpr std::array<PaletteSettingDescriptor, 0> AllowedSettings{};
 
     StaticPalette() : IPalette<TColor>(TypeCode) {}
 

@@ -14,6 +14,8 @@ void test_palette_first_pass_compile(void)
     static_assert(lw::ColorType<lw::Rgb8Color>, "Rgb8Color must satisfy ColorType");
     static_assert(lw::colors::palettes::IsPaletteLike<lw::colors::palettes::Palette<lw::Rgb8Color>>::value,
                   "Palette<TColor> must satisfy IsPaletteLike");
+    static_assert(lw::colors::palettes::Palette<lw::Rgb8Color>::AllowedSettings.size() == 0u,
+                  "Palette<TColor> must expose an empty AllowedSettings descriptor");
     static_assert(lw::colors::palettes::blend::Linear == lw::colors::palettes::BlendMode::Linear,
                   "blend::Linear must map to BlendMode::Linear");
     static_assert(lw::colors::palettes::blend::Nearest == lw::colors::palettes::BlendMode::Nearest,

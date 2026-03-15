@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -30,6 +31,33 @@ namespace lw::colors::palettes
 {
 namespace detail::palettegen
 {
+using SettingsEntry = std::pair<const char*, const char*>;
+
+inline constexpr std::array<PaletteSettingDescriptor, 0> NoAllowedSettings{};
+inline constexpr std::array<PaletteSettingDescriptor, 4> RainbowAllowedSettings{{
+    PaletteSettingDescriptor{"stop_count", PaletteSettingValueType::UnsignedSize},
+    PaletteSettingDescriptor{"saturation", PaletteSettingValueType::UnsignedColorComponent},
+    PaletteSettingDescriptor{"brightness", PaletteSettingValueType::UnsignedColorComponent},
+    PaletteSettingDescriptor{"hue_offset", PaletteSettingValueType::UnsignedColorComponent},
+}};
+inline constexpr std::array<PaletteSettingDescriptor, 5> TemporalRainbowAllowedSettings{{
+    PaletteSettingDescriptor{"stop_count", PaletteSettingValueType::UnsignedSize},
+    PaletteSettingDescriptor{"saturation", PaletteSettingValueType::UnsignedColorComponent},
+    PaletteSettingDescriptor{"brightness", PaletteSettingValueType::UnsignedColorComponent},
+    PaletteSettingDescriptor{"hue_offset", PaletteSettingValueType::UnsignedColorComponent},
+    PaletteSettingDescriptor{"step_index", PaletteSettingValueType::UnsignedSize},
+}};
+inline constexpr std::array<PaletteSettingDescriptor, 3> RandomSmoothAllowedSettings{{
+    PaletteSettingDescriptor{"stop_count", PaletteSettingValueType::UnsignedSize},
+    PaletteSettingDescriptor{"seed", PaletteSettingValueType::UInt32},
+    PaletteSettingDescriptor{"progress_step", PaletteSettingValueType::UInt8},
+}};
+inline constexpr std::array<PaletteSettingDescriptor, 3> RandomCycleAllowedSettings{{
+    PaletteSettingDescriptor{"stop_count", PaletteSettingValueType::UnsignedSize},
+    PaletteSettingDescriptor{"seed", PaletteSettingValueType::UInt32},
+    PaletteSettingDescriptor{"cycle_step", PaletteSettingValueType::UInt8},
+}};
+
 inline uint32_t nextRandom(uint32_t& state)
 {
 #if LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_ESP32)
@@ -96,6 +124,85 @@ inline size_t normalizeStopCount(size_t stopCount)
 {
     return (stopCount < 2u) ? 2u : stopCount;
 }
+
+inline const char* skipWhitespace(const char* cursor)
+{
+    if (cursor == nullptr)
+    {
+        return nullptr;
+    }
+
+    while (*cursor != '\0' && std::isspace(static_cast<unsigned char>(*cursor)) != 0)
+    {
+        ++cursor;
+    }
+
+    return cursor;
+}
+
+inline bool keyEquals(const char* actual, const char* expected)
+{
+    if (actual == nullptr || expected == nullptr)
+    {
+        return false;
+    }
+
+    while (*actual != '\0' && *expected != '\0')
+    {
+        if (*actual != *expected)
+        {
+            return false;
+        }
+
+        ++actual;
+        ++expected;
+    }
+
+    return (*actual == '\0') && (*expected == '\0');
+}
+
+template <typename TValue> bool tryParseUnsigned(const char* text, TValue& value)
+{
+    static_assert(std::is_integral<TValue>::value, "Palette settings parser expects integral types");
+    static_assert(std::is_unsigned<TValue>::value, "Palette settings parser expects unsigned types");
+
+    if (text == nullptr)
+    {
+        return false;
+    }
+
+    const char* cursor = skipWhitespace(text);
+    if (cursor == nullptr || *cursor == '\0')
+    {
+        return false;
+    }
+
+    TValue parsed = 0;
+    bool hasDigit = false;
+    constexpr TValue maxValue = std::numeric_limits<TValue>::max();
+
+    while (*cursor >= '0' && *cursor <= '9')
+    {
+        const TValue digit = static_cast<TValue>(*cursor - '0');
+        if (parsed > static_cast<TValue>((maxValue - digit) / 10u))
+        {
+            return false;
+        }
+
+        parsed = static_cast<TValue>((parsed * 10u) + digit);
+        hasDigit = true;
+        ++cursor;
+    }
+
+    cursor = skipWhitespace(cursor);
+    if (!hasDigit || cursor == nullptr || *cursor != '\0')
+    {
+        return false;
+    }
+
+    value = parsed;
+    return true;
+}
 } // namespace detail::palettegen
 
 template <typename TColor, RequireColorChannelsInRange<TColor, 3, 5> = 0>
@@ -103,9 +210,11 @@ class RainbowPaletteGenerator : public IPalette<TColor>
 {
   public:
     using ComponentType = typename TColor::ComponentType;
+    using SettingsView = typename IPalette<TColor>::SettingsView;
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
     static constexpr size_t DefaultStopCount = 16u;
+    inline static constexpr auto AllowedSettings = detail::palettegen::RainbowAllowedSettings;
 
     RainbowPaletteGenerator()
         : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)),
@@ -148,6 +257,51 @@ class RainbowPaletteGenerator : public IPalette<TColor>
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
+    void updateSettings(SettingsView settings) override
+    {
+        for (const auto& setting : settings)
+        {
+            if (detail::palettegen::keyEquals(setting.first, "stop_count"))
+            {
+                size_t stopCount = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, stopCount))
+                {
+                    setStopCount(stopCount);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "saturation"))
+            {
+                ComponentType saturation = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, saturation))
+                {
+                    setSaturation(saturation);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "brightness"))
+            {
+                ComponentType brightness = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, brightness))
+                {
+                    setBrightness(brightness);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "hue_offset"))
+            {
+                ComponentType hueOffset = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, hueOffset))
+                {
+                    setHueOffset(hueOffset);
+                }
+            }
+        }
+    }
+
     void syncTo(IPalette<TColor>* that) override
     {
         RainbowPaletteGenerator<TColor>* target = detail::syncTarget<RainbowPaletteGenerator<TColor>, TColor>(that);
@@ -185,8 +339,11 @@ template <typename TColor, RequireColorChannelsInRange<TColor, 3, 5> = 0>
 class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 {
   public:
+    using SettingsView = typename IPalette<TColor>::SettingsView;
+    using ComponentType = typename TColor::ComponentType;
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::TemporalRainbowPaletteGenerator;
+    inline static constexpr auto AllowedSettings = detail::palettegen::TemporalRainbowAllowedSettings;
 
     explicit TemporalRainbowPaletteGenerator() : IPalette<TColor>(TypeCode), _rainbowGenerator()
     {
@@ -202,6 +359,73 @@ class TemporalRainbowPaletteGenerator : public IPalette<TColor>
     }
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
+
+    void updateSettings(SettingsView settings) override
+    {
+        bool requiresRebuild = false;
+
+        for (const auto& setting : settings)
+        {
+            if (detail::palettegen::keyEquals(setting.first, "stop_count"))
+            {
+                size_t stopCount = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, stopCount))
+                {
+                    _rainbowGenerator.setStopCount(stopCount);
+                    requiresRebuild = true;
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "saturation"))
+            {
+                ComponentType saturation = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, saturation))
+                {
+                    _rainbowGenerator.setSaturation(saturation);
+                    requiresRebuild = true;
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "brightness"))
+            {
+                ComponentType brightness = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, brightness))
+                {
+                    _rainbowGenerator.setBrightness(brightness);
+                    requiresRebuild = true;
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "hue_offset"))
+            {
+                ComponentType hueOffset = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, hueOffset))
+                {
+                    _rainbowGenerator.setHueOffset(hueOffset);
+                    requiresRebuild = true;
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "step_index"))
+            {
+                size_t stepIndex = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, stepIndex))
+                {
+                    _stepIndex = stepIndex;
+                    requiresRebuild = true;
+                }
+            }
+        }
+
+        if (requiresRebuild)
+        {
+            rebuild();
+        }
+    }
 
     void syncTo(IPalette<TColor>* that) override
     {
@@ -237,11 +461,13 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
 class RandomSmoothPaletteGenerator : public IPalette<TColor>
 {
   public:
+    using SettingsView = typename IPalette<TColor>::SettingsView;
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomSmoothPaletteGenerator;
     static constexpr size_t DefaultStopCount = 8u;
     static constexpr uint32_t DefaultSeed = 0xC0FFEE11u;
     static constexpr uint8_t DefaultProgressStep = 12u;
+    inline static constexpr auto AllowedSettings = detail::palettegen::RandomSmoothAllowedSettings;
 
     RandomSmoothPaletteGenerator()
         : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)),
@@ -289,6 +515,41 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
     }
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
+
+    void updateSettings(SettingsView settings) override
+    {
+        for (const auto& setting : settings)
+        {
+            if (detail::palettegen::keyEquals(setting.first, "stop_count"))
+            {
+                size_t stopCount = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, stopCount))
+                {
+                    setStopCount(stopCount);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "seed"))
+            {
+                uint32_t seed = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, seed))
+                {
+                    setSeed(seed);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "progress_step"))
+            {
+                uint8_t progressStep = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, progressStep))
+                {
+                    setProgressStep(progressStep);
+                }
+            }
+        }
+    }
 
     void syncTo(IPalette<TColor>* that) override
     {
@@ -346,16 +607,18 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>>
 class RandomCyclePaletteGenerator : public IPalette<TColor>
 {
   public:
+    using SettingsView = typename IPalette<TColor>::SettingsView;
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomCyclePaletteGenerator;
     static constexpr size_t DefaultStopCount = 8u;
     static constexpr uint32_t DefaultSeed = 0x13579BDFu;
     static constexpr uint8_t DefaultCycleStep = 8u;
+    inline static constexpr auto AllowedSettings = detail::palettegen::RandomCycleAllowedSettings;
 
     RandomCyclePaletteGenerator()
         : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)),
-          _colors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed),
-          _rngState(DefaultSeed), _cycleStep(DefaultCycleStep)
+          _colors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed), _rngState(DefaultSeed),
+          _cycleStep(DefaultCycleStep)
     {
         resetGeneratedColors();
     }
@@ -392,6 +655,41 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
     }
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
+
+    void updateSettings(SettingsView settings) override
+    {
+        for (const auto& setting : settings)
+        {
+            if (detail::palettegen::keyEquals(setting.first, "stop_count"))
+            {
+                size_t stopCount = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, stopCount))
+                {
+                    setStopCount(stopCount);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "seed"))
+            {
+                uint32_t seed = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, seed))
+                {
+                    setSeed(seed);
+                }
+                continue;
+            }
+
+            if (detail::palettegen::keyEquals(setting.first, "cycle_step"))
+            {
+                uint8_t cycleStep = 0;
+                if (detail::palettegen::tryParseUnsigned(setting.second, cycleStep))
+                {
+                    setCycleStep(cycleStep);
+                }
+            }
+        }
+    }
 
     void syncTo(IPalette<TColor>* that) override
     {
