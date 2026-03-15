@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
+#include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -191,6 +192,16 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
             _stops.clear();
         }
     }
+    static std::unique_ptr<IPalette<TColor>> parseDynamic(const char* stops)
+    {
+        StorageType parsedStops;
+        if (!tryParseStops(stops, parsedStops))
+        {
+            return nullptr;
+        }
+
+        return std::make_unique<Palette<TColor>>(std::move(parsedStops));
+    }
 
     static Palette parse(const char* stops)
     {
@@ -281,21 +292,39 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
             return false;
         }
 
+        const char* formatCursor = cursor;
+        size_t ignoredIndex = 0;
+        TColor ignoredColor{};
+        const bool hasExplicitIndexes = tryParseStop(formatCursor, ignoredIndex, ignoredColor);
+
         while (*cursor != '\0')
         {
             size_t index = 0;
             TColor color{};
-            if (!tryParseStop(cursor, index, color))
-            {
-                return false;
-            }
 
-            parsedStops.push_back(PaletteStop<TColor>{index, color});
+            if (hasExplicitIndexes)
+            {
+                if (!tryParseStop(cursor, index, color))
+                {
+                    return false;
+                }
+
+                parsedStops.push_back(PaletteStop<TColor>{index, color});
+            }
+            else
+            {
+                if (!tryParseColor(cursor, color))
+                {
+                    return false;
+                }
+
+                parsedStops.push_back(PaletteStop<TColor>{0u, color});
+            }
 
             cursor = skipWhitespace(cursor);
             if (*cursor == '\0')
             {
-                return true;
+                break;
             }
 
             if (*cursor != '|')
@@ -310,7 +339,34 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
             }
         }
 
+        if (!hasExplicitIndexes)
+        {
+            assignDistributedStopIndexes(parsedStops);
+        }
+
         return detail::isValidPaletteStops(parsedStops);
+    }
+
+    static void assignDistributedStopIndexes(StorageType& parsedStops)
+    {
+        if (parsedStops.empty())
+        {
+            return;
+        }
+
+        if (parsedStops.size() == 1u)
+        {
+            parsedStops[0].index = 0u;
+            return;
+        }
+
+        constexpr size_t paletteDomainMaxIndex = static_cast<size_t>(std::numeric_limits<uint8_t>::max());
+        const size_t stopSpan = parsedStops.size() - 1u;
+
+        for (size_t i = 0; i < parsedStops.size(); ++i)
+        {
+            parsedStops[i].index = (i * paletteDomainMaxIndex) / stopSpan;
+        }
     }
 
     static bool tryParseStop(const char*& cursor, size_t& index, TColor& color)

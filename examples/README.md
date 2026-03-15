@@ -29,6 +29,7 @@ Choose `AggregateStrip` when the aggregate should own heap-allocated child strip
 
 Palette stops are expected in non-decreasing index order.
 Duplicate indexes are allowed and produce hard zero-width transitions between adjacent stops.
+Text parsing for consumer-authored palettes is documented in [docs/usage/palette-parsing.md](../docs/usage/palette-parsing.md).
 
 - `palettes/static-gradient/static-gradient.ino`: Static multi-stop gradient sampled across the strip.
 - `palettes/rainbow-generator/rainbow-generator.ino`: Animated rainbow palette generator.
