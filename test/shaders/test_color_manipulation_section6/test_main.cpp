@@ -66,14 +66,12 @@ void test_6_1_5_interpolate_component_blends_scalar_domains(void)
     TEST_ASSERT_EQUAL_UINT8(110u, lw::colors::interpolateComponent<uint8_t>(static_cast<uint8_t>(10u),
                                                                             static_cast<uint8_t>(110u), 255u, 255u));
 
-    TEST_ASSERT_EQUAL_UINT16(0u, lw::colors::interpolateComponent<uint16_t>(static_cast<uint8_t>(0u),
-                                                                            static_cast<uint8_t>(255u), 0u, 255u));
-    TEST_ASSERT_EQUAL_UINT16(32896u, lw::colors::interpolateComponent<uint16_t>(static_cast<uint8_t>(0u),
-                                                                                static_cast<uint8_t>(255u), 128u,
-                                                                                255u));
-    TEST_ASSERT_EQUAL_UINT16(65535u, lw::colors::interpolateComponent<uint16_t>(static_cast<uint8_t>(0u),
-                                                                                static_cast<uint8_t>(255u), 255u,
-                                                                                255u));
+    TEST_ASSERT_EQUAL_UINT16(
+        0u, lw::colors::interpolateComponent<uint16_t>(static_cast<uint8_t>(0u), static_cast<uint8_t>(255u), 0u, 255u));
+    TEST_ASSERT_EQUAL_UINT16(32896u, lw::colors::interpolateComponent<uint16_t>(
+                                         static_cast<uint8_t>(0u), static_cast<uint8_t>(255u), 128u, 255u));
+    TEST_ASSERT_EQUAL_UINT16(65535u, lw::colors::interpolateComponent<uint16_t>(
+                                         static_cast<uint8_t>(0u), static_cast<uint8_t>(255u), 255u, 255u));
 }
 
 void test_6_2_2_linear_blend_uint8_rounding_rgb8(void)

@@ -119,9 +119,9 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
   public:
     using ColorType = TColor;
     using SettingsEntry = std::pair<const char*, const char*>;
-        using SettingsDescriptor = PaletteSettingDescriptor;
+    using SettingsDescriptor = PaletteSettingDescriptor;
     using SettingsView = span<const SettingsEntry>;
-        using SettingsDescriptorView = span<const SettingsDescriptor>;
+    using SettingsDescriptorView = span<const SettingsDescriptor>;
     using StopsView = span<const PaletteStop<TColor>>;
 
     virtual ~IPalette() = default;
@@ -154,7 +154,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     using StorageType = std::vector<PaletteStop<TColor>>;
 
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::Palette;
-        inline static constexpr std::array<PaletteSettingDescriptor, 0> AllowedSettings{};
+    inline static constexpr std::array<PaletteSettingDescriptor, 0> AllowedSettings{};
 
     Palette() : IPalette<TColor>(TypeCode) {}
 

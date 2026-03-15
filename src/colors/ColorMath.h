@@ -99,8 +99,7 @@ template <typename TColor> struct ScalarColorMathBackend
             return static_cast<ComponentType>(value);
         }
 
-        return static_cast<ComponentType>(((static_cast<ScaleWide>(value) * maxTarget) + (maxSource / 2u)) /
-                                          maxSource);
+        return static_cast<ComponentType>(((static_cast<ScaleWide>(value) * maxTarget) + (maxSource / 2u)) / maxSource);
     }
 
     static constexpr uint8_t linearBlendScalar8(uint8_t left, uint8_t right, uint8_t progress)
@@ -352,14 +351,14 @@ constexpr TTarget scaleComponent(TSource source)
     return static_cast<TTarget>(((static_cast<ScaleWide>(source) * maxTarget) + (maxSource / 2u)) / maxSource);
 }
 
-template <typename TTarget, typename TValue, typename TProgress, typename TProgressMax,
-          typename = std::enable_if_t<
-              std::is_integral_v<TTarget> && std::is_unsigned_v<TTarget> && std::is_integral_v<TValue> &&
-              std::is_unsigned_v<TValue> && std::is_integral_v<TProgress> && std::is_unsigned_v<TProgress> &&
-              std::is_integral_v<TProgressMax> && std::is_unsigned_v<TProgressMax> &&
-              !std::is_same_v<std::remove_cv_t<TTarget>, bool> && !std::is_same_v<std::remove_cv_t<TValue>, bool> &&
-              !std::is_same_v<std::remove_cv_t<TProgress>, bool> &&
-              !std::is_same_v<std::remove_cv_t<TProgressMax>, bool>>>
+template <
+    typename TTarget, typename TValue, typename TProgress, typename TProgressMax,
+    typename = std::enable_if_t<
+        std::is_integral_v<TTarget> && std::is_unsigned_v<TTarget> && std::is_integral_v<TValue> &&
+        std::is_unsigned_v<TValue> && std::is_integral_v<TProgress> && std::is_unsigned_v<TProgress> &&
+        std::is_integral_v<TProgressMax> && std::is_unsigned_v<TProgressMax> &&
+        !std::is_same_v<std::remove_cv_t<TTarget>, bool> && !std::is_same_v<std::remove_cv_t<TValue>, bool> &&
+        !std::is_same_v<std::remove_cv_t<TProgress>, bool> && !std::is_same_v<std::remove_cv_t<TProgressMax>, bool>>>
 constexpr TTarget interpolateComponent(TValue left, TValue right, TProgress progress, TProgressMax maxProgress)
 {
     using SignedScaleWide = int64_t;

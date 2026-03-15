@@ -13,17 +13,17 @@ namespace lw::busses
 template <typename TColor> class ReferenceLightBus : public IPixelBus<TColor>
 {
   public:
-        ReferenceLightBus(std::unique_ptr<transports::ILightDriver<TColor>> driver,
-                                            std::unique_ptr<IShader<TColor>> shader = nullptr)
-                : _rootBuffer(std::make_unique<TColor>()), _driver(std::move(driver)), _shader(std::move(shader)),
-                    _shaderBuffer(std::make_unique<TColor>()), _pixelViewChunks{makePixelChunk(_rootBuffer.get())},
-                    _pixels(span<span<TColor>>{_pixelViewChunks.data(), _pixelViewChunks.size()})
+    ReferenceLightBus(std::unique_ptr<transports::ILightDriver<TColor>> driver,
+                      std::unique_ptr<IShader<TColor>> shader = nullptr)
+        : _rootBuffer(std::make_unique<TColor>()), _driver(std::move(driver)), _shader(std::move(shader)),
+          _shaderBuffer(std::make_unique<TColor>()), _pixelViewChunks{makePixelChunk(_rootBuffer.get())},
+          _pixels(span<span<TColor>>{_pixelViewChunks.data(), _pixelViewChunks.size()})
     {
     }
 
     void begin() override
     {
-                if (_driver)
+        if (_driver)
         {
             _driver->begin();
         }

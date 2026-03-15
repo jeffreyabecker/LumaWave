@@ -554,13 +554,12 @@ void test_palette_implementations_expose_allowed_settings_descriptors(void)
     }};
 
     TEST_ASSERT_EQUAL_UINT32(0u, static_cast<uint32_t>(Palette::AllowedSettings.size()));
-    TEST_ASSERT_EQUAL_UINT32(0u,
-                             static_cast<uint32_t>(lw::colors::palettes::StaticPalette<lw::Rgb8Color>::AllowedSettings
-                                                       .size()));
+    TEST_ASSERT_EQUAL_UINT32(
+        0u, static_cast<uint32_t>(lw::colors::palettes::StaticPalette<lw::Rgb8Color>::AllowedSettings.size()));
     assert_allowed_settings_equal(lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings,
                                   expectedRainbow);
-    assert_allowed_settings_equal(
-        lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings, expectedTemporal);
+    assert_allowed_settings_equal(lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings,
+                                  expectedTemporal);
     assert_allowed_settings_equal(lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color>::AllowedSettings,
                                   expectedSmooth);
     assert_allowed_settings_equal(lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color>::AllowedSettings,
