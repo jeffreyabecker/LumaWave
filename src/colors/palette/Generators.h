@@ -10,11 +10,11 @@
 #include "colors/ColorMath.h"
 #include "colors/palette/Types.h"
 
-#if defined(ARDUINO_ARCH_ESP32)
+#if LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_ESP32)
 #include <esp_system.h>
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_ESP8266)
 #include <osapi.h>
-#elif defined(ARDUINO_ARCH_RP2040)
+#elif LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_RP2040)
 #if defined(__has_include)
 #if __has_include(<pico/rand.h>)
 #define LW_PALETTEGEN_HAS_PICO_RAND 1
@@ -32,13 +32,13 @@ namespace detail::palettegen
 {
 inline uint32_t nextRandom(uint32_t& state)
 {
-#if defined(ARDUINO_ARCH_ESP32)
+#if LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_ESP32)
     state = esp_random();
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_ESP8266)
     state = static_cast<uint32_t>(os_random());
-#elif defined(ARDUINO_ARCH_RP2040) && defined(LW_PALETTEGEN_HAS_PICO_RAND)
+#elif LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_RP2040) && defined(LW_PALETTEGEN_HAS_PICO_RAND)
     state = get_rand_32();
-#elif defined(ARDUINO_ARCH_RP2040) && defined(LW_PALETTEGEN_HAS_ARDUINO_RANDOM)
+#elif LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_RP2040) && defined(LW_PALETTEGEN_HAS_ARDUINO_RANDOM)
     state = static_cast<uint32_t>(random(static_cast<long>(0x7FFFFFFFL)));
 #else
     if (state == 0u)
