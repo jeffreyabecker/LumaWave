@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "colors/ColorIterator.h"
 #include "core/Compat.h"
 #include "core/PixelView.h"
 

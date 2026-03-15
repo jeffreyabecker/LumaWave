@@ -5,10 +5,14 @@ constexpr pixel_count_t ledCount = 30;
 Strip<Protocols::Ws2812> strip(ledCount, Transport::DefaultSettings{{.dataPin = 2}});
 uint16_t frame = 0;
 
-lw::colors::palettes::RainbowPaletteGenerator<Color> generator(16, 255u, 217u, 0);
+lw::colors::palettes::RainbowPaletteGenerator<Color> generator;
 
 void setup()
 {
+    generator.setStopCount(16);
+    generator.setSaturation(255u);
+    generator.setBrightness(217u);
+    generator.setHueOffset(0u);
     strip.begin();
 }
 

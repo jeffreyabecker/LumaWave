@@ -5,10 +5,13 @@ constexpr pixel_count_t ledCount = 30;
 Strip<Protocols::Ws2812> strip(ledCount, Transport::DefaultSettings{{.dataPin = 2}});
 uint16_t frame = 0;
 
-lw::colors::palettes::RandomCyclePaletteGenerator<Color> generator(8, 0xC001D00Du, 12);
+lw::colors::palettes::RandomCyclePaletteGenerator<Color> generator;
 
 void setup()
 {
+    generator.setStopCount(8);
+    generator.setSeed(0xC001D00Du);
+    generator.setCycleStep(12);
     strip.begin();
 }
 

@@ -23,7 +23,6 @@ Top-level index for native test categories and spec-driven suites.
 - [Nil Template Compile Smoke](test_nil_template_compile)
 - [Topology Spec Section 2](topologies/test_topology_spec_section2)
 - [Color/Shader Spec Section 1](shaders/test_color_domain_section1)
-- [Color/Shader Spec Section 2](shaders/test_color_iterator_section2)
 - [Color/Shader Spec Section 3](shaders/test_current_limiter_shader_section3)
 - [Color/Shader Spec Section 4](shaders/test_aggregate_shader_section4)
 - [Protocol Spec Sections 1.1-1.4 + 1.14](protocols/test_protocol_spec_sections_1_1_to_1_4_and_1_14)
@@ -42,7 +41,6 @@ Top-level index for native test categories and spec-driven suites.
   - `pio test -e native-test --filter topologies/test_topology_spec_section2`
 - Shader suites:
   - `pio test -e native-test --filter shaders/test_color_domain_section1`
-  - `pio test -e native-test --filter shaders/test_color_iterator_section2`
   - `pio test -e native-test --filter shaders/test_current_limiter_shader_section3`
   - `pio test -e native-test --filter shaders/test_aggregate_shader_section4`
 - Protocol suites:

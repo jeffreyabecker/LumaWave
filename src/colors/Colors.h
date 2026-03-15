@@ -7,7 +7,6 @@
 #include "colors/Color.h"
 #include "colors/ColorChannelIndexIterator.h"
 #include "colors/ColorHexCodec.h"
-#include "colors/ColorIterator.h"
 #include "colors/ColorMath.h"
 #include "colors/CurrentLimiterShader.h"
 #include "colors/GammaShader.h"

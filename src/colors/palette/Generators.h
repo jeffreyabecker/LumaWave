@@ -70,11 +70,25 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> TColo
 }
 
 template <typename TStops, typename = std::enable_if_t<ColorType<typename TStops::value_type::ColorType>>>
-void assignEvenStopIndexes(TStops& stops)
+void assignDistributedStopIndexes(TStops& stops)
 {
+    if (stops.empty())
+    {
+        return;
+    }
+
+    if (stops.size() == 1u)
+    {
+        stops[0].index = 0u;
+        return;
+    }
+
+    constexpr size_t paletteDomainMaxIndex = static_cast<size_t>(std::numeric_limits<uint8_t>::max());
+    const size_t stopSpan = stops.size() - 1u;
+
     for (size_t i = 0; i < stops.size(); ++i)
     {
-        stops[i].index = i;
+        stops[i].index = (i * paletteDomainMaxIndex) / stopSpan;
     }
 }
 
@@ -91,13 +105,20 @@ class RainbowPaletteGenerator : public IPalette<TColor>
     using ComponentType = typename TColor::ComponentType;
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
+    static constexpr size_t DefaultStopCount = 16u;
 
-    explicit RainbowPaletteGenerator(size_t stopCount = 16, ComponentType saturation = TColor::MaxComponent,
-                                     ComponentType brightness = TColor::MaxComponent, ComponentType hueOffset = 0)
-        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
-          _saturation(saturation), _brightness(brightness), _hueOffset(hueOffset)
+    RainbowPaletteGenerator()
+        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)),
+          _saturation(TColor::MaxComponent), _brightness(TColor::MaxComponent), _hueOffset(0)
     {
-        detail::palettegen::assignEvenStopIndexes(_stops);
+        detail::palettegen::assignDistributedStopIndexes(_stops);
+        rebuild();
+    }
+
+    void setStopCount(size_t stopCount)
+    {
+        _stops.resize(detail::palettegen::normalizeStopCount(stopCount));
+        detail::palettegen::assignDistributedStopIndexes(_stops);
         rebuild();
     }
 
@@ -218,24 +239,35 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
   public:
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomSmoothPaletteGenerator;
+    static constexpr size_t DefaultStopCount = 8u;
+    static constexpr uint32_t DefaultSeed = 0xC0FFEE11u;
+    static constexpr uint8_t DefaultProgressStep = 12u;
 
-    explicit RandomSmoothPaletteGenerator(size_t stopCount = 8, uint32_t seed = 0xC0FFEE11u, uint8_t progressStep = 12)
-        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
-          _sourceColors(detail::palettegen::normalizeStopCount(stopCount)),
-          _targetColors(detail::palettegen::normalizeStopCount(stopCount)), _rngState(seed), _progressStep(progressStep)
+    RandomSmoothPaletteGenerator()
+        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)),
+          _sourceColors(detail::palettegen::normalizeStopCount(DefaultStopCount)),
+          _targetColors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed),
+          _rngState(DefaultSeed), _progressStep(DefaultProgressStep)
     {
-        detail::palettegen::assignEvenStopIndexes(_stops);
-
-        for (size_t i = 0; i < _stops.size(); ++i)
-        {
-            _sourceColors[i] = detail::palettegen::randomColor<TColor>(_rngState);
-            _targetColors[i] = detail::palettegen::randomColor<TColor>(_rngState);
-        }
-
-        rebuild();
+        resetGeneratedColors();
     }
 
-    void setSeed(uint32_t seed) { _rngState = seed; }
+    void setStopCount(size_t stopCount)
+    {
+        const size_t normalizedStopCount = detail::palettegen::normalizeStopCount(stopCount);
+        _stops.resize(normalizedStopCount);
+        _sourceColors.resize(normalizedStopCount);
+        _targetColors.resize(normalizedStopCount);
+        resetGeneratedColors();
+    }
+
+    void setSeed(uint32_t seed)
+    {
+        _seed = seed;
+        resetGeneratedColors();
+    }
+
+    void setProgressStep(uint8_t progressStep) { _progressStep = progressStep; }
 
     void update(uint32_t progressStep = 0) override
     {
@@ -270,12 +302,29 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
         target->_stops = _stops;
         target->_sourceColors = _sourceColors;
         target->_targetColors = _targetColors;
+        target->_seed = _seed;
         target->_rngState = _rngState;
         target->_progress = _progress;
         target->_progressStep = _progressStep;
     }
 
   private:
+    void resetGeneratedColors()
+    {
+        _progress = 0u;
+        detail::palettegen::assignDistributedStopIndexes(_stops);
+
+        uint32_t rngState = _seed;
+        for (size_t i = 0; i < _stops.size(); ++i)
+        {
+            _sourceColors[i] = detail::palettegen::randomColor<TColor>(rngState);
+            _targetColors[i] = detail::palettegen::randomColor<TColor>(rngState);
+        }
+
+        _rngState = rngState;
+        rebuild();
+    }
+
     void rebuild()
     {
         for (size_t i = 0; i < _stops.size(); ++i)
@@ -287,6 +336,7 @@ class RandomSmoothPaletteGenerator : public IPalette<TColor>
     std::vector<PaletteStop<TColor>> _stops{};
     std::vector<TColor> _sourceColors{};
     std::vector<TColor> _targetColors{};
+    uint32_t _seed{DefaultSeed};
     uint32_t _rngState{0xC0FFEE11u};
     uint8_t _progress{0};
     uint8_t _progressStep{12};
@@ -298,21 +348,33 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
   public:
     using StopsView = span<const PaletteStop<TColor>>;
     static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomCyclePaletteGenerator;
+    static constexpr size_t DefaultStopCount = 8u;
+    static constexpr uint32_t DefaultSeed = 0x13579BDFu;
+    static constexpr uint8_t DefaultCycleStep = 8u;
 
-    explicit RandomCyclePaletteGenerator(size_t stopCount = 8, uint32_t seed = 0x13579BDFu, uint8_t cycleStep = 8)
-        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(stopCount)),
-          _colors(detail::palettegen::normalizeStopCount(stopCount)), _rngState(seed), _cycleStep(cycleStep)
+    RandomCyclePaletteGenerator()
+        : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)),
+          _colors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed),
+          _rngState(DefaultSeed), _cycleStep(DefaultCycleStep)
     {
-        detail::palettegen::assignEvenStopIndexes(_stops);
-        for (size_t i = 0; i < _stops.size(); ++i)
-        {
-            _colors[i] = detail::palettegen::randomColor<TColor>(_rngState);
-        }
-
-        rebuild();
+        resetGeneratedColors();
     }
 
-    void setSeed(uint32_t seed) { _rngState = seed; }
+    void setStopCount(size_t stopCount)
+    {
+        const size_t normalizedStopCount = detail::palettegen::normalizeStopCount(stopCount);
+        _stops.resize(normalizedStopCount);
+        _colors.resize(normalizedStopCount);
+        resetGeneratedColors();
+    }
+
+    void setSeed(uint32_t seed)
+    {
+        _seed = seed;
+        resetGeneratedColors();
+    }
+
+    void setCycleStep(uint8_t cycleStep) { _cycleStep = cycleStep; }
 
     void update(uint32_t cycleStep = 0) override
     {
@@ -342,12 +404,28 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
 
         target->_stops = _stops;
         target->_colors = _colors;
+        target->_seed = _seed;
         target->_rngState = _rngState;
         target->_phase = _phase;
         target->_cycleStep = _cycleStep;
     }
 
   private:
+    void resetGeneratedColors()
+    {
+        _phase = 0u;
+        detail::palettegen::assignDistributedStopIndexes(_stops);
+
+        uint32_t rngState = _seed;
+        for (size_t i = 0; i < _stops.size(); ++i)
+        {
+            _colors[i] = detail::palettegen::randomColor<TColor>(rngState);
+        }
+
+        _rngState = rngState;
+        rebuild();
+    }
+
     void rotateCycle()
     {
         for (size_t i = 0; i + 1 < _colors.size(); ++i)
@@ -370,6 +448,7 @@ class RandomCyclePaletteGenerator : public IPalette<TColor>
 
     std::vector<PaletteStop<TColor>> _stops{};
     std::vector<TColor> _colors{};
+    uint32_t _seed{DefaultSeed};
     uint32_t _rngState{0x13579BDFu};
     uint8_t _phase{0};
     uint8_t _cycleStep{8};

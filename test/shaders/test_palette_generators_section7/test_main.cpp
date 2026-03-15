@@ -59,12 +59,16 @@ static_assert(
 
 void test_rainbow_generator_stop_shape_and_update(void)
 {
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(8);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow;
+    rainbow.setStopCount(8);
     const auto before = rainbow.stops();
 
     TEST_ASSERT_EQUAL_UINT32(8, static_cast<uint32_t>(before.size()));
-    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(before[0].index));
-    TEST_ASSERT_EQUAL_UINT32(7, static_cast<uint32_t>(before[7].index));
+    for (size_t i = 0; i < before.size(); ++i)
+    {
+        const size_t expectedIndex = (i * 255u) / (before.size() - 1u);
+        TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(expectedIndex), static_cast<uint32_t>(before[i].index));
+    }
 
     const lw::Rgb8Color firstBefore = before[0].color;
     rainbow.update(16);
@@ -114,8 +118,14 @@ void test_temporal_rainbow_generator_defaults_update_step_to_one(void)
 
 void test_random_smooth_generator_is_deterministic(void)
 {
-    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> a(6, 12345u, 20);
-    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> b(6, 12345u, 20);
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> a;
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> b;
+    a.setStopCount(6);
+    b.setStopCount(6);
+    a.setSeed(12345u);
+    b.setSeed(12345u);
+    a.setProgressStep(20);
+    b.setProgressStep(20);
 
     for (int i = 0; i < 12; ++i)
     {
@@ -136,7 +146,10 @@ void test_random_smooth_generator_is_deterministic(void)
 
 void test_random_smooth_generator_changes_over_time(void)
 {
-    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> generator(6, 999u, 17);
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> generator;
+    generator.setStopCount(6);
+    generator.setSeed(999u);
+    generator.setProgressStep(17);
     const auto before = generator.stops();
     const lw::Rgb8Color firstBefore = before[0].color;
 
@@ -149,8 +162,14 @@ void test_random_smooth_generator_changes_over_time(void)
 
 void test_random_cycle_generator_is_deterministic(void)
 {
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> a(5, 42u, 32);
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> b(5, 42u, 32);
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> a;
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> b;
+    a.setStopCount(5);
+    b.setStopCount(5);
+    a.setSeed(42u);
+    b.setSeed(42u);
+    a.setCycleStep(32);
+    b.setCycleStep(32);
 
     for (int i = 0; i < 16; ++i)
     {
@@ -171,7 +190,10 @@ void test_random_cycle_generator_is_deterministic(void)
 
 void test_random_cycle_generator_rotates_and_samples(void)
 {
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> generator(5, 77u, 64);
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> generator;
+    generator.setStopCount(5);
+    generator.setSeed(77u);
+    generator.setCycleStep(64);
     const auto beforeStopsView = generator.stops();
     std::array<Stop, 5> beforeStops{};
     for (size_t i = 0; i < beforeStops.size(); ++i)
@@ -205,10 +227,17 @@ void test_generators_satisfy_palette_like_usage(void)
         lw::colors::palettes::PaletteStop<lw::Rgb8Color>{255, lw::Rgb8Color(7, 8, 9)},
     };
     const Palette solid(solidStops);
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(6);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow;
+    rainbow.setStopCount(6);
     lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color> temporalRainbow;
-    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smooth(6, 1u, 25);
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle(6, 2u, 25);
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smooth;
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle;
+    smooth.setStopCount(6);
+    smooth.setSeed(1u);
+    smooth.setProgressStep(25);
+    cycle.setStopCount(6);
+    cycle.setSeed(2u);
+    cycle.setCycleStep(25);
 
     std::array<lw::Rgb8Color, 4> out{};
     lw::IndexRange paletteIndexes(0, 32, out.size());
@@ -268,8 +297,16 @@ void test_palette_type_codes_are_initialized_and_unique_per_implementation(void)
 
 void test_generator_sync_copies_internal_state_for_same_type(void)
 {
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowSource(6, 204u, 128u, 17);
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowTarget(10, 255u, 255u, 99);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowSource;
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbowTarget;
+    rainbowSource.setStopCount(6);
+    rainbowSource.setSaturation(204u);
+    rainbowSource.setBrightness(128u);
+    rainbowSource.setHueOffset(17u);
+    rainbowTarget.setStopCount(10);
+    rainbowTarget.setSaturation(255u);
+    rainbowTarget.setBrightness(255u);
+    rainbowTarget.setHueOffset(99u);
     rainbowSource.update(13);
     rainbowTarget.update(7);
     rainbowSource.syncTo(&rainbowTarget);
@@ -288,8 +325,14 @@ void test_generator_sync_copies_internal_state_for_same_type(void)
     temporalTarget.update(9);
     assert_same_stops(temporalSource, temporalTarget);
 
-    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smoothSource(6, 111u, 19);
-    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smoothTarget(4, 222u, 5);
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smoothSource;
+    lw::colors::palettes::RandomSmoothPaletteGenerator<lw::Rgb8Color> smoothTarget;
+    smoothSource.setStopCount(6);
+    smoothSource.setSeed(111u);
+    smoothSource.setProgressStep(19);
+    smoothTarget.setStopCount(4);
+    smoothTarget.setSeed(222u);
+    smoothTarget.setProgressStep(5);
     smoothSource.update();
     smoothSource.update();
     smoothTarget.update();
@@ -299,8 +342,14 @@ void test_generator_sync_copies_internal_state_for_same_type(void)
     smoothTarget.update();
     assert_same_stops(smoothSource, smoothTarget);
 
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycleSource(5, 333u, 41);
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycleTarget(7, 444u, 9);
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycleSource;
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycleTarget;
+    cycleSource.setStopCount(5);
+    cycleSource.setSeed(333u);
+    cycleSource.setCycleStep(41);
+    cycleTarget.setStopCount(7);
+    cycleTarget.setSeed(444u);
+    cycleTarget.setCycleStep(9);
     cycleSource.update();
     cycleSource.update();
     cycleTarget.update();
@@ -313,8 +362,15 @@ void test_generator_sync_copies_internal_state_for_same_type(void)
 
 void test_generator_sync_ignores_mismatched_type_and_null_target(void)
 {
-    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow(6, 230u, 179u, 33);
-    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle(6, 555u, 12);
+    lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color> rainbow;
+    lw::colors::palettes::RandomCyclePaletteGenerator<lw::Rgb8Color> cycle;
+    rainbow.setStopCount(6);
+    rainbow.setSaturation(230u);
+    rainbow.setBrightness(179u);
+    rainbow.setHueOffset(33u);
+    cycle.setStopCount(6);
+    cycle.setSeed(555u);
+    cycle.setCycleStep(12);
 
     rainbow.update(4);
     const auto before = cycle.stops();
