@@ -142,16 +142,26 @@ template <typename TColor> struct ScalarColorMathBackend
     {
         using UnsignedWide = uint64_t;
 
+        if (progress == 0u)
+        {
+            return left;
+        }
+
+        if (progress == 65535u)
+        {
+            return right;
+        }
+
         TColor blended;
         for (auto channel : TColor::channelIndexes())
         {
             const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
             const UnsignedWide rightValue = static_cast<UnsignedWide>(right[channel]);
             const UnsignedWide progressWide = static_cast<UnsignedWide>(progress);
-            const UnsignedWide inverseProgress = static_cast<UnsignedWide>(65536u) - progressWide;
+            const UnsignedWide inverseProgress = static_cast<UnsignedWide>(65535u) - progressWide;
             const UnsignedWide numerator =
-                (leftValue * inverseProgress) + (rightValue * progressWide) + static_cast<UnsignedWide>(1u);
-            blended[channel] = static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(65536u));
+                (leftValue * inverseProgress) + (rightValue * progressWide) + static_cast<UnsignedWide>(32767u);
+            blended[channel] = static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(65535u));
         }
 
         return blended;

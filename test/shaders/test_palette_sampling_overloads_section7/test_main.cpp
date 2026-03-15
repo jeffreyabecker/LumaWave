@@ -43,6 +43,15 @@ template <typename TValue> struct ConstantValueSampler
     constexpr TValue operator()(size_t) const { return value; }
 };
 
+struct IndexedRgbSampler
+{
+    lw::Rgb8Color operator()(size_t paletteIndex) const
+    {
+        const auto value = static_cast<uint8_t>(paletteIndex);
+        return lw::Rgb8Color(value, static_cast<uint8_t>(value + 1u), static_cast<uint8_t>(value + 2u));
+    }
+};
+
 void test_overload_stops_index_iter_output_span(void)
 {
     std::array<lw::Rgb8Color, 3> out{};
@@ -236,6 +245,25 @@ void test_transition_sampler_supports_progress16_domain(void)
     TEST_ASSERT_EQUAL_UINT8(127, blended['G']);
     TEST_ASSERT_EQUAL_UINT8(127, blended['B']);
 }
+
+void test_write_sample_range_sampler_iterates_whole_output_range(void)
+{
+    std::array<lw::Rgb8Color, 4> out{};
+
+    const size_t written =
+        lw::colors::palettes::writeSampleRange(IndexedRgbSampler{}, lw::span<lw::Rgb8Color>(out.data(), out.size()));
+
+    TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(written));
+    TEST_ASSERT_EQUAL_UINT8(0, out[0]['R']);
+    TEST_ASSERT_EQUAL_UINT8(1, out[0]['G']);
+    TEST_ASSERT_EQUAL_UINT8(2, out[0]['B']);
+    TEST_ASSERT_EQUAL_UINT8(1, out[1]['R']);
+    TEST_ASSERT_EQUAL_UINT8(2, out[1]['G']);
+    TEST_ASSERT_EQUAL_UINT8(3, out[1]['B']);
+    TEST_ASSERT_EQUAL_UINT8(3, out[3]['R']);
+    TEST_ASSERT_EQUAL_UINT8(4, out[3]['G']);
+    TEST_ASSERT_EQUAL_UINT8(5, out[3]['B']);
+}
 } // namespace
 
 void setUp(void)
@@ -262,5 +290,6 @@ int main(int, char**)
     RUN_TEST(test_palette_transition_samples_range_supports_std_copy);
     RUN_TEST(test_transition_sampler_supports_progress8_domain);
     RUN_TEST(test_transition_sampler_supports_progress16_domain);
+    RUN_TEST(test_write_sample_range_sampler_iterates_whole_output_range);
     return UNITY_END();
 }

@@ -247,7 +247,9 @@ class PaletteSampleRangeT
 };
 
 template <typename TSampleRange, typename TOutputRange,
-          typename = std::enable_if_t<IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+          std::enable_if_t<IsBeginEndRange<std::remove_reference_t<TSampleRange>>::value &&
+                               IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value,
+                           int> = 0>
 size_t writeSampleRange(TSampleRange&& sampleRange, TOutputRange&& outputColors)
 {
     auto sample = sampleRange.begin();
@@ -259,6 +261,27 @@ size_t writeSampleRange(TSampleRange&& sampleRange, TOutputRange&& outputColors)
     for (; sample != sampleEnd && output != outputEnd; ++sample, ++output)
     {
         *output = *sample;
+        ++written;
+    }
+
+    return written;
+}
+
+template <typename TSampler, typename TOutputRange,
+          std::enable_if_t<IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value &&
+                               !IsBeginEndRange<std::remove_reference_t<TSampler>>::value &&
+                               std::is_invocable_v<TSampler&, size_t>,
+                           int> = 0>
+size_t writeSampleRange(TSampler&& sampler, TOutputRange&& outputColors)
+{
+    auto output = outputColors.begin();
+    const auto outputEnd = outputColors.end();
+
+    size_t paletteIndex = 0;
+    size_t written = 0;
+    for (; output != outputEnd; ++output, ++paletteIndex)
+    {
+        *output = sampler(paletteIndex);
         ++written;
     }
 
