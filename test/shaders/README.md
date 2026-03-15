@@ -14,6 +14,8 @@ Source spec: `docs/internal/testing-spec-colors-shaders.md`
 | 5 | Alternative Color Models (HSL/HSB) | `test/shaders/test_color_models_section5` | Implemented |
 | 6 | Color Manipulation Primitives | `test/shaders/test_color_manipulation_section6` | Implemented |
 | 8 | CCTWhiteBalanceShader Domain | `test/shaders/test_cct_white_balance_shader_section8` | Implemented |
+| Kelvin | KelvinToRgbIntegerStrategy | `test/shaders/test_kelvin_to_rgb_integer_strategy` | Implemented |
+| Kelvin | KelvinToRgbLut64Strategy | `test/shaders/test_kelvin_to_rgb_lut64_strategy` | Implemented |
 
 ## Run
 
@@ -25,3 +27,5 @@ Source spec: `docs/internal/testing-spec-colors-shaders.md`
 	- `pio test -e native-test --filter shaders/test_color_models_section5`
 	- `pio test -e native-test --filter shaders/test_color_manipulation_section6`
 	- `pio test -e native-test --filter shaders/test_cct_white_balance_shader_section8`
+	- `pio test -e native-test --filter shaders/test_kelvin_to_rgb_integer_strategy`
+	- `pio test -e native-test --filter shaders/test_kelvin_to_rgb_lut64_strategy`

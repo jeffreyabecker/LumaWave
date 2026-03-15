@@ -160,7 +160,7 @@ template <typename TColor = lw::colors::DefaultColorType>
 using AutoWhiteBalanceSettings = lw::shaders::AutoWhiteBalanceShaderSettings<TColor>;
 
 template <typename TColor = lw::colors::DefaultColorType,
-          template <typename> class TKelvinToRgbStrategy = lw::KelvinToRgbExactStrategy>
+          template <typename> class TKelvinToRgbStrategy = lw::KelvinToRgbLut64Strategy>
 using AutoWhiteBalance = lw::shaders::AutoWhiteBalanceShader<TColor, TKelvinToRgbStrategy>;
 
 using CCTInterlock = lw::shaders::CCTColorInterlock;
@@ -174,6 +174,8 @@ template <typename TColor = lw::colors::DefaultColorType,
 using CCTBalance = lw::shaders::CCTWhiteBalanceShader<TColor, TKelvinToRgbStrategy>;
 
 template <typename TComponent> using KelvinToRgbExact = lw::KelvinToRgbExactStrategy<TComponent>;
+
+template <typename TComponent> using KelvinToRgbInteger = lw::KelvinToRgbIntegerStrategy<TComponent>;
 
 template <typename TComponent> using KelvinToRgbLut64 = lw::KelvinToRgbLut64Strategy<TComponent>;
 

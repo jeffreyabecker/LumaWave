@@ -25,7 +25,7 @@ struct AutoWhiteBalanceShaderSettings
 
 // White-balance and Kelvin-to-RGB correction logic adapted from WLED / WLED-MM.
 // Source: https://github.com/MoonModules/WLED-MM
-template <typename TColor, template <typename> class TKelvinToRgbStrategy = KelvinToRgbExactStrategy,
+template <typename TColor, template <typename> class TKelvinToRgbStrategy = KelvinToRgbLut64Strategy,
           typename = std::enable_if_t<ColorChannelsAtLeast<TColor, 4>>>
 class AutoWhiteBalanceShader : public IShader<TColor>
 {
@@ -112,7 +112,7 @@ namespace lw
 template <typename TColor, typename Enable = std::enable_if_t<ColorChannelsAtLeast<TColor, 4>>>
 using AutoWhiteBalanceShaderSettings = shaders::AutoWhiteBalanceShaderSettings<TColor, Enable>;
 
-template <typename TColor, template <typename> class TKelvinToRgbStrategy = KelvinToRgbExactStrategy,
+template <typename TColor, template <typename> class TKelvinToRgbStrategy = KelvinToRgbLut64Strategy,
           typename Enable = std::enable_if_t<ColorChannelsAtLeast<TColor, 4>>>
 using AutoWhiteBalanceShader = shaders::AutoWhiteBalanceShader<TColor, TKelvinToRgbStrategy, Enable>;
 
