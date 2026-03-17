@@ -17,7 +17,8 @@ namespace lw::colors::palettes
 {
 namespace detail
 {
-template <typename TColor> size_t firstStopAtOrAfter(span<const PaletteStop<TColor>> stops, size_t sampleIndex)
+template <typename TColor>
+size_t firstStopAtOrAfter(span<const PaletteStop<TColor>> stops, palette_stop_index_t sampleIndex)
 {
     size_t left = 1;
     size_t right = static_cast<size_t>(stops.size());
@@ -25,7 +26,29 @@ template <typename TColor> size_t firstStopAtOrAfter(span<const PaletteStop<TCol
     while (left < right)
     {
         const size_t mid = left + ((right - left) / 2u);
-        if (static_cast<size_t>(stops[mid].index) < sampleIndex)
+        if (stops[mid].index < sampleIndex)
+        {
+            left = mid + 1u;
+        }
+        else
+        {
+            right = mid;
+        }
+    }
+
+    return left;
+}
+
+template <typename TColor>
+size_t firstStopAtOrAfterFixed(span<const PaletteStop<TColor>> stops, palette_canonical_fixed_t sampleFixed)
+{
+    size_t left = 1;
+    size_t right = static_cast<size_t>(stops.size());
+
+    while (left < right)
+    {
+        const size_t mid = left + ((right - left) / 2u);
+        if (detail::canonicalStopFixed(stops[mid].index) < sampleFixed)
         {
             left = mid + 1u;
         }
@@ -53,25 +76,26 @@ inline constexpr bool pickNearestTieCandidate(TieBreakPolicy tieBreakPolicy, siz
 }
 
 template <typename TColor>
-TColor sampleWrappedSpan(span<const PaletteStop<TColor>> stops, size_t sampleIndex, BlendMode blendMode,
-                         uint8_t quantizedLevels)
+TColor sampleWrappedSpan(span<const PaletteStop<TColor>> stops, detail::PaletteCanonicalCoordinate sampleCoordinate,
+                         size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
 {
     const auto& left = stops.back();
     const auto& right = stops.front();
-    const size_t wrapPeriod = detail::PaletteDomainSpan;
-    const size_t leftIndex = left.index;
-    const size_t rightIndex = right.index + wrapPeriod;
-    const size_t wrappedSampleIndex = (sampleIndex >= left.index) ? sampleIndex : (sampleIndex + wrapPeriod);
-    const size_t spanWidth = rightIndex - leftIndex;
+    const palette_canonical_fixed_t wrapPeriod = detail::PaletteCanonicalWrapSpan;
+    const palette_canonical_fixed_t leftIndex = detail::canonicalStopFixed(left.index);
+    const palette_canonical_fixed_t rightIndex = detail::canonicalStopFixed(right.index) + wrapPeriod;
+    const palette_canonical_fixed_t wrappedSampleIndex =
+        (sampleCoordinate.fixed >= leftIndex) ? sampleCoordinate.fixed : (sampleCoordinate.fixed + wrapPeriod);
+    const palette_canonical_fixed_t spanWidth = rightIndex - leftIndex;
 
     if (spanWidth == 0)
     {
         return left.color;
     }
 
-    const size_t offset = wrappedSampleIndex - leftIndex;
-    const uint8_t progress = static_cast<uint8_t>((offset * 255u) / spanWidth);
-    return applyBlendMode<TColor>(blendMode, left.color, right.color, progress, sampleIndex, quantizedLevels);
+    const palette_canonical_fixed_t offset = wrappedSampleIndex - leftIndex;
+    const uint8_t progress = static_cast<uint8_t>((static_cast<uint64_t>(offset) * 255u) / spanWidth);
+    return applyBlendMode<TColor>(blendMode, left.color, right.color, progress, blendSampleIndex, quantizedLevels);
 }
 } // namespace detail
 
@@ -147,17 +171,20 @@ TColor sampleInterpolatedAt(span<const PaletteStop<TColor>> stops, size_t rawSam
         return detail::applyBrightnessScale(options.outOfRangeColor, options.brightnessScale);
     }
 
-    const size_t sampleIndex = normalized.value;
+    const palette_logical_index_t sampleIndex = normalized.value;
+    const palette_canonical_fixed_t sampleFixed = normalized.canonical.fixed;
     TColor sampled{};
 
-    const size_t stopIndex = detail::firstStopAtOrAfter<TColor>(stops, sampleIndex);
+    const size_t stopIndex = detail::firstStopAtOrAfterFixed<TColor>(stops, sampleFixed);
     if (stopIndex < static_cast<size_t>(stops.size()))
     {
         const auto& left = stops[stopIndex - 1];
         const auto& right = stops[stopIndex];
-        const size_t spanWidth = right.index - left.index;
+        const palette_canonical_fixed_t leftFixed = detail::canonicalStopFixed(left.index);
+        const palette_canonical_fixed_t rightFixed = detail::canonicalStopFixed(right.index);
+        const palette_canonical_fixed_t spanWidth = rightFixed - leftFixed;
 
-        if (rawSampleIndex != sampleIndex && sampleIndex == static_cast<size_t>(right.index))
+        if (rawSampleIndex != sampleIndex && sampleFixed == rightFixed)
         {
             sampled = right.color;
         }
@@ -167,8 +194,8 @@ TColor sampleInterpolatedAt(span<const PaletteStop<TColor>> stops, size_t rawSam
         }
         else
         {
-            const size_t offset = sampleIndex - left.index;
-            const uint8_t progress = static_cast<uint8_t>((offset * 255u) / spanWidth);
+            const palette_canonical_fixed_t offset = sampleFixed - leftFixed;
+            const uint8_t progress = static_cast<uint8_t>((static_cast<uint64_t>(offset) * 255u) / spanWidth);
             sampled = applyBlendMode<TColor>(options.blendMode, left.color, right.color, progress, sampleIndex,
                                              options.quantizedLevels);
         }
@@ -179,7 +206,8 @@ TColor sampleInterpolatedAt(span<const PaletteStop<TColor>> stops, size_t rawSam
     }
     else
     {
-        sampled = detail::sampleWrappedSpan<TColor>(stops, sampleIndex, options.blendMode, options.quantizedLevels);
+        sampled = detail::sampleWrappedSpan<TColor>(stops, normalized.canonical, sampleIndex, options.blendMode,
+                                                    options.quantizedLevels);
     }
 
     return detail::applyBrightnessScale(sampled, options.brightnessScale);

@@ -188,6 +188,32 @@ Make the public API describe the sampling model clearly.
 
 ## Implementation Notes
 
+### Draft Coordinate Types
+
+The initial implementation should introduce explicit internal coordinate types with names close to the following:
+
+- `PaletteLogicalDomain`
+   - owns logical sample-count metadata
+   - answers logical max-index queries
+   - is derived from sampling options and defaults to the canonical 256-sample logical span when not overridden
+
+- `PaletteCanonicalCoordinate`
+   - stores a canonical stop-space position in fixed-point form
+   - keeps integer stop-space alignment with the existing 0..255 authored stop contract
+   - exposes integer-index and fractional-position accessors for interpolation and nearest-distance logic
+
+- `NormalizedPaletteSample`
+   - owns the normalized logical index after wrap processing
+   - owns out-of-range and boundary-sampling flags
+   - owns the mapped canonical coordinate used for stop lookup and blending
+
+The intended data flow is:
+
+1. derive `PaletteLogicalDomain` from options
+2. normalize the raw caller index into a `NormalizedPaletteSample`
+3. map that logical position into `PaletteCanonicalCoordinate`
+4. perform nearest or interpolated stop sampling using the canonical coordinate
+
 ### Why not widen `PaletteStop::index` first
 
 Changing the authored stop domain first would force churn through:

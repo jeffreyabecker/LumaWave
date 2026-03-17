@@ -2,10 +2,10 @@
 Language:        Cpp
 BasedOnStyle:    LLVM
 Standard:        c++20
-IndentWidth:     4
-TabWidth:        4
+IndentWidth:     2
+TabWidth:        2
 UseTab:          Never
-ColumnLimit:     120
+ColumnLimit:     225
 BreakBeforeBraces: Allman
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortBlocksOnASingleLine: Never
@@ -17,7 +17,7 @@ SpaceBeforeParens: ControlStatements
 SortIncludes:    false
 IndentCaseLabels: true
 DerivePointerAlignment: false
-NamespaceIndentation: None
+NamespaceIndentation: Inner
 FixNamespaceComments: true
 ReflowComments:  false
 ...

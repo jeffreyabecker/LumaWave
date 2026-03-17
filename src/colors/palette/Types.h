@@ -22,9 +22,8 @@ namespace detail
 {
 constexpr uint32_t makePaletteTypeCode(char a, char b, char c, char d)
 {
-    return (static_cast<uint32_t>(static_cast<uint8_t>(a)) << 24U) |
-           (static_cast<uint32_t>(static_cast<uint8_t>(b)) << 16U) |
-           (static_cast<uint32_t>(static_cast<uint8_t>(c)) << 8U) | static_cast<uint32_t>(static_cast<uint8_t>(d));
+    return (static_cast<uint32_t>(static_cast<uint8_t>(a)) << 24U) | (static_cast<uint32_t>(static_cast<uint8_t>(b)) << 16U) | (static_cast<uint32_t>(static_cast<uint8_t>(c)) << 8U) |
+           static_cast<uint32_t>(static_cast<uint8_t>(d));
 }
 
 struct PaletteTypeCodes
@@ -66,6 +65,11 @@ template <typename TStops> bool isValidPaletteStops(const TStops& stops)
 }
 } // namespace detail
 
+using palette_logical_index_t = size_t;
+using palette_logical_domain_count_t = size_t;
+using palette_stop_index_t = size_t;
+using palette_canonical_fixed_t = uint32_t;
+
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteSampleOptions
 {
     typename TColor::ComponentType brightnessScale{std::numeric_limits<typename TColor::ComponentType>::max()};
@@ -74,25 +78,21 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struc
     BlendMode blendMode{BlendMode::Linear};
     TieBreakPolicy tieBreakPolicy{TieBreakPolicy::Stable};
     uint8_t quantizedLevels{8};
-    size_t scaledSampleCount{0};
+    palette_logical_domain_count_t scaledSampleCount{0};
 };
 
 template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteStop
 {
     using ColorType = TColor;
 
-    static constexpr PaletteStop fromRgb8(size_t index, uint32_t rgb)
+    static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint32_t rgb)
     {
-        return fromRgb8(index, static_cast<uint8_t>((rgb >> 16U) & 0xFFU), static_cast<uint8_t>((rgb >> 8U) & 0xFFU),
-                        static_cast<uint8_t>(rgb & 0xFFU));
+        return fromRgb8(index, static_cast<uint8_t>((rgb >> 16U) & 0xFFU), static_cast<uint8_t>((rgb >> 8U) & 0xFFU), static_cast<uint8_t>(rgb & 0xFFU));
     }
 
-    static constexpr PaletteStop fromRgb8(size_t index, uint8_t r, uint8_t g, uint8_t b)
-    {
-        return PaletteStop{index, TColor{r, g, b}};
-    }
+    static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, TColor{r, g, b}}; }
 
-    size_t index{0};
+    palette_stop_index_t index{0};
     TColor color{};
 };
 
@@ -175,9 +175,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
         }
     }
 
-    template <size_t N>
-    explicit Palette(const std::array<PaletteStop<TColor>, N>& stops)
-        : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
+    template <size_t N> explicit Palette(const std::array<PaletteStop<TColor>, N>& stops) : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
     {
         if (!detail::isValidPaletteStops(_stops))
         {
@@ -247,14 +245,10 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
     static Palette colorsOnly(const TColor& primary, const TColor& secondary, const TColor& tertiary)
     {
         const std::array<PaletteStop<TColor>, 16> stops = {
-            PaletteStop<TColor>{0, primary},     PaletteStop<TColor>{16, primary},
-            PaletteStop<TColor>{32, primary},    PaletteStop<TColor>{48, primary},
-            PaletteStop<TColor>{64, primary},    PaletteStop<TColor>{80, secondary},
-            PaletteStop<TColor>{96, secondary},  PaletteStop<TColor>{112, secondary},
-            PaletteStop<TColor>{128, secondary}, PaletteStop<TColor>{144, secondary},
-            PaletteStop<TColor>{160, tertiary},  PaletteStop<TColor>{176, tertiary},
-            PaletteStop<TColor>{192, tertiary},  PaletteStop<TColor>{208, tertiary},
-            PaletteStop<TColor>{224, tertiary},  PaletteStop<TColor>{255, primary},
+            PaletteStop<TColor>{0, primary},     PaletteStop<TColor>{16, primary},    PaletteStop<TColor>{32, primary},   PaletteStop<TColor>{48, primary},
+            PaletteStop<TColor>{64, primary},    PaletteStop<TColor>{80, secondary},  PaletteStop<TColor>{96, secondary}, PaletteStop<TColor>{112, secondary},
+            PaletteStop<TColor>{128, secondary}, PaletteStop<TColor>{144, secondary}, PaletteStop<TColor>{160, tertiary}, PaletteStop<TColor>{176, tertiary},
+            PaletteStop<TColor>{192, tertiary},  PaletteStop<TColor>{208, tertiary},  PaletteStop<TColor>{224, tertiary}, PaletteStop<TColor>{255, primary},
         };
         return Palette(stops);
     }
@@ -360,16 +354,16 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
             return;
         }
 
-        constexpr size_t paletteDomainMaxIndex = static_cast<size_t>(std::numeric_limits<uint8_t>::max());
+        constexpr palette_stop_index_t paletteDomainMaxIndex = static_cast<palette_stop_index_t>(std::numeric_limits<uint8_t>::max());
         const size_t stopSpan = parsedStops.size() - 1u;
 
         for (size_t i = 0; i < parsedStops.size(); ++i)
         {
-            parsedStops[i].index = (i * paletteDomainMaxIndex) / stopSpan;
+            parsedStops[i].index = static_cast<palette_stop_index_t>((i * paletteDomainMaxIndex) / stopSpan);
         }
     }
 
-    static bool tryParseStop(const char*& cursor, size_t& index, TColor& color)
+    static bool tryParseStop(const char*& cursor, palette_stop_index_t& index, TColor& color)
     {
         if (!tryParseIndex(cursor, index))
         {
@@ -462,9 +456,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
         return true;
     }
 
-    template <typename TSourceColor>
-    static bool tryParseAndUpscaleColor(const char* tokenStart, const char* tokenEnd, const char*& cursor,
-                                        TColor& color)
+    template <typename TSourceColor> static bool tryParseAndUpscaleColor(const char* tokenStart, const char* tokenEnd, const char*& cursor, TColor& color)
     {
         using SourceComponent = typename TSourceColor::ComponentType;
         using TargetComponent = typename TColor::ComponentType;
@@ -505,8 +497,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
             }
             else
             {
-                const TargetComponent widened =
-                    static_cast<TargetComponent>((static_cast<TargetComponent>(value) << 8) | value);
+                const TargetComponent widened = static_cast<TargetComponent>((static_cast<TargetComponent>(value) << 8) | value);
                 result[channel] = widened;
             }
         }

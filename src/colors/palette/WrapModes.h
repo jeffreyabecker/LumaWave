@@ -9,118 +9,134 @@
 
 namespace lw::colors::palettes
 {
-constexpr size_t absoluteDistance(size_t left, size_t right)
-{
-    return (left >= right) ? (left - right) : (right - left);
-}
-
 namespace detail
 {
-inline constexpr size_t PaletteDomainMinIndex = 0u;
-inline constexpr size_t PaletteDomainMaxIndex = 255u;
-inline constexpr size_t PaletteDomainSpan = PaletteDomainMaxIndex + 1u;
+inline constexpr palette_stop_index_t PaletteDomainMaxIndex = 255u;
+inline constexpr palette_logical_domain_count_t PaletteDomainSpan = PaletteDomainMaxIndex + 1u;
+inline constexpr palette_canonical_fixed_t PaletteCanonicalFractionScale = 256u;
+inline constexpr palette_canonical_fixed_t PaletteCanonicalMaxFixed = static_cast<palette_canonical_fixed_t>(PaletteDomainMaxIndex * PaletteCanonicalFractionScale);
+inline constexpr palette_canonical_fixed_t PaletteCanonicalWrapSpan = static_cast<palette_canonical_fixed_t>(PaletteDomainSpan * PaletteCanonicalFractionScale);
+
+struct PaletteLogicalDomain
+{
+    palette_logical_domain_count_t sampleCount{PaletteDomainSpan};
+
+    constexpr palette_logical_index_t maxIndex() const { return (sampleCount == 0u) ? 0u : (sampleCount - 1u); }
+};
+
+struct PaletteCanonicalCoordinate
+{
+    palette_canonical_fixed_t fixed{0};
+};
 
 struct NormalizedSampleIndex
 {
-    size_t value{0};
+    palette_logical_index_t value{0};
     bool outOfRange{false};
     bool usesBoundarySampling{false};
     WrapMode wrapMode{WrapMode::Clamp};
-    size_t domainMaxIndex{PaletteDomainMaxIndex};
+    palette_logical_index_t domainMaxIndex{PaletteDomainMaxIndex};
+    PaletteLogicalDomain logicalDomain{};
+    PaletteCanonicalCoordinate canonical{};
 
-    constexpr size_t wrapDistance(size_t stopIndex) const;
+    constexpr size_t wrapDistance(palette_stop_index_t stopIndex) const;
 };
 
-template <typename TColor> constexpr size_t normalizedDomainSampleCount(PaletteSampleOptions<TColor> options)
+inline constexpr palette_canonical_fixed_t canonicalStopFixed(palette_stop_index_t stopIndex)
+{
+    return static_cast<palette_canonical_fixed_t>(stopIndex * PaletteCanonicalFractionScale);
+}
+
+template <typename TColor> constexpr palette_logical_domain_count_t normalizedDomainSampleCount(PaletteSampleOptions<TColor> options)
 {
     return (options.scaledSampleCount == 0u) ? PaletteDomainSpan : options.scaledSampleCount;
 }
 
-template <typename TColor> constexpr size_t normalizedDomainMaxIndex(PaletteSampleOptions<TColor> options)
+inline constexpr size_t NormalizedSampleIndex::wrapDistance(palette_stop_index_t stopIndex) const
 {
-    return normalizedDomainSampleCount(options) - 1u;
-}
+    const size_t stopFixed = static_cast<size_t>(canonicalStopFixed(stopIndex));
+    const size_t canonicalFixed = static_cast<size_t>(canonical.fixed);
+    const size_t direct = (stopFixed >= canonicalFixed) ? (stopFixed - canonicalFixed) : (canonicalFixed - stopFixed);
 
-inline constexpr size_t circularDistance(size_t left, size_t right, size_t maxIndex)
-{
-    const size_t direct = absoluteDistance(left, right);
-    const size_t span = maxIndex + 1u;
-
-    if (span == 0u)
-    {
-        return direct;
-    }
-
-    if (direct >= span)
-    {
-        return direct % span;
-    }
-
-    return std::min(direct, span - direct);
-}
-
-inline constexpr size_t NormalizedSampleIndex::wrapDistance(size_t stopIndex) const
-{
     switch (wrapMode)
     {
         case WrapMode::Circular:
-            return circularDistance(stopIndex, value, domainMaxIndex);
+            return std::min(direct, static_cast<size_t>(PaletteCanonicalWrapSpan) - direct);
         case WrapMode::Clamp:
         case WrapMode::Mirror:
         case WrapMode::HoldFirst:
         case WrapMode::HoldLast:
         case WrapMode::Blackout:
         default:
-            return absoluteDistance(stopIndex, value);
+            return direct;
     }
 }
 
-inline constexpr size_t mirrorSampleIndex(size_t sampleIndex, size_t domainSampleCount, size_t domainMaxIndex)
+inline constexpr PaletteCanonicalCoordinate mapLogicalIndexToCanonicalCoordinate(palette_logical_index_t logicalIndex, PaletteLogicalDomain logicalDomain)
+{
+    if (logicalDomain.maxIndex() == 0u)
+    {
+        return PaletteCanonicalCoordinate{};
+    }
+
+    const uint64_t numerator = static_cast<uint64_t>(logicalIndex) * static_cast<uint64_t>(PaletteCanonicalMaxFixed);
+    return PaletteCanonicalCoordinate{static_cast<palette_canonical_fixed_t>(numerator / logicalDomain.maxIndex())};
+}
+
+inline constexpr palette_logical_index_t mirrorSampleIndex(palette_logical_index_t sampleIndex, palette_logical_domain_count_t domainSampleCount, palette_logical_index_t domainMaxIndex)
 {
     if (domainSampleCount <= 1u)
     {
         return 0u;
     }
 
-    const size_t period = (domainSampleCount - 1u) * 2u;
-    const size_t position = (period == 0u) ? 0u : (sampleIndex % period);
+    const palette_logical_index_t period = (domainSampleCount - 1u) * 2u;
+    const palette_logical_index_t position = (period == 0u) ? 0u : (sampleIndex % period);
     return (position <= domainMaxIndex) ? position : (period - position);
 }
 
-template <typename TColor>
-constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions<TColor> options, size_t sampleIndex)
+template <typename TColor> constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions<TColor> options, palette_logical_index_t sampleIndex)
 {
-    const size_t domainSampleCount = normalizedDomainSampleCount(options);
-    const size_t domainMaxIndex = normalizedDomainMaxIndex(options);
+    const PaletteLogicalDomain logicalDomain{normalizedDomainSampleCount(options)};
+    const palette_logical_domain_count_t domainSampleCount = logicalDomain.sampleCount;
+    const palette_logical_index_t domainMaxIndex = logicalDomain.maxIndex();
+
+    palette_logical_index_t normalizedValue = sampleIndex;
+    bool outOfRange = false;
+    bool usesBoundarySampling = false;
 
     switch (options.wrapMode)
     {
         case WrapMode::Blackout:
-            return NormalizedSampleIndex{sampleIndex, sampleIndex > domainMaxIndex, true, options.wrapMode,
-                                         domainMaxIndex};
+            normalizedValue = sampleIndex;
+            outOfRange = sampleIndex > domainMaxIndex;
+            usesBoundarySampling = true;
+            break;
         case WrapMode::Clamp:
-            return NormalizedSampleIndex{(sampleIndex > domainMaxIndex) ? domainMaxIndex : sampleIndex, false, true,
-                                         options.wrapMode, domainMaxIndex};
+            normalizedValue = (sampleIndex > domainMaxIndex) ? domainMaxIndex : sampleIndex;
+            usesBoundarySampling = true;
+            break;
         case WrapMode::Circular:
-            return NormalizedSampleIndex{sampleIndex % domainSampleCount, false, false, options.wrapMode,
-                                         domainMaxIndex};
+            normalizedValue = sampleIndex % domainSampleCount;
+            break;
         case WrapMode::Mirror:
-            return NormalizedSampleIndex{mirrorSampleIndex(sampleIndex, domainSampleCount, domainMaxIndex), false,
-                                         false, options.wrapMode, domainMaxIndex};
+            normalizedValue = mirrorSampleIndex(sampleIndex, domainSampleCount, domainMaxIndex);
+            break;
         case WrapMode::HoldFirst:
-            return NormalizedSampleIndex{(sampleIndex > domainMaxIndex) ? 0u : sampleIndex, false, true,
-                                         options.wrapMode, domainMaxIndex};
+            normalizedValue = (sampleIndex > domainMaxIndex) ? 0u : sampleIndex;
+            usesBoundarySampling = true;
+            break;
         case WrapMode::HoldLast:
-            return NormalizedSampleIndex{(sampleIndex > domainMaxIndex) ? domainMaxIndex : sampleIndex, false, true,
-                                         options.wrapMode, domainMaxIndex};
+            normalizedValue = (sampleIndex > domainMaxIndex) ? domainMaxIndex : sampleIndex;
+            usesBoundarySampling = true;
+            break;
         default:
-            return NormalizedSampleIndex{sampleIndex, false, false, options.wrapMode, domainMaxIndex};
+            break;
     }
-}
 
-template <typename TColor> TColor lowerBoundarySample(WrapMode wrapMode, span<const PaletteStop<TColor>> stops)
-{
-    return (wrapMode == WrapMode::HoldLast) ? stops.back().color : stops.front().color;
+    const palette_logical_index_t coordinateIndex = (outOfRange && sampleIndex > domainMaxIndex) ? domainMaxIndex : normalizedValue;
+
+    return NormalizedSampleIndex{normalizedValue, outOfRange, usesBoundarySampling, options.wrapMode, domainMaxIndex, logicalDomain, mapLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain)};
 }
 
 template <typename TColor> TColor upperBoundarySample(WrapMode wrapMode, span<const PaletteStop<TColor>> stops)

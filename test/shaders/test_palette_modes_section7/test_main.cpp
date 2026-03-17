@@ -248,6 +248,75 @@ void test_wrap_hold_first_last_with_nearest_sampling(void)
     TEST_ASSERT_EQUAL_UINT8(200, lastHeld['R']);
 }
 
+void test_circular_linear_uses_logical_domain_before_canonical_wrap_for_wide_domain(void)
+{
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
+    options.wrapMode = lw::colors::palettes::WrapMode::Circular;
+    options.scaledSampleCount = 512;
+
+    const lw::Rgb8Color midpoint = sampleScalar(widePalette(), 256, options);
+
+    TEST_ASSERT_EQUAL_UINT8(126, midpoint['R']);
+    TEST_ASSERT_EQUAL_UINT8(126, midpoint['G']);
+    TEST_ASSERT_EQUAL_UINT8(126, midpoint['B']);
+}
+
+void test_circular_nearest_uses_mapped_canonical_geometry_for_wide_domain(void)
+{
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
+    options.wrapMode = lw::colors::palettes::WrapMode::Circular;
+    options.blendMode = lw::colors::palettes::BlendMode::Nearest;
+    options.scaledSampleCount = 512;
+
+    const lw::Rgb8Color nearest = sampleScalar(rangePalette(), 256, options);
+
+    TEST_ASSERT_EQUAL_UINT8(100, nearest['R']);
+}
+
+void test_logical_domain_mapping_preserves_canonical_endpoints(void)
+{
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
+    options.scaledSampleCount = 1024;
+
+    const auto first = lw::colors::palettes::detail::normalizeForDomain(options, 0u);
+    const auto last = lw::colors::palettes::detail::normalizeForDomain(options, 1023u);
+
+    TEST_ASSERT_EQUAL_UINT32(0u, static_cast<uint32_t>(first.canonical.fixed));
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(lw::colors::palettes::detail::PaletteCanonicalMaxFixed),
+                             static_cast<uint32_t>(last.canonical.fixed));
+}
+
+void test_logical_domain_mapping_is_monotonic_for_wide_domain(void)
+{
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
+    options.scaledSampleCount = 1024;
+
+    auto previous = lw::colors::palettes::detail::normalizeForDomain(options, 0u).canonical.fixed;
+    for (size_t logicalIndex = 1; logicalIndex < options.scaledSampleCount; ++logicalIndex)
+    {
+        const auto current = lw::colors::palettes::detail::normalizeForDomain(options, logicalIndex).canonical.fixed;
+        TEST_ASSERT_TRUE(current >= previous);
+        previous = current;
+    }
+}
+
+void test_circular_logical_domain_wrap_repeats_positions_exactly(void)
+{
+    lw::colors::palettes::PaletteSampleOptions<lw::Rgb8Color> options;
+    options.wrapMode = lw::colors::palettes::WrapMode::Circular;
+    options.scaledSampleCount = 512;
+
+    const auto start = lw::colors::palettes::detail::normalizeForDomain(options, 0u);
+    const auto wrappedStart = lw::colors::palettes::detail::normalizeForDomain(options, 512u);
+    const auto second = lw::colors::palettes::detail::normalizeForDomain(options, 1u);
+    const auto wrappedSecond = lw::colors::palettes::detail::normalizeForDomain(options, 513u);
+
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(start.canonical.fixed),
+                             static_cast<uint32_t>(wrappedStart.canonical.fixed));
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(second.canonical.fixed),
+                             static_cast<uint32_t>(wrappedSecond.canonical.fixed));
+}
+
 void test_blend_mode_cost_smoke(void)
 {
     std::array<lw::Rgb8Color, 64> out{};
@@ -291,6 +360,11 @@ int main(int, char**)
     RUN_TEST(test_wrap_blackout_out_of_range_sampling);
     RUN_TEST(test_wrap_hold_first_last_with_linear_sampling);
     RUN_TEST(test_wrap_hold_first_last_with_nearest_sampling);
+    RUN_TEST(test_circular_linear_uses_logical_domain_before_canonical_wrap_for_wide_domain);
+    RUN_TEST(test_circular_nearest_uses_mapped_canonical_geometry_for_wide_domain);
+    RUN_TEST(test_logical_domain_mapping_preserves_canonical_endpoints);
+    RUN_TEST(test_logical_domain_mapping_is_monotonic_for_wide_domain);
+    RUN_TEST(test_circular_logical_domain_wrap_repeats_positions_exactly);
     RUN_TEST(test_blend_mode_cost_smoke);
     return UNITY_END();
 }

@@ -128,56 +128,6 @@ template <typename TValue> class ConstantSampler
     TValue _value;
 };
 
-template <typename TColor, typename TSampler, typename = std::enable_if_t<ColorType<TColor>>> class ScaledPaletteSampler
-{
-  public:
-    ScaledPaletteSampler(TSampler sampler, size_t logicalSize, size_t scaledSize)
-        : _sampler(std::move(sampler)), _logicalSize(logicalSize), _scaledSize(scaledSize)
-    {
-    }
-
-    TColor operator()(size_t paletteIndex) const
-    {
-        if (_logicalSizeEqualsScaledSize)
-        {
-            return _sampler(paletteIndex);
-        }
-        const size_t mappedIndex = mapIndex(paletteIndex);
-        if (_hasCachedColor && mappedIndex == _cachedMappedIndex)
-        {
-            return _cachedColor;
-        }
-
-        _cachedColor = _sampler(mappedIndex);
-        _cachedMappedIndex = mappedIndex;
-        _hasCachedColor = true;
-        return _cachedColor;
-    }
-
-  private:
-    size_t mapIndex(size_t paletteIndex) const
-    {
-        if (_logicalSize <= 1u || _scaledSize <= 1u)
-        {
-            return 0u;
-        }
-
-        const size_t scaledSpan = _scaledSize - 1u;
-        const size_t logicalSpan = _logicalSize - 1u;
-        const size_t clampedIndex = (paletteIndex >= scaledSpan) ? scaledSpan : paletteIndex;
-
-        return (clampedIndex * logicalSpan) / scaledSpan;
-    }
-
-    TSampler _sampler;
-    size_t _logicalSize;
-    size_t _scaledSize;
-    bool _logicalSizeEqualsScaledSize{_logicalSize == _scaledSize};
-    mutable bool _hasCachedColor{false};
-    mutable size_t _cachedMappedIndex{0};
-    mutable TColor _cachedColor{};
-};
-
 template <typename TColor, typename TSamplerFrom, typename TSamplerTo, typename TBlendProgressSampler,
           typename TBlendDomain = uint8_t, typename = std::enable_if_t<ColorType<TColor>>>
 class TransitionSampler
