@@ -33,9 +33,9 @@ Rules:
 
 - Stop indexes must be in non-decreasing order.
 - The first stop must be at index `0`.
-- The last stop must be at index `255`.
+- The last stop must be at the configured upper bound (defaults to `255`).
 - Duplicate indexes are allowed and create hard zero-width transitions.
-- Any stop index above `255` is rejected.
+- Any stop index above the configured upper bound is rejected. (The upper bound is configurable but defaults to `255`.)
 
 This is the most explicit form and is appropriate when callers need exact stop placement.
 
@@ -60,14 +60,15 @@ When this form is used, all colors are parsed first and then the stops are evenl
 For `N` parsed colors:
 
 ```text
-index[i] = (i * 255) / (N - 1)
+index[i] = (i * UPPER_BOUND) / (N - 1)
 ```
+Where `UPPER_BOUND` is the configured palette domain upper bound (defaults to `255`).
 
 Examples:
 
-- `FF0000|00FF00` becomes stops at `0` and `255`
-- `FF0000|00FF00|0000FF` becomes stops at `0`, `127`, and `255`
-- `AA0000|BB0000|CC0000|DD0000` becomes stops at `0`, `85`, `170`, and `255`
+- `FF0000|00FF00` becomes stops at `0` and `UPPER_BOUND` (default `255`)
+- `FF0000|00FF00|0000FF` becomes stops at `0`, `UPPER_BOUND/2`, and `UPPER_BOUND` (default `0`, `127`, `255`)
+- `AA0000|BB0000|CC0000|DD0000` becomes stops at `0`, `UPPER_BOUND/3`, `2*UPPER_BOUND/3`, and `UPPER_BOUND` (default `0`, `85`, `170`, `255`)
 
 Rules:
 
@@ -125,9 +126,9 @@ Parsing fails when any of the following are true:
 - the input is empty or whitespace-only
 - a stop separator is malformed
 - a color token has an unsupported or invalid hex width
-- explicit-stop input is missing the required `0` or `255` endpoints
+- explicit-stop input is missing the required `0` or upper bound endpoints
 - explicit-stop input contains decreasing indexes
-- explicit-stop input contains an index above `255`
+- explicit-stop input contains an index above the configured upper bound
 - fewer than two total stops are present after parsing
 - indexed and non-indexed forms are mixed in one string
 
