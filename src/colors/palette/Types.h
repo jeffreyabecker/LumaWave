@@ -212,46 +212,6 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class
         return Palette(std::move(parsedStops));
     }
 
-    static Palette color1(const TColor& primary)
-    {
-        const std::array<PaletteStop<TColor>, 2> stops = {
-            PaletteStop<TColor>{0, primary},
-            PaletteStop<TColor>{255, primary},
-        };
-        return Palette(stops);
-    }
-
-    static Palette colors1And2(const TColor& primary, const TColor& secondary)
-    {
-        const std::array<PaletteStop<TColor>, 4> stops = {
-            PaletteStop<TColor>{0, primary},
-            PaletteStop<TColor>{127, primary},
-            PaletteStop<TColor>{128, secondary},
-            PaletteStop<TColor>{255, secondary},
-        };
-        return Palette(stops);
-    }
-
-    static Palette colorGradient(const TColor& primary, const TColor& secondary, const TColor& tertiary)
-    {
-        const std::array<PaletteStop<TColor>, 3> stops = {
-            PaletteStop<TColor>{0, tertiary},
-            PaletteStop<TColor>{127, secondary},
-            PaletteStop<TColor>{255, primary},
-        };
-        return Palette(stops);
-    }
-
-    static Palette colorsOnly(const TColor& primary, const TColor& secondary, const TColor& tertiary)
-    {
-        const std::array<PaletteStop<TColor>, 16> stops = {
-            PaletteStop<TColor>{0, primary},     PaletteStop<TColor>{16, primary},    PaletteStop<TColor>{32, primary},   PaletteStop<TColor>{48, primary},
-            PaletteStop<TColor>{64, primary},    PaletteStop<TColor>{80, secondary},  PaletteStop<TColor>{96, secondary}, PaletteStop<TColor>{112, secondary},
-            PaletteStop<TColor>{128, secondary}, PaletteStop<TColor>{144, secondary}, PaletteStop<TColor>{160, tertiary}, PaletteStop<TColor>{176, tertiary},
-            PaletteStop<TColor>{192, tertiary},  PaletteStop<TColor>{208, tertiary},  PaletteStop<TColor>{224, tertiary}, PaletteStop<TColor>{255, primary},
-        };
-        return Palette(stops);
-    }
 
     StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
