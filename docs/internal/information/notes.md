@@ -24,7 +24,7 @@ Actionable work items are tracked in [docs/internal/backlog/todo.md](../backlog/
 
 ## Scope Notes
 
-- Unsupported-chip triage and decisions are maintained in [docs/internal/backlog/neopixelbus-unsupported-chips.md](../backlog/neopixelbus-unsupported-chips.md) and tracked as tasks in [docs/internal/backlog/todo.md](../backlog/todo.md).
+- Unsupported-chip triage and decisions are maintained in [docs/internal/backlog/lumawave-unsupported-chips.md](../backlog/lumawave-unsupported-chips.md) and tracked as tasks in [docs/internal/backlog/todo.md](../backlog/todo.md).
 
 ## Protocol Descriptor Alias Audit (2026-03-02)
 

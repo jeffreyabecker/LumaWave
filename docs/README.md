@@ -28,7 +28,7 @@ Architecture, contracts, references, and technical notes:
 - [Fire Palette Noise-Field Indexing](internal/information/fire-palette-noise-field-indexing.md)
 - [Protocol Decorator Pattern (CRTP)](internal/information/protocol-decorator-pattern-crtp.md)
 - [Buffer Access Surface Design](internal/information/buffer-access-surface-design.md)
-- [LumaWave vs NeoPixelBus Comparison](comparison-lumawave-vs-neopixelbus.md)
+- [LumaWave vs LumaWave Comparison](comparison-lumawave-vs-lumawave.md)
 - [Internal Notes](internal/information/notes.md)
 
 ### Data Sheets
@@ -43,7 +43,7 @@ Architecture, contracts, references, and technical notes:
 - [Typed Settings Access Surface (Design)](internal/backlog/typed-settings-access-surface-design.md)
 - [Compile-Time Static Allocation Plan](internal/backlog/compile-time-static-allocation-plan.md)
 - [Fixed-Storage Static Bus Architecture Design](internal/backlog/fixed-storage-bus-architecture-design.md)
-- [Unsupported Chips (Research/Triage)](internal/backlog/neopixelbus-unsupported-chips.md)
+- [Unsupported Chips (Research/Triage)](internal/backlog/lumawave-unsupported-chips.md)
 
 ## External References
 

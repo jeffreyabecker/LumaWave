@@ -1,16 +1,16 @@
-# NeoPixelBus Chips Not Ported to LumaWave
+# LumaWave Chips Not Ported to LumaWave
 
-> **Status:** Reference — documents NeoPixelBus-supported chips/features absent from LumaWave, with reasoning.  
-> **NeoPixelBus version:** 2.8.4  
+> **Status:** Reference — documents LumaWave-supported chips/features absent from LumaWave, with reasoning.  
+> **LumaWave version:** 2.8.4  
 > **LumaWave revision:** HEAD as of 2026-03-02
 
 ---
 
 ## One-Wire Chips With Per-Pixel Settings (SM168x One-Wire Family)
 
-NeoPixelBus supports several SM168x one-wire variants that encode per-pixel gain/current settings as trailing bytes appended to the NRZ data stream. These are **distinct products** from the SPI-clocked SM168x chips that LumaWave already supports via `Sm168xProtocol`.
+LumaWave supports several SM168x one-wire variants that encode per-pixel gain/current settings as trailing bytes appended to the NRZ data stream. These are **distinct products** from the SPI-clocked SM168x chips that LumaWave already supports via `Sm168xProtocol`.
 
-| Chip | NeoPixelBus Feature | Channels | Per-Pixel Settings | Notes |
+| Chip | LumaWave Feature | Channels | Per-Pixel Settings | Notes |
 |------|---------------------|----------|--------------------|-------|
 | SM16803PB | `NeoRgbSm16803pbFeature` | RGB (3ch) | 4-bit gain ×3 (1.8–19 mA), 2 settings bytes | Internal current reference |
 | SM16823E | `NeoRgbSm16823eFeature` | RGB (3ch) | 4-bit gain ×3 (60–350 mA, external R), 2 settings bytes | External current reference |
@@ -34,7 +34,7 @@ These chips are uncommon in hobby use and the per-pixel settings pattern is only
 
 ## TM1829
 
-| Chip | NeoPixelBus Support | Channels | Signal | Timing |
+| Chip | LumaWave Support | Channels | Signal | Timing |
 |------|---------------------|----------|--------|--------|
 | TM1829 | `NeoTm1829Method` (all platforms), Speed class: `NeoBitsSpeedTm1829` | RGB (3ch) | **Inverted** (idle-high) | 300/800/800/300 ns, 200 µs reset |
 
@@ -52,14 +52,14 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## Intertek
 
-| Chip | NeoPixelBus Support | Channels | Signal | Timing |
+| Chip | LumaWave Support | Channels | Signal | Timing |
 |------|---------------------|----------|--------|--------|
 | Intertek | `NeoEspBitBangSpeedIntertek800Kbps` (ESP bit-bang only) | RGB (3ch) | Normal | 800 kbps, **12,470 µs reset** (~12.5 ms) |
 
 **Why not ported:**
 
 - Extremely niche chip with an aberrant 12.5 ms reset time (40× longer than WS2812x).
-- In NeoPixelBus, only supported via ESP bit-bang — not available on RMT, I2S, PIO, or any DMA path.
+- In LumaWave, only supported via ESP bit-bang — not available on RMT, I2S, PIO, or any DMA path.
 - The long reset time is incompatible with most real-time animation use cases (caps effective frame rate to ~80 fps for transport idle alone).
 - Could theoretically work with LumaWave's `OneWireTiming{...}` system if someone defined the timing, but there's no known user demand.
 
@@ -67,7 +67,7 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## TLC5947
 
-| Chip | NeoPixelBus Support | Channels | Interface | Control Signals |
+| Chip | LumaWave Support | Channels | Interface | Control Signals |
 |------|---------------------|----------|-----------|-----------------|
 | TLC5947 | `Tlc5947Method` family | 24 PWM channels/module (12-bit) | Clock + Data | **External latch (XLAT) + optional OE sequencing** |
 
@@ -91,14 +91,14 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## MBI6033
 
-| Chip | NeoPixelBus Support | Channels | Bit Depth | Interface |
+| Chip | LumaWave Support | Channels | Bit Depth | Interface |
 |------|---------------------|----------|-----------|-----------|
 | MBI6033 | `Mbi6033Method` (bit-bang only) | 12ch PWM (4 RGB pixels / chip) | 16-bit | Clk + Data (software bit-bang) |
 
 **Why not ported:**
 
 - Non-standard SPI-like protocol with a custom reset sequence (clock toggle pattern).
-- In NeoPixelBus, only available via `TwoWireBitBangImple` — no hardware SPI support due to the non-standard clock-toggle reset.
+- In LumaWave, only available via `TwoWireBitBangImple` — no hardware SPI support due to the non-standard clock-toggle reset.
 - Very low market adoption; the TLC59711 serves the same niche (12-channel 16-bit PWM) with standard SPI and is already supported by LumaWave.
 - Porting would require either a custom transport or a protocol that emits the reset clock-toggle, adding complexity for a near-zero audience.
 
@@ -106,14 +106,14 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## DMX512
 
-| Protocol | NeoPixelBus Support | Interface | Platform |
+| Protocol | LumaWave Support | Interface | Platform |
 |----------|---------------------|-----------|----------|
 | DMX512 | `NeoEsp8266Dmx512Method` | Serial (250 Kbps, Break/MAB framing) | **ESP8266 only** (I2S-based DMX) |
 
 **Why not ported:**
 
 - DMX512 is a fundamentally different protocol class — it's a serial bus protocol with Break/MAB framing, not a pixel LED protocol.
-- In NeoPixelBus, DMX512 is only supported on ESP8266 via I2S repurposed as a DMX transmitter — extremely platform-specific.
+- In LumaWave, DMX512 is only supported on ESP8266 via I2S repurposed as a DMX transmitter — extremely platform-specific.
 - LumaWave's architecture separates protocol from transport, which could theoretically support DMX512 as a protocol + UART transport combination. However, DMX512 is better served by dedicated DMX libraries (e.g., `esp_dmx`) that handle the full DMX specification including receiving, RDM, etc.
 - Not porting is a deliberate scope decision: LumaWave targets LED pixel protocols, not lighting control bus protocols.
 
@@ -121,14 +121,14 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## WS2821
 
-| Protocol | NeoPixelBus Support | Interface | Platform |
+| Protocol | LumaWave Support | Interface | Platform |
 |----------|---------------------|-----------|----------|
 | WS2821 | `NeoEsp8266Ws2821Method` | Serial (750 Kbps, Break/MAB framing) | **ESP8266 only** (I2S-based) |
 
 **Why not ported:**
 
 - WS2821 is a DMX-like serial protocol at 750 Kbps with Break/MAB inter-packet gaps — essentially a proprietary variant of DMX512.
-- Same platform restriction as DMX512: ESP8266 I2S only in NeoPixelBus.
+- Same platform restriction as DMX512: ESP8266 I2S only in LumaWave.
 - Same scope rationale as DMX512 — this is a serial bus protocol, not a pixel LED NRZ or SPI protocol.
 - Near-zero market presence outside of professional DMX-controlled installations.
 
@@ -136,7 +136,7 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## 7-Segment Display Features
 
-| Feature | NeoPixelBus Support | Notes |
+| Feature | LumaWave Support | Notes |
 |---------|---------------------|-------|
 | `NeoAbcdefgpsSegmentFeature` | `NeoPixelSegmentBus` wrapper + segment feature class | Maps `SetString()` → segment bitmasks |
 | `NeoBacedfpgsSegmentFeature` | Alternate wiring order | |
@@ -151,9 +151,9 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 ## Platforms Not Supported
 
-These are platform/method gaps, not chip gaps. NeoPixelBus supports these platforms via dedicated ASM or peripheral drivers:
+These are platform/method gaps, not chip gaps. LumaWave supports these platforms via dedicated ASM or peripheral drivers:
 
-| Platform | NeoPixelBus Method Type | Why Not in LumaWave |
+| Platform | LumaWave Method Type | Why Not in LumaWave |
 |----------|------------------------|---------------------|
 | **AVR (ATmega, ATtiny)** | Cycle-counted inline ASM bit-bang | AVR lacks C++17 STL support. LumaWave requires C++17 and STL (`std::vector`, `std::unique_ptr`, `std::tuple`, etc.). AVR's severe RAM constraints (2–8 KB) are also incompatible with LumaWave's buffer architecture (minimum ~7 bytes/pixel). |
 | **MegaAVR** | Same as AVR | Same as AVR. |
@@ -162,7 +162,7 @@ These are platform/method gaps, not chip gaps. NeoPixelBus supports these platfo
 
 ### Parallel / Multi-Channel Output
 
-| Feature | NeoPixelBus Support | LumaWave Status |
+| Feature | LumaWave Support | LumaWave Status |
 |---------|---------------------|-----------------|
 | ESP32 I2S 8-channel parallel | `NeoEsp32I2sX8...Method` | Not yet implemented |
 | ESP32-S3 LCD 8/16-channel parallel | `NeoEsp32LcdX8...Method` / `X16` | Not yet implemented |
