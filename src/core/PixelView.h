@@ -477,17 +477,27 @@ public:
 
     iterator() = default;
 
-    iterator(PixelView* view, uint32_t index) : _view(view), _index(index) {}
+    iterator(PixelView* view, uint32_t index) : _view(view) { seekToIndex(index); }
 
-    reference operator*() const { return _view->refAt(_index); }
+    reference operator*() const
+    {
+      if (_view->_mode == StorageMode::Flat)
+      {
+        return _view->_flatData[_index];
+      }
+
+      const ChunkLookupEntry& entry = _view->_lookupEntries[_entryIndex];
+      return _view->_chunkData[entry.chunkIndex][_localOffset];
+    }
 
     pointer operator->() const { return std::addressof(operator*()); }
 
-    reference operator[](difference_type n) const { return _view->refAt(static_cast<uint32_t>(_index + n)); }
+    reference operator[](difference_type n) const { return *(*this + n); }
 
     iterator& operator++()
     {
       ++_index;
+      advanceForward();
       return *this;
     }
 
@@ -501,6 +511,7 @@ public:
     iterator& operator--()
     {
       --_index;
+      seekToIndex(_index);
       return *this;
     }
 
@@ -514,12 +525,14 @@ public:
     iterator& operator+=(difference_type n)
     {
       _index = static_cast<uint32_t>(_index + n);
+      seekToIndex(_index);
       return *this;
     }
 
     iterator& operator-=(difference_type n)
     {
       _index = static_cast<uint32_t>(_index - n);
+      seekToIndex(_index);
       return *this;
     }
 
@@ -558,8 +571,55 @@ public:
   private:
     friend class const_iterator;
 
+    void seekToIndex(uint32_t index)
+    {
+      _index = index;
+      _entryIndex = 0;
+      _localOffset = 0;
+
+      if (_view == nullptr || _view->_mode == StorageMode::Flat)
+      {
+        return;
+      }
+
+      if (index >= _view->_size || _view->_lookupEntries.empty())
+      {
+        _entryIndex = _view->_lookupEntries.size();
+        return;
+      }
+
+      _entryIndex = _view->resolveLookupEntryIndex(index);
+      const ChunkLookupEntry& entry = _view->_lookupEntries[_entryIndex];
+      _localOffset = static_cast<uint32_t>(index - entry.chunkStart);
+    }
+
+    void advanceForward()
+    {
+      if (_view == nullptr || _view->_mode == StorageMode::Flat)
+      {
+        return;
+      }
+
+      if (_entryIndex >= _view->_lookupEntries.size())
+      {
+        return;
+      }
+
+      ++_localOffset;
+      const ChunkLookupEntry& entry = _view->_lookupEntries[_entryIndex];
+      if ((entry.chunkStart + _localOffset) < entry.chunkEnd)
+      {
+        return;
+      }
+
+      ++_entryIndex;
+      _localOffset = 0;
+    }
+
     PixelView* _view{nullptr};
     uint32_t _index{0};
+    size_t _entryIndex{0};
+    uint32_t _localOffset{0};
   };
 
   class const_iterator
@@ -573,19 +633,29 @@ public:
 
     const_iterator() = default;
 
-    const_iterator(const PixelView* view, uint32_t index) : _view(view), _index(index) {}
+    const_iterator(const PixelView* view, uint32_t index) : _view(view) { seekToIndex(index); }
 
-    const_iterator(const iterator& it) : _view(it._view), _index(it._index) {}
+    const_iterator(const iterator& it) : _view(it._view), _index(it._index), _entryIndex(it._entryIndex), _localOffset(it._localOffset) {}
 
-    reference operator*() const { return _view->constRefAt(_index); }
+    reference operator*() const
+    {
+      if (_view->_mode == StorageMode::Flat)
+      {
+        return _view->_flatData[_index];
+      }
+
+      const ChunkLookupEntry& entry = _view->_lookupEntries[_entryIndex];
+      return _view->_chunkData[entry.chunkIndex][_localOffset];
+    }
 
     pointer operator->() const { return std::addressof(operator*()); }
 
-    reference operator[](difference_type n) const { return _view->constRefAt(static_cast<uint32_t>(_index + n)); }
+    reference operator[](difference_type n) const { return *(*this + n); }
 
     const_iterator& operator++()
     {
       ++_index;
+      advanceForward();
       return *this;
     }
 
@@ -599,6 +669,7 @@ public:
     const_iterator& operator--()
     {
       --_index;
+      seekToIndex(_index);
       return *this;
     }
 
@@ -612,12 +683,14 @@ public:
     const_iterator& operator+=(difference_type n)
     {
       _index = static_cast<uint32_t>(_index + n);
+      seekToIndex(_index);
       return *this;
     }
 
     const_iterator& operator-=(difference_type n)
     {
       _index = static_cast<uint32_t>(_index - n);
+      seekToIndex(_index);
       return *this;
     }
 
@@ -654,8 +727,55 @@ public:
     friend bool operator>=(const const_iterator& a, const const_iterator& b) { return a._index >= b._index; }
 
   private:
+    void seekToIndex(uint32_t index)
+    {
+      _index = index;
+      _entryIndex = 0;
+      _localOffset = 0;
+
+      if (_view == nullptr || _view->_mode == StorageMode::Flat)
+      {
+        return;
+      }
+
+      if (index >= _view->_size || _view->_lookupEntries.empty())
+      {
+        _entryIndex = _view->_lookupEntries.size();
+        return;
+      }
+
+      _entryIndex = _view->resolveLookupEntryIndex(index);
+      const ChunkLookupEntry& entry = _view->_lookupEntries[_entryIndex];
+      _localOffset = static_cast<uint32_t>(index - entry.chunkStart);
+    }
+
+    void advanceForward()
+    {
+      if (_view == nullptr || _view->_mode == StorageMode::Flat)
+      {
+        return;
+      }
+
+      if (_entryIndex >= _view->_lookupEntries.size())
+      {
+        return;
+      }
+
+      ++_localOffset;
+      const ChunkLookupEntry& entry = _view->_lookupEntries[_entryIndex];
+      if ((entry.chunkStart + _localOffset) < entry.chunkEnd)
+      {
+        return;
+      }
+
+      ++_entryIndex;
+      _localOffset = 0;
+    }
+
     const PixelView* _view{nullptr};
     uint32_t _index{0};
+    size_t _entryIndex{0};
+    uint32_t _localOffset{0};
   };
 };
 
