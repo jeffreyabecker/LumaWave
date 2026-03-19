@@ -1,8 +1,9 @@
 #pragma once
 
+#include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cassert>
 #include <functional>
 #include <iterator>
 #include <limits>
@@ -27,7 +28,33 @@ public:
 
   PixelView() = default;
 
-  explicit PixelView(span<ChunkType> chunks) : _chunks(chunks) {}
+  explicit PixelView(ChunkType chunk) { initializeFlat(chunk, true); }
+
+  explicit PixelView(span<ChunkType> chunks) { initializeFromChunks(chunks); }
+
+  PixelView(const PixelView& other) { initializeFromOther(other); }
+
+  PixelView(PixelView&& other) noexcept { initializeFromOther(std::move(other)); }
+
+  PixelView& operator=(const PixelView& other)
+  {
+    if (this != &other)
+    {
+      initializeFromOther(other);
+    }
+
+    return *this;
+  }
+
+  PixelView& operator=(PixelView&& other) noexcept
+  {
+    if (this != &other)
+    {
+      initializeFromOther(std::move(other));
+    }
+
+    return *this;
+  }
 
   [[nodiscard]] PixelView operator+(const PixelView& other) const { return concatenate(*this, other); }
 
@@ -37,7 +64,7 @@ public:
   static PixelView concatenate(const PixelView& first, const TOtherViews&... others)
   {
     std::vector<ChunkType> concatenated;
-    const size_t totalChunks = first._chunks.size() + (static_cast<size_t>(others._chunks.size()) + ... + 0u);
+    const size_t totalChunks = first.chunks().size() + (static_cast<size_t>(others.chunks().size()) + ... + 0u);
     concatenated.reserve(totalChunks);
 
     appendChunks(concatenated, first);
@@ -86,21 +113,7 @@ public:
     return PixelView(std::move(concatenated));
   }
 
-  [[nodiscard]] uint32_t size() const
-  {
-    uint32_t total = 0;
-    for (const auto chunk : _chunks)
-    {
-      const auto chunkSize = static_cast<uint32_t>(chunk.size());
-      const uint32_t available = std::numeric_limits<uint32_t>::max() - total;
-      total += (chunkSize < available) ? chunkSize : available;
-      if (total == std::numeric_limits<uint32_t>::max())
-      {
-        break;
-      }
-    }
-    return total;
-  }
+  [[nodiscard]] uint32_t size() const { return _size; }
 
   TColor operator[](uint32_t index) const { return constRefAt(index); }
 
@@ -118,9 +131,9 @@ public:
 
   const_iterator cend() const { return const_iterator(this, size()); }
 
-  span<ChunkType> chunks() { return _chunks; }
+  span<ChunkType> chunks() { return span<ChunkType>{_chunkData, _chunkCount}; }
 
-  span<const ChunkType> chunks() const { return span<const ChunkType>{_chunks.data(), _chunks.size()}; }
+  span<const ChunkType> chunks() const { return span<const ChunkType>{_chunkData, _chunkCount}; }
 
   [[nodiscard]] PixelView slice(uint32_t startIndex, uint32_t endIndex)
   {
@@ -130,10 +143,10 @@ public:
     const uint32_t normalizedEnd = (clampedEnd < clampedStart) ? clampedStart : clampedEnd;
 
     std::vector<ChunkType> sliced;
-    sliced.reserve(_chunks.size());
+    sliced.reserve(_chunkCount);
 
     uint32_t globalOffset = 0;
-    for (auto chunk : _chunks)
+    for (auto chunk : chunks())
     {
       const uint32_t chunkSize = static_cast<uint32_t>(chunk.size());
       const uint32_t chunkStart = globalOffset;
@@ -160,146 +173,296 @@ public:
   }
 
 private:
-  struct ChunkLookupCache
+  enum class StorageMode : uint8_t
   {
-    uint32_t chunkIndex{0};
+    Flat,
+    Chunked,
+  };
+
+  struct ChunkLookupEntry
+  {
     uint32_t chunkStart{0};
     uint32_t chunkEnd{0};
+    uint32_t chunkIndex{0};
+  };
+
+  struct ChunkLookupCache
+  {
+    size_t entryIndex{0};
     bool valid{false};
   };
 
-  explicit PixelView(std::vector<ChunkType>&& ownedChunks) : _ownedChunks(std::move(ownedChunks)), _chunks(_ownedChunks.data(), _ownedChunks.size()) {}
+  explicit PixelView(std::vector<ChunkType>&& ownedChunks) { initializeOwnedChunks(std::move(ownedChunks)); }
 
   static void appendChunks(std::vector<ChunkType>& destination, const PixelView& source)
   {
-    for (const auto chunk : source._chunks)
+    for (const auto chunk : source.chunks())
     {
       destination.push_back(chunk);
     }
   }
 
-  bool tryResolveFromCache(uint32_t index, size_t& chunkIndex, size_t& localIndex) const
+  static uint32_t clampVisibleSize(size_t chunkSize, uint32_t start)
   {
-    if (!_lookupCache.valid)
+    const uint32_t maxIndex = std::numeric_limits<uint32_t>::max();
+    const uint32_t clampedChunkSize = (chunkSize < static_cast<size_t>(maxIndex)) ? static_cast<uint32_t>(chunkSize) : maxIndex;
+    const uint32_t available = maxIndex - start;
+    return (clampedChunkSize < available) ? clampedChunkSize : available;
+  }
+
+  void initializeFlat(ChunkType chunk, bool exposeChunk)
+  {
+    _mode = StorageMode::Flat;
+    _flatChunkStorage[0] = chunk;
+    _flatData = chunk.data();
+    _size = clampVisibleSize(chunk.size(), 0);
+    _ownedChunks.clear();
+    _lookupEntries.clear();
+    _chunkData = exposeChunk ? _flatChunkStorage.data() : nullptr;
+    _chunkCount = exposeChunk ? 1u : 0u;
+    clearLookupCache();
+  }
+
+  void initializeChunked(ChunkType* chunkData, size_t chunkCount)
+  {
+    _mode = StorageMode::Chunked;
+    _flatChunkStorage[0] = ChunkType{};
+    _flatData = nullptr;
+    _chunkData = chunkData;
+    _chunkCount = chunkCount;
+    _lookupEntries.clear();
+
+    uint32_t chunkStart = 0;
+    for (size_t chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex)
+    {
+      const uint32_t chunkSize = clampVisibleSize(chunkData[chunkIndex].size(), chunkStart);
+      if (chunkSize == 0)
+      {
+        continue;
+      }
+
+      const uint32_t chunkEnd = chunkStart + chunkSize;
+      _lookupEntries.push_back(ChunkLookupEntry{chunkStart, chunkEnd, static_cast<uint32_t>(chunkIndex)});
+      chunkStart = chunkEnd;
+
+      if (chunkStart == std::numeric_limits<uint32_t>::max())
+      {
+        break;
+      }
+    }
+
+    _size = chunkStart;
+    clearLookupCache();
+  }
+
+  void initializeFromChunks(span<ChunkType> chunks)
+  {
+    if (chunks.empty())
+    {
+      initializeFlat(ChunkType{}, false);
+      return;
+    }
+
+    if (chunks.size() == 1)
+    {
+      initializeFlat(chunks[0], true);
+      return;
+    }
+
+    _ownedChunks.clear();
+    initializeChunked(chunks.data(), chunks.size());
+  }
+
+  void initializeOwnedChunks(std::vector<ChunkType>&& ownedChunks)
+  {
+    _ownedChunks = std::move(ownedChunks);
+
+    if (_ownedChunks.empty())
+    {
+      initializeFlat(ChunkType{}, false);
+      return;
+    }
+
+    if (_ownedChunks.size() == 1)
+    {
+      const ChunkType chunk = _ownedChunks[0];
+      _ownedChunks.clear();
+      initializeFlat(chunk, true);
+      return;
+    }
+
+    initializeChunked(_ownedChunks.data(), _ownedChunks.size());
+  }
+
+  void initializeOwnedChunksCopy(const std::vector<ChunkType>& ownedChunks)
+  {
+    _ownedChunks = ownedChunks;
+
+    if (_ownedChunks.empty())
+    {
+      initializeFlat(ChunkType{}, false);
+      return;
+    }
+
+    if (_ownedChunks.size() == 1)
+    {
+      const ChunkType chunk = _ownedChunks[0];
+      _ownedChunks.clear();
+      initializeFlat(chunk, true);
+      return;
+    }
+
+    initializeChunked(_ownedChunks.data(), _ownedChunks.size());
+  }
+
+  void initializeFromOther(const PixelView& other)
+  {
+    if (other._mode == StorageMode::Flat)
+    {
+      const ChunkType chunk = (other._chunkCount > 0) ? other._chunkData[0] : ChunkType{};
+      initializeFlat(chunk, other._chunkCount > 0);
+      return;
+    }
+
+    if (!other._ownedChunks.empty())
+    {
+      initializeOwnedChunksCopy(other._ownedChunks);
+      return;
+    }
+
+    initializeChunked(other._chunkData, other._chunkCount);
+  }
+
+  void initializeFromOther(PixelView&& other)
+  {
+    if (other._mode == StorageMode::Flat)
+    {
+      const ChunkType chunk = (other._chunkCount > 0) ? other._chunkData[0] : ChunkType{};
+      initializeFlat(chunk, other._chunkCount > 0);
+      return;
+    }
+
+    if (!other._ownedChunks.empty())
+    {
+      initializeOwnedChunks(std::move(other._ownedChunks));
+      return;
+    }
+
+    initializeChunked(other._chunkData, other._chunkCount);
+  }
+
+  void clearLookupCache() const { _lookupCache = ChunkLookupCache{}; }
+
+  bool tryResolveFromCache(uint32_t index, size_t& entryIndex) const
+  {
+    if (!_lookupCache.valid || _lookupCache.entryIndex >= _lookupEntries.size())
     {
       return false;
     }
 
-    if (index >= _lookupCache.chunkStart && index < _lookupCache.chunkEnd)
+    const ChunkLookupEntry& cached = _lookupEntries[_lookupCache.entryIndex];
+    if (index >= cached.chunkStart && index < cached.chunkEnd)
     {
-      chunkIndex = static_cast<size_t>(_lookupCache.chunkIndex);
-      localIndex = static_cast<size_t>(index - _lookupCache.chunkStart);
+      entryIndex = _lookupCache.entryIndex;
       return true;
     }
 
-    if (index >= _lookupCache.chunkEnd)
+    if (_lookupCache.entryIndex + 1u < _lookupEntries.size())
     {
-      uint32_t chunkStart = _lookupCache.chunkEnd;
-      for (size_t nextChunkIndex = static_cast<size_t>(_lookupCache.chunkIndex + 1u); nextChunkIndex < _chunks.size(); ++nextChunkIndex)
+      const ChunkLookupEntry& next = _lookupEntries[_lookupCache.entryIndex + 1u];
+      if (index >= next.chunkStart && index < next.chunkEnd)
       {
-        const uint32_t chunkSize = static_cast<uint32_t>(_chunks[nextChunkIndex].size());
-        const uint32_t chunkEnd = chunkStart + chunkSize;
-        if (index < chunkEnd)
-        {
-          chunkIndex = nextChunkIndex;
-          localIndex = static_cast<size_t>(index - chunkStart);
-          updateLookupCache(nextChunkIndex, chunkStart, chunkEnd);
-          return true;
-        }
-
-        chunkStart = chunkEnd;
-      }
-
-      return false;
-    }
-
-    uint32_t chunkEnd = _lookupCache.chunkStart;
-    size_t previousChunkIndex = static_cast<size_t>(_lookupCache.chunkIndex);
-    while (previousChunkIndex > 0)
-    {
-      --previousChunkIndex;
-      const uint32_t chunkSize = static_cast<uint32_t>(_chunks[previousChunkIndex].size());
-      const uint32_t chunkStart = chunkEnd - chunkSize;
-      if (index >= chunkStart)
-      {
-        chunkIndex = previousChunkIndex;
-        localIndex = static_cast<size_t>(index - chunkStart);
-        updateLookupCache(previousChunkIndex, chunkStart, chunkEnd);
+        _lookupCache.entryIndex += 1u;
+        entryIndex = _lookupCache.entryIndex;
         return true;
       }
+    }
 
-      chunkEnd = chunkStart;
+    if (_lookupCache.entryIndex > 0)
+    {
+      const ChunkLookupEntry& previous = _lookupEntries[_lookupCache.entryIndex - 1u];
+      if (index >= previous.chunkStart && index < previous.chunkEnd)
+      {
+        _lookupCache.entryIndex -= 1u;
+        entryIndex = _lookupCache.entryIndex;
+        return true;
+      }
     }
 
     return false;
   }
 
-  void updateLookupCache(size_t chunkIndex, uint32_t chunkStart, uint32_t chunkEnd) const
+  size_t resolveLookupEntryIndex(uint32_t index) const
   {
-    _lookupCache.chunkIndex = static_cast<uint32_t>(chunkIndex);
-    _lookupCache.chunkStart = chunkStart;
-    _lookupCache.chunkEnd = chunkEnd;
-    _lookupCache.valid = true;
-  }
-
-  size_t resolveChunkAt(uint32_t index, size_t& localIndex) const
-  {
-    size_t chunkIndex = 0;
-    if (tryResolveFromCache(index, chunkIndex, localIndex))
+    size_t entryIndex = 0;
+    if (tryResolveFromCache(index, entryIndex))
     {
-      return chunkIndex;
+      return entryIndex;
     }
 
-    uint32_t chunkStart = 0;
-    for (size_t chunkIndex = 0; chunkIndex < _chunks.size(); ++chunkIndex)
+    size_t left = 0;
+    size_t right = _lookupEntries.size();
+    while (left < right)
     {
-      const uint32_t chunkSize = static_cast<uint32_t>(_chunks[chunkIndex].size());
-      const uint32_t chunkEnd = chunkStart + chunkSize;
-      if (index < chunkEnd)
+      const size_t mid = left + ((right - left) / 2u);
+      if (index < _lookupEntries[mid].chunkEnd)
       {
-        localIndex = static_cast<size_t>(index - chunkStart);
-        updateLookupCache(chunkIndex, chunkStart, chunkEnd);
-        return chunkIndex;
+        right = mid;
       }
-
-      chunkStart = chunkEnd;
+      else
+      {
+        left = mid + 1u;
+      }
     }
 
-    localIndex = 0;
-    return _chunks.size();
+    _lookupCache.entryIndex = left;
+    _lookupCache.valid = (left < _lookupEntries.size());
+    return left;
   }
 
   ColorRef refAt(uint32_t index)
   {
     assert(index < size());
 
-    size_t localIndex = 0;
-    const size_t chunkIndex = resolveChunkAt(index, localIndex);
-    if (chunkIndex < _chunks.size())
+    if (_mode == StorageMode::Flat)
     {
-      return _chunks[chunkIndex][localIndex];
+      return _flatData[index];
     }
 
+    const size_t entryIndex = resolveLookupEntryIndex(index);
+    assert(entryIndex < _lookupEntries.size());
+    const ChunkLookupEntry& entry = _lookupEntries[entryIndex];
+    return _chunkData[entry.chunkIndex][static_cast<size_t>(index - entry.chunkStart)];
+
     // Unreachable with valid preconditions.
-    return _chunks[0][0];
+    return _chunkData[0][0];
   }
 
   ConstColorRef constRefAt(uint32_t index) const
   {
     assert(index < size());
 
-    size_t localIndex = 0;
-    const size_t chunkIndex = resolveChunkAt(index, localIndex);
-    if (chunkIndex < _chunks.size())
+    if (_mode == StorageMode::Flat)
     {
-      return _chunks[chunkIndex][localIndex];
+      return _flatData[index];
     }
 
-    return _chunks[0][0];
+    const size_t entryIndex = resolveLookupEntryIndex(index);
+    assert(entryIndex < _lookupEntries.size());
+    const ChunkLookupEntry& entry = _lookupEntries[entryIndex];
+    return _chunkData[entry.chunkIndex][static_cast<size_t>(index - entry.chunkStart)];
+
+    return _chunkData[0][0];
   }
 
+  StorageMode _mode{StorageMode::Flat};
+  std::array<ChunkType, 1> _flatChunkStorage{};
+  TColor* _flatData{nullptr};
   std::vector<ChunkType> _ownedChunks;
-  span<ChunkType> _chunks;
+  ChunkType* _chunkData{nullptr};
+  size_t _chunkCount{0};
+  uint32_t _size{0};
+  std::vector<ChunkLookupEntry> _lookupEntries;
   mutable ChunkLookupCache _lookupCache;
 
 public:

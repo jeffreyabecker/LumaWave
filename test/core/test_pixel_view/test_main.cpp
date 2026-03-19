@@ -39,6 +39,17 @@ void test_slice_returns_expected_subsection(void)
   TEST_ASSERT_EQUAL_UINT8(13u, sliced[3]['R']);
 }
 
+void test_flat_constructor_exposes_single_chunk(void)
+{
+  std::array<Color, 3> pixels = {Color{1, 0, 0}, Color{2, 0, 0}, Color{3, 0, 0}};
+
+  lw::PixelView<Color> view{lw::span<Color>{pixels.data(), pixels.size()}};
+
+  TEST_ASSERT_EQUAL_UINT32(3u, view.size());
+  TEST_ASSERT_EQUAL_UINT32(1u, static_cast<uint32_t>(view.chunks().size()));
+  TEST_ASSERT_EQUAL_UINT8(2u, view[1]['R']);
+}
+
 void test_slice_write_through_updates_underlying_storage(void)
 {
   std::array<Color, 4> pixels = {Color{10, 0, 0}, Color{20, 0, 0}, Color{30, 0, 0}, Color{40, 0, 0}};
@@ -201,6 +212,31 @@ void test_concatenate_accepts_span_of_const_view_references(void)
   TEST_ASSERT_EQUAL_UINT8(7U, concatenated[0]['R']);
   TEST_ASSERT_EQUAL_UINT8(8U, concatenated[1]['R']);
 }
+
+void test_copy_rebinds_internal_storage_for_flat_and_owned_chunked_views(void)
+{
+  std::array<Color, 2> flatPixels = {Color{1, 0, 0}, Color{2, 0, 0}};
+  lw::PixelView<Color> flatView{lw::span<Color>{flatPixels.data(), flatPixels.size()}};
+  lw::PixelView<Color> flatCopy = flatView;
+
+  flatCopy[1]['R'] = 9;
+  TEST_ASSERT_EQUAL_UINT8(9u, flatPixels[1]['R']);
+
+  std::array<Color, 1> left = {Color{3, 0, 0}};
+  std::array<Color, 1> right = {Color{4, 0, 0}};
+  std::vector<lw::span<Color>> leftChunks;
+  leftChunks.emplace_back(left.data(), left.size());
+  std::vector<lw::span<Color>> rightChunks;
+  rightChunks.emplace_back(right.data(), right.size());
+
+  lw::PixelView<Color> leftView{lw::span<lw::span<Color>>{leftChunks.data(), leftChunks.size()}};
+  lw::PixelView<Color> rightView{lw::span<lw::span<Color>>{rightChunks.data(), rightChunks.size()}};
+  lw::PixelView<Color> concatenated = lw::PixelView<Color>::concatenate(leftView, rightView);
+  lw::PixelView<Color> concatenatedCopy = concatenated;
+
+  concatenatedCopy[1]['R'] = 7;
+  TEST_ASSERT_EQUAL_UINT8(7u, right[0]['R']);
+}
 } // namespace
 
 void setUp(void)
@@ -216,6 +252,7 @@ int main(int, char**)
   UNITY_BEGIN();
   RUN_TEST(test_default_constructed_view_is_empty);
   RUN_TEST(test_slice_returns_expected_subsection);
+  RUN_TEST(test_flat_constructor_exposes_single_chunk);
   RUN_TEST(test_slice_write_through_updates_underlying_storage);
   RUN_TEST(test_slice_clamps_to_bounds_and_handles_reverse_range);
   RUN_TEST(test_fill_pixels_solid_color_updates_all_chunks);
@@ -224,5 +261,6 @@ int main(int, char**)
   RUN_TEST(test_iterators_preserve_random_access_operations);
   RUN_TEST(test_concatenate_accepts_span_of_view_references);
   RUN_TEST(test_concatenate_accepts_span_of_const_view_references);
+  RUN_TEST(test_copy_rebinds_internal_storage_for_flat_and_owned_chunked_views);
   return UNITY_END();
 }
