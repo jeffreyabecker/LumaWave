@@ -18,6 +18,7 @@ Architecture, contracts, references, and technical notes:
 
 - [Arduino-Optional Plan](internal/information/arduino-optional-plan.md)
 - [Arduino Examples Authoring Plan](internal/information/arduino-examples-authoring-plan.md)
+- [Library Modularization Refactor Design](internal/information/library-modularization-refactor-design.md)
 - [Object Model Contracts](internal/information/object-model-contracts.md)
 - [One-Wire Timing Reference](internal/information/one-wire-timing-reference.md)
 - [Bitrate Calculation Guide](internal/information/bitrate-calculation-guide.md)
