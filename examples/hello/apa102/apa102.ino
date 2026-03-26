@@ -11,30 +11,27 @@ API assumptions: Uses `lw::transports::SpiTransport` settings with `SPI` instanc
 constexpr pixel_count_t ledCount = 60;
 constexpr int clockPin = 18;
 constexpr int dataPin = 23;
-Strip<Protocols::APA102> strip(ledCount, Transport::DefaultSettings{{false, 8000000UL, static_cast<uint8_t>(MSBFIRST),
-                                                                     SPI_MODE0, clockPin, dataPin}});
+Strip<Protocols::APA102> strip(ledCount, Transport::DefaultSettings{{false, 8000000UL, lw::transports::BitOrderMsbFirst, lw::transports::SpiMode0, clockPin, dataPin}});
 uint16_t frame = 0;
 
 void setup()
 {
-    strip.begin();
+  strip.begin();
 }
 
 void loop()
 {
-    auto& pixels = strip.pixels();
-    const size_t count = pixels.size();
+  auto& pixels = strip.pixels();
+  const size_t count = pixels.size();
 
-    while (true)
+  while (true)
+  {
+    for (size_t i = 0; i < count; ++i)
     {
-        for (size_t i = 0; i < count; ++i)
-        {
-            pixels[i] =
-                Rgb8Color(static_cast<uint8_t>((i + frame) & 0x3F), static_cast<uint8_t>((2U * i + frame) & 0x3F),
-                          static_cast<uint8_t>((3 * i + frame) & 0x3F));
-        }
-
-        strip.show();
-        ++frame;
-        delay(20);
+      pixels[i] = Rgb8Color(static_cast<uint8_t>((i + frame) & 0x3F), static_cast<uint8_t>((2U * i + frame) & 0x3F), static_cast<uint8_t>((3 * i + frame) & 0x3F));
     }
+
+    strip.show();
+    ++frame;
+    delay(20);
+  }

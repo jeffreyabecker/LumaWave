@@ -8,58 +8,43 @@
 #include <Arduino.h>
 #endif
 
-#ifndef MSBFIRST
-#define MSBFIRST 1
-#endif
-
-#ifndef LSBFIRST
-#define LSBFIRST 0
-#endif
-
-#ifndef SPI_MODE0
-#define SPI_MODE0 0x00
-#endif
-
-#ifndef SPI_MODE1
-#define SPI_MODE1 0x04
-#endif
-
-#ifndef SPI_MODE2
-#define SPI_MODE2 0x08
-#endif
-
-#ifndef SPI_MODE3
-#define SPI_MODE3 0x0C
-#endif
-
 #include "core/Compat.h"
 
 namespace lw::transports
 {
+
+static constexpr uint8_t BitOrderLsbFirst = 0;
+static constexpr uint8_t BitOrderMsbFirst = 1;
+
+static constexpr uint8_t SpiMode0 = 0x00;
+static constexpr uint8_t SpiMode1 = 0x04;
+static constexpr uint8_t SpiMode2 = 0x08;
+static constexpr uint8_t SpiMode3 = 0x0C;
+
 struct TransportSettingsBase
 {
-    bool invert = false;
-    uint32_t clockRateHz = LW_SPI_CLOCK_DEFAULT_HZ;
-    uint8_t bitOrder = static_cast<uint8_t>(MSBFIRST);
-    uint8_t dataMode = SPI_MODE0;
-    int clockPin = -1;
-    int dataPin = -1;
+  bool invert = false;
+  uint32_t clockRateHz = LW_SPI_CLOCK_DEFAULT_HZ;
+  uint8_t bitOrder = BitOrderMsbFirst;
+  uint8_t dataMode = SpiMode0;
+  int clockPin = -1;
+  int dataPin = -1;
 };
 
 class ITransport
 {
-  public:
-    virtual ~ITransport() = default;
+public:
+  virtual ~ITransport() = default;
 
-    virtual void begin() = 0;
+  virtual void begin() = 0;
 
-    virtual void beginTransaction() {}
+  virtual void beginTransaction() {}
 
-    virtual void transmitBytes(span<uint8_t> data) = 0;
+  virtual void transmitBytes(span<uint8_t> data) = 0;
 
-    virtual void endTransaction() {}
+  virtual void endTransaction() {}
 
-    virtual bool isReadyToUpdate() const { return true; }
+  virtual bool isReadyToUpdate() const { return true; }
 };
 
 template <typename TTransportSettings, typename = void> struct TransportSettingsWithInvertImpl : std::false_type
@@ -67,15 +52,12 @@ template <typename TTransportSettings, typename = void> struct TransportSettings
 };
 
 template <typename TTransportSettings>
-struct TransportSettingsWithInvertImpl<TTransportSettings,
-                                       std::void_t<decltype(std::declval<TTransportSettings&>().invert)>>
-    : std::integral_constant<
-          bool, std::is_same<remove_cvref_t<decltype(std::declval<TTransportSettings&>().invert)>, bool>::value>
+struct TransportSettingsWithInvertImpl<TTransportSettings, std::void_t<decltype(std::declval<TTransportSettings&>().invert)>>
+    : std::integral_constant<bool, std::is_same<remove_cvref_t<decltype(std::declval<TTransportSettings&>().invert)>, bool>::value>
 {
 };
 
-template <typename TTransportSettings>
-static constexpr bool TransportSettingsWithInvert = TransportSettingsWithInvertImpl<TTransportSettings>::value;
+template <typename TTransportSettings> static constexpr bool TransportSettingsWithInvert = TransportSettingsWithInvertImpl<TTransportSettings>::value;
 
 template <typename TTransport, typename = void> struct TransportLikeImpl : std::false_type
 {
@@ -83,15 +65,12 @@ template <typename TTransport, typename = void> struct TransportLikeImpl : std::
 
 template <typename TTransport>
 struct TransportLikeImpl<TTransport, std::void_t<typename TTransport::TransportSettingsType>>
-    : std::integral_constant<bool, std::is_convertible<TTransport*, ITransport*>::value &&
-                                       TransportSettingsWithInvert<typename TTransport::TransportSettingsType>>
+    : std::integral_constant<bool, std::is_convertible<TTransport*, ITransport*>::value && TransportSettingsWithInvert<typename TTransport::TransportSettingsType>>
 {
 };
 
 template <typename TTransport> static constexpr bool TransportLike = TransportLikeImpl<TTransport>::value;
 
-template <typename TTransport>
-static constexpr bool SettingsConstructibleTransportLike =
-    TransportLike<TTransport> && std::is_constructible<TTransport, typename TTransport::TransportSettingsType>::value;
+template <typename TTransport> static constexpr bool SettingsConstructibleTransportLike = TransportLike<TTransport> && std::is_constructible<TTransport, typename TTransport::TransportSettingsType>::value;
 
 } // namespace lw::transports
