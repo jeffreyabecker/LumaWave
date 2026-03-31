@@ -6,6 +6,7 @@
 
 #include "colors/ColorMath.h"
 #include "colors/palette/ModeEnums.h"
+#include "colors/palette/PaletteDomain.h"
 
 namespace lw::colors::palettes
 {

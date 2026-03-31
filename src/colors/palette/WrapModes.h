@@ -78,6 +78,17 @@ namespace detail
     return PaletteCanonicalCoordinate{static_cast<palette_canonical_fixed_t>(numerator / logicalDomain.maxIndex())};
   }
 
+  inline constexpr PaletteCanonicalCoordinate mapCircularLogicalIndexToCanonicalCoordinate(palette_logical_index_t logicalIndex, PaletteLogicalDomain logicalDomain)
+  {
+    if (logicalDomain.sampleCount == 0u)
+    {
+      return PaletteCanonicalCoordinate{};
+    }
+
+    const uint64_t numerator = static_cast<uint64_t>(logicalIndex) * static_cast<uint64_t>(PaletteDomainMaxIndex);
+    return PaletteCanonicalCoordinate{canonicalStopFixed(static_cast<palette_stop_index_t>(numerator / logicalDomain.sampleCount))};
+  }
+
   inline constexpr palette_logical_index_t mirrorSampleIndex(palette_logical_index_t sampleIndex, palette_logical_domain_count_t domainSampleCount, palette_logical_index_t domainMaxIndex)
   {
     if (domainSampleCount <= 1u)
@@ -131,7 +142,11 @@ namespace detail
 
     const palette_logical_index_t coordinateIndex = (outOfRange && sampleIndex > domainMaxIndex) ? domainMaxIndex : normalizedValue;
 
-    return NormalizedSampleIndex{normalizedValue, outOfRange, usesBoundarySampling, options.wrapMode, domainMaxIndex, logicalDomain, mapLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain)};
+    const PaletteCanonicalCoordinate canonical = (options.wrapMode == WrapMode::Circular && logicalDomain.sampleCount > PaletteDomainSpan)
+                                                     ? mapCircularLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain)
+                                                     : mapLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain);
+
+    return NormalizedSampleIndex{normalizedValue, outOfRange, usesBoundarySampling, options.wrapMode, domainMaxIndex, logicalDomain, canonical};
   }
 
   template <typename TColor> TColor upperBoundarySample(WrapMode wrapMode, span<const PaletteStop<TColor>> stops)

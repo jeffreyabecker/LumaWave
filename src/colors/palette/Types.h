@@ -15,6 +15,7 @@
 #include "core/Compat.h"
 #include "colors/Color.h"
 #include "colors/palette/ModeEnums.h"
+#include "colors/palette/PaletteDomain.h"
 
 namespace lw::colors::palettes
 {

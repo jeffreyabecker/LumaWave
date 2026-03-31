@@ -17,6 +17,21 @@ namespace lw::colors::palettes
 {
 namespace detail
 {
+  inline constexpr uint8_t canonicalProgress8(palette_canonical_fixed_t offset, palette_canonical_fixed_t spanWidth)
+  {
+    if (spanWidth == 0u)
+    {
+      return 255u;
+    }
+
+    if (offset >= spanWidth)
+    {
+      return 255u;
+    }
+
+    return static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::colors::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
+  }
+
   template <typename TColor> size_t firstStopAtOrAfter(span<const PaletteStop<TColor>> stops, palette_stop_index_t sampleIndex)
   {
     size_t left = 1;
@@ -89,7 +104,7 @@ namespace detail
     }
 
     const palette_canonical_fixed_t offset = wrappedSampleIndex - leftIndex;
-    const uint8_t progress = static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::colors::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
+    const uint8_t progress = detail::canonicalProgress8(offset, spanWidth);
     return applyBlendMode<TColor>(blendMode, left.color, right.color, progress, blendSampleIndex, quantizedLevels);
   }
 } // namespace detail
@@ -178,7 +193,7 @@ template <typename TColor> TColor sampleInterpolatedAt(span<const PaletteStop<TC
     else
     {
       const palette_canonical_fixed_t offset = sampleFixed - leftFixed;
-      const uint8_t progress = static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::colors::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
+      const uint8_t progress = detail::canonicalProgress8(offset, spanWidth);
       sampled = applyBlendMode<TColor>(options.blendMode, left.color, right.color, progress, sampleIndex, options.quantizedLevels);
     }
   }

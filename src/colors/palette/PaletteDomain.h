@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+
 namespace lw::colors::palettes::detail
 {
 
@@ -8,10 +11,10 @@ namespace lw::colors::palettes::detail
 #define LW_PALETTE_DOMAIN_MAX_INDEX 255u
 #endif
 
-inline constexpr palette_stop_index_t PaletteDomainMaxIndex = LW_PALETTE_DOMAIN_MAX_INDEX;
-inline constexpr palette_logical_domain_count_t PaletteDomainSpan = PaletteDomainMaxIndex + 1u;
-inline constexpr palette_canonical_fixed_t PaletteCanonicalFractionScale = PaletteDomainSpan;
-inline constexpr palette_canonical_fixed_t PaletteCanonicalMaxFixed = static_cast<palette_canonical_fixed_t>(PaletteDomainMaxIndex * PaletteCanonicalFractionScale);
-inline constexpr palette_canonical_fixed_t PaletteCanonicalWrapSpan = static_cast<palette_canonical_fixed_t>(PaletteDomainSpan * PaletteCanonicalFractionScale);
+inline constexpr size_t PaletteDomainMaxIndex = LW_PALETTE_DOMAIN_MAX_INDEX;
+inline constexpr size_t PaletteDomainSpan = PaletteDomainMaxIndex + 1u;
+inline constexpr uint32_t PaletteCanonicalFractionScale = static_cast<uint32_t>(PaletteDomainSpan);
+inline constexpr uint32_t PaletteCanonicalMaxFixed = static_cast<uint32_t>(PaletteDomainMaxIndex * PaletteCanonicalFractionScale);
+inline constexpr uint32_t PaletteCanonicalWrapSpan = static_cast<uint32_t>(PaletteDomainSpan * PaletteCanonicalFractionScale);
 
 } // namespace lw::colors::palettes::detail

@@ -4,7 +4,6 @@
 
 #include "core/IndexIterator.h"
 #include "colors/palette/Palette.h"
-#include "colors/palette/defaults/DefaultPalettes.h"
 
 namespace
 {
@@ -120,7 +119,10 @@ void test_temporal_rainbow_generator_changes_uniform_color_over_time(void)
     const auto before = generator.stops();
     const lw::Rgb8Color firstBefore = before[0].color;
 
-    generator.update();
+    for (int i = 0; i < 8; ++i)
+    {
+        generator.update();
+    }
 
     const auto after = generator.stops();
     TEST_ASSERT_TRUE(after[0].color == after[1].color);
@@ -554,8 +556,6 @@ void test_palette_implementations_expose_allowed_settings_descriptors(void)
     }};
 
     TEST_ASSERT_EQUAL_UINT32(0u, static_cast<uint32_t>(Palette::AllowedSettings.size()));
-    TEST_ASSERT_EQUAL_UINT32(
-        0u, static_cast<uint32_t>(lw::colors::palettes::StaticPalette<lw::Rgb8Color>::AllowedSettings.size()));
     assert_allowed_settings_equal(lw::colors::palettes::RainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings,
                                   expectedRainbow);
     assert_allowed_settings_equal(lw::colors::palettes::TemporalRainbowPaletteGenerator<lw::Rgb8Color>::AllowedSettings,

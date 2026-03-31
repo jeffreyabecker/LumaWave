@@ -36,6 +36,12 @@ lw::colors::palettes::Palette<lw::Rgb8Color> makePalette()
     return lw::colors::palettes::Palette<lw::Rgb8Color>(makeStopsSpan());
 }
 
+lw::colors::palettes::Palette<lw::Rgb8Color> makeSolidPalette(const lw::Rgb8Color& color)
+{
+    const std::array<Stop, 2> stops = {Stop{0, color}, Stop{255, color}};
+    return lw::colors::palettes::Palette<lw::Rgb8Color>(stops);
+}
+
 template <typename TValue> struct ConstantValueSampler
 {
     TValue value;
@@ -197,8 +203,8 @@ void test_palette_samples_range_supports_std_copy(void)
 
 void test_palette_transition_samples_range_supports_std_copy(void)
 {
-    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
-    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
+    const auto from = makeSolidPalette(lw::Rgb8Color(0, 0, 0));
+    const auto to = makeSolidPalette(lw::Rgb8Color(255, 255, 255));
     std::array<lw::Rgb8Color, 3> out{};
     lw::IndexRange paletteIndexes(10, 30, out.size());
 
@@ -217,8 +223,8 @@ void test_transition_sampler_supports_progress8_domain(void)
     using Sampler =
         lw::colors::palettes::TransitionSampler<lw::Rgb8Color, PaletteSampler, PaletteSampler, ProgressSampler>;
 
-    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
-    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
+    const auto from = makeSolidPalette(lw::Rgb8Color(0, 0, 0));
+    const auto to = makeSolidPalette(lw::Rgb8Color(255, 255, 255));
 
     const Sampler sampler(PaletteSampler(from, {}), PaletteSampler(to, {}), ProgressSampler{128u});
     const lw::Rgb8Color blended = sampler(17u);
@@ -235,8 +241,8 @@ void test_transition_sampler_supports_progress16_domain(void)
     using Sampler = lw::colors::palettes::TransitionSampler<lw::Rgb8Color, PaletteSampler, PaletteSampler,
                                                             ProgressSampler, uint16_t>;
 
-    const auto from = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(0, 0, 0));
-    const auto to = lw::colors::palettes::Palette<lw::Rgb8Color>::color1(lw::Rgb8Color(255, 255, 255));
+    const auto from = makeSolidPalette(lw::Rgb8Color(0, 0, 0));
+    const auto to = makeSolidPalette(lw::Rgb8Color(255, 255, 255));
 
     const Sampler sampler(PaletteSampler(from, {}), PaletteSampler(to, {}), ProgressSampler{32768u});
     const lw::Rgb8Color blended = sampler(17u);
