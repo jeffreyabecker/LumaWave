@@ -2,7 +2,7 @@
 
 ## Goal
 
-Introduce an explicit global brightness setting that is carried from the bus layer through transport and light-driver seams as a `uint16_t` value.
+Introduce an explicit global brightness setting that is carried from the bus layer through transport and light-driver seams using the bus color component domain, with normalized transport brightness context for lower layers.
 
 ## Problem Summary
 
@@ -18,21 +18,22 @@ Observed gaps:
 
 ## Target Design
 
-Define global brightness as a first-class runtime property with a full-range `uint16_t` contract.
+Define global brightness as a first-class runtime property whose bus-facing and driver-facing type follows the bus color component type.
 
 ### Brightness Contract
 
 Represent global brightness as:
 
-- `uint16_t brightness`
-- normalized range `0..65535`
+- `typename TColor::ComponentType brightness` on bus and light-driver surfaces
+- normalized range `0..max(ComponentType)`
 - `0` means fully off
-- `65535` means full output with no additional attenuation
+- `max(ComponentType)` means full output with no additional attenuation
 
 Expected behavior:
 
 - buses own the user-facing brightness state
-- buses forward the normalized value through transport and driver seams during output
+- buses and light drivers use the color-component brightness domain directly during output
+- transports receive normalized brightness context as `{ value, max, upstreamApplied }`
 - transports and drivers may either apply the scaling directly or pass it to a lower layer that can do so more efficiently
 - the contract remains explicit and separate from shader logic
 
@@ -59,7 +60,7 @@ Expected behavior:
 
 - user code can set and query global brightness on the bus
 - `show()` uses the bus brightness every frame
-- default brightness is full-scale `65535`
+- default brightness is full-scale `max(ComponentType)`
 - brightness changes do not require changing per-pixel stored color values
 
 ### Transport Layer
@@ -73,13 +74,13 @@ Primary candidates:
 
 Expected behavior:
 
-- the transport contract can receive the current `uint16_t` brightness value from the bus layer
+- the transport contract can receive the current brightness context from the bus layer as normalized `{ value, max, upstreamApplied }`
 - transports that are byte-stream only can remain pass-through implementations
 - transports with hardware support for brightness-related output control can opt in without changing the bus API again later
 
 ### Driver Layer
 
-Apply the same `uint16_t` brightness contract to analog/light-driver style outputs.
+Apply the same component-typed brightness contract to analog/light-driver style outputs.
 
 Primary candidates:
 
@@ -103,13 +104,13 @@ Notes:
 
 - protocol-side gain features such as TLC59711 global brightness are related but not identical to generic transport/driver scaling
 - first-pass design should avoid forcing every protocol to understand brightness if bus or driver-level scaling already covers the required behavior
-- where a protocol has a real hardware gain field, the backlog should leave room to map the `uint16_t` bus brightness into the protocol's native range later
+- where a protocol has a real hardware gain field, the backlog should leave room to map the bus brightness into the protocol's native range later
 
 ## Scope
 
 In scope:
 
-- define a single `uint16_t` global brightness contract
+- define a single component-typed global brightness contract for buses and drivers, plus normalized transport brightness context
 - add bus-level brightness API and state
 - add transport and light-driver seam support for forwarding brightness
 - implement integer scaling for driver-style outputs where appropriate
@@ -126,24 +127,24 @@ Out of scope for first pass:
 
 ## Work Items
 
-1. Define the canonical `uint16_t` global brightness semantics and default value.
+1. Define the canonical component-typed global brightness semantics and default value.
 2. Add brightness setter/getter support to the core bus contract.
 3. Implement bus-level storage and propagation in `PixelBus`.
 4. Implement bus-level storage and propagation in `LightBus`.
 5. Decide how aggregate, composite, and reference-style buses expose or forward brightness so the bus family stays coherent.
 6. Extend `ITransport` with an explicit brightness path that concrete transports can accept without forcing transport-specific policy into the bus.
 7. Extend `ILightDriver` with an explicit brightness path.
-8. Update concrete light drivers to consume the `uint16_t` brightness value using integer math.
+8. Update concrete light drivers to consume the component-typed brightness value using integer math.
 9. Update representative transports and nil/debug implementations so the new seam compiles cleanly across environments.
 10. Decide the first-pass policy for where scaling happens for pixel buses:
     - first pass uses bus-side pixel scaling before protocol encoding as the authoritative path
     - transports receive brightness per write but remain pass-through unless a later implementation explicitly takes ownership
     - protocol-side hardware gain remains optional for selected protocols and must not stack with generic scaling
-11. Ensure protocol-specific hardware gain support remains compatible with the generic `uint16_t` bus contract.
+11. Ensure protocol-specific hardware gain support remains compatible with the generic bus brightness contract.
 12. Add targeted tests covering:
     - default full brightness behavior
     - zero brightness output
-    - intermediate `uint16_t` scaling behavior
+    - intermediate component-domain scaling behavior
     - `PixelBus` propagation
     - `LightBus` and driver propagation
     - representative concrete driver scaling with integer math
@@ -159,7 +160,7 @@ Define one canonical brightness contract before touching concrete buses or drive
 
 ### Tasks
 
-- [x] Confirm `uint16_t` brightness semantics remain `0..65535` with `65535` as full-scale output. -- yes
+- [x] Confirm brightness semantics follow `TColor::ComponentType` with `max(ComponentType)` as full-scale output. -- yes
 - [x] Decide whether the public brightness API belongs on `IPixelBus` in the first pass. -- yes
 - [x] Decide whether `ITransport` receives brightness as a per-write argument, a cached property, or both. -- per-write-argument
 - [x] Decide whether `ILightDriver` accepts brightness in `write(...)` or through a separate setter. -- at write
@@ -184,7 +185,7 @@ Make brightness a first-class runtime property owned by bus types rather than by
 
 ### Tasks
 
-- [x] Add bus-level setter/getter support with default brightness initialized to `65535`.
+- [x] Add bus-level setter/getter support with default brightness initialized to `max(ComponentType)`.
 - [x] Ensure `show()` paths use the current bus brightness every frame.
 - [x] Keep brightness separate from stored pixel color values so updates do not mutate frame state.
 - [x] Implement leaf-bus ownership so `PixelBus` and `LightBus` store the user-facing brightness value directly.
@@ -215,11 +216,11 @@ Carry the bus-owned brightness value through the output pipeline without forcing
 
 ### Tasks
 
-- [ ] Extend `ITransport` with the chosen brightness path.
-- [ ] Extend `ILightDriver` with the chosen brightness path.
-- [ ] Update nil, debug, and print-oriented implementations so the new seam compiles cleanly and preserves behavior.
-- [ ] Keep pass-through transports cheap when they do not apply scaling directly.
-- [ ] Preserve room for future hardware-assisted gain implementations without revisiting the public bus API.
+- [x] Extend `ITransport` with the chosen brightness path.
+- [x] Extend `ILightDriver` with the chosen brightness path.
+- [x] Update nil, debug, and print-oriented implementations so the new seam compiles cleanly and preserves behavior.
+- [x] Keep pass-through transports cheap when they do not apply scaling directly.
+- [x] Preserve room for future hardware-assisted gain implementations without revisiting the public bus API.
 
 ### Shader participation (new)
 
@@ -227,25 +228,27 @@ Objective: allow shaders to optionally assume control of global brightness scali
 
 Tasks:
 
-- [ ] Add optional shader hooks so shaders can indicate they will perform brightness scaling for a given output path (e.g., a capability query method and an apply-brightness hook). The shader API change must be opt-in with a sensible default that preserves existing shaders.
-- [ ] Define the arbitration rules: at most one shader may claim brightness ownership for a given bus output; if multiple do, treat as a configuration error (log or assert) and fall back to bus-side scaling.
-- [ ] Update `PixelBus` and `LightBus` `show()` paths so they query attached shader(s) before applying bus-level scaling. If a shader claims ownership, pass the raw pixel data and the `uint16_t` brightness value through the transport/driver seam and skip bus-side per-pixel scaling.
-- [ ] Keep shader ownership arbitration local to shader-aware leaf buses such as `PixelBus` and `LightBus`; aggregate and composite buses remain shader-agnostic and rely on their child buses to resolve brightness ownership during each child `show()` path.
-- [ ] Keep reference-style buses aligned with the bus or driver they wrap; they do not introduce child propagation rules, but they must not bypass the underlying leaf bus or driver brightness-ownership behavior.
+- [x] Add optional shader hooks so shaders can indicate they will perform brightness scaling for a given output path (e.g., a capability query method and an apply-brightness hook). The shader API change must be opt-in with a sensible default that preserves existing shaders.
+- [x] Define the arbitration rules: at most one shader may claim brightness ownership for a given aggregate shader output; if multiple do, treat the result as a conflict and fall back to the generic brightness path.
+- [x] Update `PixelBus` and `LightBus` `show()` paths so they query attached shader(s) before applying bus-level scaling. If a shader claims ownership, let the shader apply brightness and forward full-scale downstream with upstream-applied context so the value is not double-scaled.
+- [x] Keep shader ownership arbitration local to shader-aware leaf buses such as `PixelBus` and `LightBus`; aggregate and composite buses remain shader-agnostic and rely on their child buses to resolve brightness ownership during each child `show()` path.
+- [x] Keep reference-style buses aligned with the bus or driver they wrap; they do not introduce child propagation rules, but they must not bypass the underlying leaf bus or driver brightness-ownership behavior.
 - [ ] Add tests that cover: shader-not-taking-control (bus scales as before), shader-taking-control (shader performs scaling exactly once), and misconfiguration (multiple shaders claiming control) behavior.
 
 ### Target files
 
 - [ ] `src/transports/ITransport.h`
 - [ ] `src/transports/ILightDriver.h`
+- [ ] `src/colors/IShader.h`
+- [ ] `src/colors/AggregateShader.h`
 - [ ] `src/transports/NilLightDriver.h`
 - [ ] `src/transports/PrintLightDriver.h`
 - [ ] representative concrete transports under `src/transports/`
 
 ### Exit criteria
 
-- [ ] Bus, transport, and driver seams all compile with the same `uint16_t` brightness contract.
-- [ ] Pass-through implementations preserve behavior at full brightness.
+- [x] Bus, transport, and driver seams all compile with the same brightness contract shape.
+- [x] Pass-through implementations preserve behavior at full brightness.
 
 ## Phase 4: Implement first-pass scaling policy
 
@@ -255,10 +258,10 @@ Choose one authoritative scaling point per output path and make it deterministic
 
 ### Tasks
 
-- [ ] For `LightBus`, implement final channel scaling in driver-style outputs using integer math.
-- [ ] For `PixelBus`, implement bus-side brightness scaling before protocol encoding.
+- [x] For `LightBus`, implement final channel scaling in driver-style outputs using integer math.
+- [x] For `PixelBus`, implement bus-side brightness scaling before protocol encoding.
 - [ ] Verify zero brightness suppresses visible output without mutating stored pixel data.
-- [ ] Verify intermediate brightness values produce deterministic scaled output.
+- [x] Verify intermediate brightness values produce deterministic scaled output.
 - [ ] Document any protocol-specific exceptions where hardware gain replaces generic scaling for the affected path.
 
 ### Target files
@@ -270,8 +273,8 @@ Choose one authoritative scaling point per output path and make it deterministic
 
 ### Exit criteria
 
-- [ ] At least one pixel-bus path and one light-driver path apply brightness end to end.
-- [ ] Integer scaling behavior is deterministic and reviewable.
+- [x] At least one pixel-bus path and one light-driver path apply brightness end to end.
+- [x] Integer scaling behavior is deterministic and reviewable.
 
 ## Phase 5: Leave room for protocol-side hardware gain
 
@@ -306,9 +309,9 @@ Prove the new brightness contract behaves correctly in focused native tests befo
 
 - [ ] Add contract coverage for default full brightness behavior.
 - [ ] Add coverage for zero brightness output.
-- [ ] Add coverage for intermediate `uint16_t` scaling values.
-- [ ] Add `PixelBus` propagation coverage.
-- [ ] Add `LightBus` to driver propagation coverage.
+- [x] Add coverage for intermediate component-domain scaling values.
+- [x] Add `PixelBus` propagation coverage.
+- [x] Add `LightBus` to driver propagation coverage.
 - [ ] Add representative concrete driver scaling tests using integer math.
 - [ ] Run `pio test -e native-test`.
 - [ ] Run targeted contract suites for any seam-sensitive additions.
@@ -328,7 +331,7 @@ Prove the new brightness contract behaves correctly in focused native tests befo
 
 ## Acceptance Criteria
 
-- A bus exposes an explicit global brightness setting as `uint16_t`.
+- A bus exposes an explicit global brightness setting in its color component domain.
 - Default brightness is full scale and preserves current visible output.
 - Setting brightness to `0` suppresses output intensity without mutating stored pixel data.
 - Intermediate brightness values produce deterministic integer-scaled output.
@@ -354,7 +357,7 @@ Recommended follow-up validation:
 - If brightness is applied at more than one layer, output may be double-scaled.
 - A transport seam that is too opinionated could force protocol concerns into transports that should stay byte-stream focused.
 - A driver seam that is too weak could leave `LightBus` and `PixelBus` with divergent brightness semantics.
-- Mapping `uint16_t` brightness into lower native ranges such as 5-bit or 7-bit hardware gain can create rounding edge cases.
+- Mapping component-domain brightness into lower native ranges such as 5-bit or 7-bit hardware gain can create rounding edge cases.
 - Contract changes at the seam level will touch many concrete implementations and can cause broad compile fallout if introduced carelessly.
 
 ## Resolved Design Decisions
@@ -371,4 +374,4 @@ Recommended follow-up validation:
 
 ## Done When
 
-The library has one explicit `uint16_t` global brightness path that starts at the bus, flows through transport and driver seams, preserves full-scale output by default, and can be validated with focused native tests without conflating the feature with shader-based dimming.
+The library has one explicit global brightness path that starts at the bus, flows through transport and driver seams, preserves full-scale output by default, and can be validated with focused native tests without conflating the feature with shader-based dimming.

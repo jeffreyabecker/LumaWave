@@ -30,6 +30,8 @@ class ClockedTransport : public lw::transports::ITransport
 
     void transmitBytes(lw::span<uint8_t>) override {}
 
+    void transmitBytes(lw::span<uint8_t>, lw::transports::TransportBrightness) override {}
+
     TransportSettingsType settings_{};
 };
 

@@ -102,15 +102,18 @@ public:
 
     if ((shaderOwnership != shaders::BrightnessOwnership::Owns) && (_brightness != std::numeric_limits<BrightnessType>::max()) && !mutableProtocolInput.empty())
     {
-      for (auto& color : mutableProtocolInput)
+      if constexpr (lw::ColorType<TColor>)
       {
-        for (auto channel : TColor::channelIndexes())
+        for (auto& color : mutableProtocolInput)
         {
-          color[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(color[channel], _brightness));
+          for (auto channel : TColor::channelIndexes())
+          {
+            color[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(color[channel], _brightness));
+          }
         }
-      }
 
-      brightnessAppliedUpstream = true;
+        brightnessAppliedUpstream = true;
+      }
     }
 
     if (!mutableProtocolInput.empty())
