@@ -19,6 +19,7 @@ template <typename TColor = lw::colors::DefaultColorType, typename TDriver = tra
 {
 public:
   using ColorType = TColor;
+  using BrightnessType = typename IPixelBus<ColorType>::BrightnessType;
   using DriverType = TDriver;
   using DriverSettingsType = typename DriverType::LightDriverSettingsType;
   using ShaderType = TShader;
@@ -90,8 +91,8 @@ public:
 
   const ShaderType& shader() const { return _shader; }
 
-  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
-  uint16_t globalBrightness() const override { return _globalBrightness; }
+  void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
+  BrightnessType brightness() const override { return _brightness; }
 
   span<ColorType> shaderScratch()
   {
@@ -137,7 +138,7 @@ private:
   std::array<ColorType, 1> _rootPixel{};
   std::array<ColorType, 1> _shaderScratch{};
   PixelView<ColorType> _pixels;
-  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
+  BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };
 

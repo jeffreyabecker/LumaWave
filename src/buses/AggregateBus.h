@@ -43,6 +43,7 @@ template <typename TColor> class ReferenceAggregateBus : public IPixelBus<TColor
 {
   public:
     using BusType = IPixelBus<TColor>;
+        using BrightnessType = typename BusType::BrightnessType;
     using ChunkType = typename PixelView<TColor>::ChunkType;
 
     explicit ReferenceAggregateBus(span<BusType*> buses)
@@ -90,52 +91,28 @@ template <typename TColor> class ReferenceAggregateBus : public IPixelBus<TColor
 
     const PixelView<TColor>& pixels() const override { return _pixels; }
 
-    void setGlobalBrightness(uint16_t brightness) override
+    void setBrightness(BrightnessType brightness) override
     {
         for (const auto& bus : _buses)
         {
             if (bus)
             {
-                bus->setGlobalBrightness(brightness);
+                bus->setBrightness(brightness);
             }
         }
     }
 
-    uint16_t globalBrightness() const override
+    BrightnessType brightness() const override
     {
         for (const auto& bus : _buses)
         {
             if (bus)
             {
-                return bus->globalBrightness();
+                return bus->brightness();
             }
         }
 
-        return static_cast<uint16_t>(std::numeric_limits<uint16_t>::max());
-    }
-
-    void setGlobalBrightness(uint16_t brightness) override
-    {
-        for (auto* bus : _buses)
-        {
-            if (bus)
-            {
-                bus->setGlobalBrightness(brightness);
-            }
-        }
-    }
-
-    uint16_t globalBrightness() const override
-    {
-        for (const auto* bus : _buses)
-        {
-            if (bus)
-            {
-                return bus->globalBrightness();
-            }
-        }
-
-        return static_cast<uint16_t>(std::numeric_limits<uint16_t>::max());
+        return std::numeric_limits<BrightnessType>::max();
     }
 
   private:
@@ -148,6 +125,7 @@ template <typename TColor> class AggregateBus : public IPixelBus<TColor>
 {
   public:
     using BusType = IPixelBus<TColor>;
+        using BrightnessType = typename BusType::BrightnessType;
     using ChunkType = typename PixelView<TColor>::ChunkType;
 
     explicit AggregateBus(std::vector<std::unique_ptr<BusType>> buses)
@@ -194,6 +172,30 @@ template <typename TColor> class AggregateBus : public IPixelBus<TColor>
     PixelView<TColor>& pixels() override { return _pixels; }
 
     const PixelView<TColor>& pixels() const override { return _pixels; }
+
+    void setBrightness(BrightnessType brightness) override
+    {
+        for (const auto& bus : _buses)
+        {
+            if (bus)
+            {
+                bus->setBrightness(brightness);
+            }
+        }
+    }
+
+    BrightnessType brightness() const override
+    {
+        for (const auto& bus : _buses)
+        {
+            if (bus)
+            {
+                return bus->brightness();
+            }
+        }
+
+        return std::numeric_limits<BrightnessType>::max();
+    }
 
   private:
     std::vector<std::unique_ptr<BusType>> _buses;

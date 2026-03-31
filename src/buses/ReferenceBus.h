@@ -18,6 +18,8 @@ namespace lw::busses
 template <typename TColor> class ReferenceBus : public IPixelBus<TColor>
 {
 public:
+  using BrightnessType = typename IPixelBus<TColor>::BrightnessType;
+
   ReferenceBus(PixelCount pixelCount, std::unique_ptr<protocols::IProtocol<TColor>> protocol, std::unique_ptr<transports::ITransport> transport, std::unique_ptr<IShader<TColor>> shader = nullptr)
       : _pixelCount(pixelCount), _rootBuffer(allocateColorBuffer(_pixelCount)), _protocol(std::move(protocol)), _protocolBuffer(allocateByteBuffer(protocolBufferSize(_protocol))), _transport(std::move(transport)),
         _shader(std::move(shader)), _shaderBuffer(allocateColorBuffer(_pixelCount)), _pixels(makePixelChunk(_rootBuffer.get(), _pixelCount))
@@ -115,8 +117,8 @@ public:
 
   PixelCount pixelCount() const { return _pixelCount; }
 
-  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
-  uint16_t globalBrightness() const override { return _globalBrightness; }
+  void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
+  BrightnessType brightness() const override { return _brightness; }
 
   TColor* rootBuffer() { return _rootBuffer.get(); }
 
@@ -183,7 +185,7 @@ private:
   std::unique_ptr<IShader<TColor>> _shader;
   std::unique_ptr<TColor[]> _shaderBuffer;
   PixelView<TColor> _pixels;
-  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
+  BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };
 

@@ -12,6 +12,8 @@ namespace
 {
 struct StubBus : lw::IPixelBus<lw::Rgb8Color>
 {
+    using BrightnessType = typename lw::IPixelBus<lw::Rgb8Color>::BrightnessType;
+
     void begin() override {}
 
     void show() override {}
@@ -22,10 +24,15 @@ struct StubBus : lw::IPixelBus<lw::Rgb8Color>
 
     const lw::PixelView<lw::Rgb8Color>& pixels() const override { return _pixels; }
 
+    void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
+
+    BrightnessType brightness() const override { return _brightness; }
+
   private:
     std::array<lw::Rgb8Color, 1> _storage{};
     std::array<lw::span<lw::Rgb8Color>, 1> _chunks{lw::span<lw::Rgb8Color>(_storage.data(), _storage.size())};
     lw::PixelView<lw::Rgb8Color> _pixels{lw::span<lw::span<lw::Rgb8Color>>(_chunks.data(), _chunks.size())};
+    BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
 };
 
 struct NoOpShader : lw::shaders::IShader<lw::Rgb8Color>

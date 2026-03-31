@@ -64,6 +64,7 @@ public:
   using TransportType = TTransport;
   using ShaderType = TShader;
   using ColorType = typename ProtocolType::ColorType;
+  using BrightnessType = typename ColorType::ComponentType;
   using ProtocolSettingsType = typename ProtocolType::SettingsType;
   using TransportSettingsType = typename TransportType::TransportSettingsType;
 
@@ -151,8 +152,8 @@ public:
       protocolBytes = span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()};
     }
 
-    // Apply bus-level global brightness scaling before protocol encoding
-    if ((_globalBrightness != static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())) && !protocolInput.empty())
+    // Apply bus-level global brightness scaling before protocol encoding.
+    if ((_brightness != std::numeric_limits<BrightnessType>::max()) && !protocolInput.empty())
     {
       const size_t count = static_cast<size_t>(protocolInput.size());
       if (_brightnessScratch.size() != count)
@@ -166,10 +167,12 @@ public:
         ColorType& dst = _brightnessScratch[i];
         for (auto channel : ColorType::channelIndexes())
         {
-          using CompT = typename ColorType::ComponentType;
           const auto comp = src.channelAtIndex(channel);
-          const uint32_t scaled = (static_cast<uint32_t>(comp) * static_cast<uint32_t>(_globalBrightness) + 32767u) / 65535u;
-          dst.channelAtIndex(channel) = static_cast<CompT>(scaled);
+          const uint64_t numerator = static_cast<uint64_t>(comp) * static_cast<uint64_t>(_brightness);
+          const uint64_t brightnessMax = static_cast<uint64_t>(std::numeric_limits<BrightnessType>::max());
+          const uint64_t rounded = numerator + (brightnessMax / 2u);
+          const uint64_t scaled = rounded / brightnessMax;
+          dst.channelAtIndex(channel) = static_cast<BrightnessType>(scaled);
         }
       }
 
@@ -224,8 +227,8 @@ public:
 
   const ShaderType& shader() const { return _shader; }
 
-  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
-  uint16_t globalBrightness() const override { return _globalBrightness; }
+  void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
+  BrightnessType brightness() const override { return _brightness; }
 
 private:
   static size_t normalizePixelCount(size_t pixelCount)
@@ -394,7 +397,7 @@ private:
   PixelView<ColorType> _pixels;
   std::vector<ColorType> _shaderScratch;
   std::vector<uint8_t> _protocolBuffer;
-  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
+  BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   std::vector<ColorType> _brightnessScratch;
   bool _dirty{true};
 };

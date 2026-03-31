@@ -14,6 +14,7 @@ class StubBus : public lw::IPixelBus<TestColor>
 {
   public:
     using ColorType = TestColor;
+    using BrightnessType = typename lw::IPixelBus<TestColor>::BrightnessType;
 
     explicit StubBus(size_t pixelCount, bool ready = true)
         : _pixelsStorage(pixelCount), _chunks{lw::span<TestColor>{_pixelsStorage.data(), _pixelsStorage.size()}},
@@ -35,6 +36,10 @@ class StubBus : public lw::IPixelBus<TestColor>
 
     const lw::PixelView<TestColor>& pixels() const override { return _pixels; }
 
+    void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
+
+    BrightnessType brightness() const override { return _brightness; }
+
     size_t beginCalls{0};
     size_t showCalls{0};
     size_t dirtyCalls{0};
@@ -43,6 +48,7 @@ class StubBus : public lw::IPixelBus<TestColor>
     std::vector<TestColor> _pixelsStorage;
     std::array<lw::span<TestColor>, 1> _chunks;
     lw::PixelView<TestColor> _pixels;
+    BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
     bool _ready{true};
 };
 

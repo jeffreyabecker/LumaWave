@@ -184,26 +184,28 @@ Make brightness a first-class runtime property owned by bus types rather than by
 
 ### Tasks
 
-- [ ] Add bus-level setter/getter support with default brightness initialized to `65535`.
-- [ ] Ensure `show()` paths use the current bus brightness every frame.
-- [ ] Keep brightness separate from stored pixel color values so updates do not mutate frame state.
-- [ ] Decide and implement how aggregate, composite, and reference-style buses expose or forward brightness.
-- [ ] Keep bus-family semantics coherent so user code does not need different brightness mental models per bus type.
+- [x] Add bus-level setter/getter support with default brightness initialized to `65535`.
+- [x] Ensure `show()` paths use the current bus brightness every frame.
+- [x] Keep brightness separate from stored pixel color values so updates do not mutate frame state.
+- [x] Implement leaf-bus ownership so `PixelBus` and `LightBus` store the user-facing brightness value directly.
+- [x] Keep aggregate and composite buses brightness-agnostic: they forward the configured brightness to their child buses but do not introduce separate brightness policy.
+- [x] Keep reference-style buses aligned with the concrete object they wrap; they do not own child propagation semantics because they are wrappers, not parent buses.
+- [x] Keep bus-family semantics coherent so user code does not need different brightness mental models per bus type.
 
 ### Target files
 
-- [ ] `src/core/IPixelBus.h`
-- [ ] `src/buses/PixelBus.h`
-- [ ] `src/buses/LightBus.h`
-- [ ] `src/buses/AggregateBus.h`
-- [ ] `src/buses/CompositeBus.h`
-- [ ] `src/buses/ReferenceBus.h`
-- [ ] `src/buses/ReferenceLightBus.h`
+- [x] `src/core/IPixelBus.h`
+- [x] `src/buses/PixelBus.h`
+- [x] `src/buses/LightBus.h`
+- [x] `src/buses/AggregateBus.h`
+- [x] `src/buses/CompositeBus.h`
+- [x] `src/buses/ReferenceBus.h`
+- [x] `src/buses/ReferenceLightBus.h`
 
 ### Exit criteria
 
-- [ ] User code can set and query brightness from the relevant bus surface.
-- [ ] Full-scale default behavior matches current visible output.
+- [x] User code can set and query brightness from the relevant bus surface.
+- [x] Full-scale default behavior matches current visible output.
 
 ## Phase 3: Thread brightness through transport and driver seams
 
@@ -228,7 +230,8 @@ Tasks:
 - [ ] Add optional shader hooks so shaders can indicate they will perform brightness scaling for a given output path (e.g., a capability query method and an apply-brightness hook). The shader API change must be opt-in with a sensible default that preserves existing shaders.
 - [ ] Define the arbitration rules: at most one shader may claim brightness ownership for a given bus output; if multiple do, treat as a configuration error (log or assert) and fall back to bus-side scaling.
 - [ ] Update `PixelBus` and `LightBus` `show()` paths so they query attached shader(s) before applying bus-level scaling. If a shader claims ownership, pass the raw pixel data and the `uint16_t` brightness value through the transport/driver seam and skip bus-side per-pixel scaling.
-- [ ] Ensure composite/aggregate/reference-style buses propagate shader ownership semantics to their children consistently.
+- [ ] Keep shader ownership arbitration local to shader-aware leaf buses such as `PixelBus` and `LightBus`; aggregate and composite buses remain shader-agnostic and rely on their child buses to resolve brightness ownership during each child `show()` path.
+- [ ] Keep reference-style buses aligned with the bus or driver they wrap; they do not introduce child propagation rules, but they must not bypass the underlying leaf bus or driver brightness-ownership behavior.
 - [ ] Add tests that cover: shader-not-taking-control (bus scales as before), shader-taking-control (shader performs scaling exactly once), and misconfiguration (multiple shaders claiming control) behavior.
 
 ### Target files

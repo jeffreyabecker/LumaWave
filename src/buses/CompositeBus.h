@@ -21,6 +21,7 @@ class CompositeBus : public IPixelBus<typename std::tuple_element<0, std::tuple<
 
     using ColorType = typename std::tuple_element<0, std::tuple<TBuses...>>::type::ColorType;
     using BusBaseType = IPixelBus<ColorType>;
+        using BrightnessType = typename BusBaseType::BrightnessType;
     using ChunkType = typename PixelView<ColorType>::ChunkType;
     using BusesTupleType = std::tuple<TBuses...>;
 
@@ -76,28 +77,28 @@ class CompositeBus : public IPixelBus<typename std::tuple_element<0, std::tuple<
 
     const BusesTupleType& buses() const { return _buses; }
 
-    void setGlobalBrightness(uint16_t brightness) override
+    void setBrightness(BrightnessType brightness) override
     {
         for (auto* bus : _busPointers)
         {
             if (bus)
             {
-                bus->setGlobalBrightness(brightness);
+                bus->setBrightness(brightness);
             }
         }
     }
 
-    uint16_t globalBrightness() const override
+    BrightnessType brightness() const override
     {
         for (auto* bus : _busPointers)
         {
             if (bus)
             {
-                return bus->globalBrightness();
+                return bus->brightness();
             }
         }
 
-        return static_cast<uint16_t>(std::numeric_limits<uint16_t>::max());
+        return std::numeric_limits<BrightnessType>::max();
     }
 
   private:
