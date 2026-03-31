@@ -10,6 +10,7 @@
 #include <type_traits>
 
 #include "colors/ChannelMap.h"
+#include "colors/ColorMath.h"
 #include "transports/ILightDriver.h"
 
 namespace lw::transports
@@ -47,6 +48,7 @@ template <typename TColor> class AnalogPwmLightDriver : public ILightDriver<TCol
 {
   public:
     using ColorType = TColor;
+        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
     using LightDriverSettingsType = AnalogPwmLightDriverSettings;
 
     explicit AnalogPwmLightDriver(LightDriverSettingsType settings)
@@ -101,6 +103,11 @@ template <typename TColor> class AnalogPwmLightDriver : public ILightDriver<TCol
 
     void write(const ColorType& color) override
     {
+        write(color, std::numeric_limits<BrightnessType>::max());
+    }
+
+    void write(const ColorType& color, BrightnessType brightness) override
+    {
         if (!_begun)
         {
             begin();
@@ -121,7 +128,7 @@ template <typename TColor> class AnalogPwmLightDriver : public ILightDriver<TCol
             }
 
             const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
-            const WideType component = static_cast<WideType>(color[channelTag]);
+            const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
             WideType level = (component * pwmMax + (componentMax / 2U)) / componentMax;
             if (_settings.invert)
             {

@@ -11,6 +11,7 @@
 #include <Arduino.h>
 
 #include "colors/ChannelMap.h"
+#include "colors/ColorMath.h"
 #include "transports/ILightDriver.h"
 
 #if __has_include("driver/sdm.h")
@@ -55,6 +56,7 @@ template <typename TColor> class Esp32SigmaDeltaLightDriver : public ILightDrive
 {
   public:
     using ColorType = TColor;
+        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
     using LightDriverSettingsType = Esp32SigmaDeltaLightDriverSettings;
 
     explicit Esp32SigmaDeltaLightDriver(LightDriverSettingsType settings)
@@ -138,6 +140,11 @@ template <typename TColor> class Esp32SigmaDeltaLightDriver : public ILightDrive
 
     void write(const ColorType& color) override
     {
+        write(color, std::numeric_limits<BrightnessType>::max());
+    }
+
+    void write(const ColorType& color, BrightnessType brightness) override
+    {
         if (!_begun)
         {
             begin();
@@ -152,7 +159,8 @@ template <typename TColor> class Esp32SigmaDeltaLightDriver : public ILightDrive
             }
 
             const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
-            const int8_t duty = mapComponentToDensity(color[channelTag]);
+            const auto scaledComponent = lw::colors::applyBrightness(color[channelTag], brightness);
+            const int8_t duty = mapComponentToDensity(scaledComponent);
 
 #if LW_ESP32_USE_SDM_DRIVER
             if (_channels[channel] != nullptr)

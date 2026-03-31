@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "colors/IShader.h"
+#include "colors/ColorMath.h"
 #include "colors/NilShader.h"
 #include "core/IPixelBus.h"
 #include "transports/ILightDriver.h"
@@ -53,15 +54,21 @@ public:
     }
 
     const ColorType* outputPixel = _rootPixel.data();
+    BrightnessType effectiveBrightness = _brightness;
     if constexpr (UsesShaderScratch)
     {
       _shaderScratch[0] = _rootPixel[0];
       span<ColorType> shaderPixel{_shaderScratch.data(), _shaderScratch.size()};
       _shader.apply(shaderPixel);
+      if (_shader.brightnessOwnership() == shaders::BrightnessOwnership::Owns)
+      {
+        _shader.applyBrightness(shaderPixel, _brightness);
+        effectiveBrightness = std::numeric_limits<BrightnessType>::max();
+      }
       outputPixel = _shaderScratch.data();
     }
 
-    _driver.write(*outputPixel);
+    _driver.write(*outputPixel, effectiveBrightness);
     _dirty = false;
   }
 

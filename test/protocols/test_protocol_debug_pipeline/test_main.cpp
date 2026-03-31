@@ -193,7 +193,7 @@ void test_print_transport_debug_output_emits_event_messages(void)
     std::string output(writable.bytes.begin(), writable.bytes.end());
     TEST_ASSERT_NOT_EQUAL(-1, static_cast<int>(output.find("[BUS] begin")));
     TEST_ASSERT_NOT_EQUAL(-1, static_cast<int>(output.find("[BUS] beginTransaction")));
-    TEST_ASSERT_NOT_EQUAL(-1, static_cast<int>(output.find("[BUS] bytes(2)")));
+    TEST_ASSERT_NOT_EQUAL(-1, static_cast<int>(output.find("[BUS] bytes(2,bri=65535/65535)")));
     TEST_ASSERT_NOT_EQUAL(-1, static_cast<int>(output.find("[BUS] endTransaction")));
 }
 

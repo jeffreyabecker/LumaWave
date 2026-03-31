@@ -76,6 +76,11 @@ class PrintTransportT : public ITransport
 
     void transmitBytes(span<uint8_t> data) override
     {
+        transmitBytes(data, TransportBrightness{});
+    }
+
+    void transmitBytes(span<uint8_t> data, TransportBrightness brightness) override
+    {
         if (_config.output == nullptr)
         {
             return;
@@ -92,6 +97,15 @@ class PrintTransportT : public ITransport
             if (countLength > 0)
             {
                 writeBytes(reinterpret_cast<const uint8_t*>(countBuffer), countLength);
+            }
+
+            writeText(",bri=");
+            writeUnsignedDecimal(static_cast<unsigned long>(brightness.value));
+            writeText("/");
+            writeUnsignedDecimal(static_cast<unsigned long>(brightness.max));
+            if (brightness.upstreamApplied)
+            {
+                writeText(",applied");
             }
 
             writeLine(")");
@@ -194,6 +208,16 @@ class PrintTransportT : public ITransport
         }
 
         return index;
+    }
+
+    void writeUnsignedDecimal(unsigned long value)
+    {
+        char buffer[3 * sizeof(unsigned long)]{};
+        const size_t length = formatUnsignedDecimal(buffer, sizeof(buffer), value);
+        if (length > 0)
+        {
+            writeBytes(reinterpret_cast<const uint8_t*>(buffer), length);
+        }
     }
 
     void captureIdentifier()

@@ -331,6 +331,27 @@ template <typename TColor> struct ScalarColorMathBackend
 
 namespace lw::colors
 {
+template <typename TValue, typename TBrightness,
+          typename = std::enable_if_t<std::is_integral_v<TValue> && std::is_unsigned_v<TValue> &&
+                                      std::is_integral_v<TBrightness> && std::is_unsigned_v<TBrightness> &&
+                                      !std::is_same_v<std::remove_cv_t<TValue>, bool> &&
+                                      !std::is_same_v<std::remove_cv_t<TBrightness>, bool>>>
+constexpr TValue applyBrightness(TValue value, TBrightness brightness)
+{
+    using ScaleWide = uint64_t;
+
+    constexpr ScaleWide brightnessMax = static_cast<ScaleWide>(std::numeric_limits<TBrightness>::max());
+
+    if constexpr (brightnessMax == 0)
+    {
+        return static_cast<TValue>(0);
+    }
+
+    return static_cast<TValue>(((static_cast<ScaleWide>(value) * static_cast<ScaleWide>(brightness)) +
+                                (brightnessMax / 2u)) /
+                               brightnessMax);
+}
+
 template <typename TTarget, typename TSource,
           typename = std::enable_if_t<std::is_integral_v<TTarget> && std::is_unsigned_v<TTarget> &&
                                       std::is_integral_v<TSource> && std::is_unsigned_v<TSource> &&

@@ -71,7 +71,7 @@ void test_print_light_driver_debug_prefix_includes_identifier(void)
     driver.begin();
     driver.write(TestColor{0x01, 0x02, 0x03});
 
-    static constexpr char ExpectedPrefix[] = "[LIGHT:Desk] begin\r\n[LIGHT:Desk] write\r\n";
+    static constexpr char ExpectedPrefix[] = "[LIGHT:Desk] begin\r\n[LIGHT:Desk] write bri=255\r\n";
     TEST_ASSERT_TRUE(sink.bytes.size() >= (sizeof(ExpectedPrefix) - 1U));
     TEST_ASSERT_EQUAL_MEMORY(ExpectedPrefix, sink.bytes.data(), sizeof(ExpectedPrefix) - 1U);
 }

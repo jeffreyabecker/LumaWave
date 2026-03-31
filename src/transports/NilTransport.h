@@ -25,6 +25,8 @@ class NilTransport : public ITransport
     void endTransaction() override {}
 
     void transmitBytes(span<uint8_t>) override {}
+
+    void transmitBytes(span<uint8_t>, TransportBrightness) override {}
 };
 
 } // namespace lw::transports

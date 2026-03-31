@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "colors/IShader.h"
+#include "colors/ColorMath.h"
 #include "colors/NilShader.h"
 #include "core/IPixelBus.h"
 #include "protocols/IProtocol.h"
@@ -130,6 +131,9 @@ public:
     }
 
     span<const ColorType> protocolInput{};
+    auto shaderOwnership = shaders::BrightnessOwnership::None;
+    bool brightnessAppliedUpstream = false;
+
     if (!_rootPixels.empty())
     {
       if constexpr (UsesShaderScratch)
@@ -138,6 +142,12 @@ public:
 
         span<ColorType> shaderSpan{_shaderScratch.data(), _shaderScratch.size()};
         _shader.apply(shaderSpan);
+        shaderOwnership = _shader.brightnessOwnership();
+        if (shaderOwnership == shaders::BrightnessOwnership::Owns)
+        {
+          _shader.applyBrightness(shaderSpan, _brightness);
+          brightnessAppliedUpstream = (_brightness != std::numeric_limits<BrightnessType>::max());
+        }
         protocolInput = shaderSpan;
       }
       else
@@ -153,7 +163,7 @@ public:
     }
 
     // Apply bus-level global brightness scaling before protocol encoding.
-    if ((_brightness != std::numeric_limits<BrightnessType>::max()) && !protocolInput.empty())
+    if ((shaderOwnership != shaders::BrightnessOwnership::Owns) && (_brightness != std::numeric_limits<BrightnessType>::max()) && !protocolInput.empty())
     {
       const size_t count = static_cast<size_t>(protocolInput.size());
       if (_brightnessScratch.size() != count)
@@ -167,16 +177,13 @@ public:
         ColorType& dst = _brightnessScratch[i];
         for (auto channel : ColorType::channelIndexes())
         {
-          const auto comp = src.channelAtIndex(channel);
-          const uint64_t numerator = static_cast<uint64_t>(comp) * static_cast<uint64_t>(_brightness);
-          const uint64_t brightnessMax = static_cast<uint64_t>(std::numeric_limits<BrightnessType>::max());
-          const uint64_t rounded = numerator + (brightnessMax / 2u);
-          const uint64_t scaled = rounded / brightnessMax;
-          dst.channelAtIndex(channel) = static_cast<BrightnessType>(scaled);
+          const auto comp = src[channel];
+          dst[channel] = static_cast<typename ColorType::ComponentType>(lw::colors::applyBrightness(comp, _brightness));
         }
       }
 
       protocolInput = span<const ColorType>{_brightnessScratch.data(), _brightnessScratch.size()};
+      brightnessAppliedUpstream = true;
     }
 
     _protocol.update(protocolInput, protocolBytes);
@@ -184,7 +191,7 @@ public:
     if (!protocolBytes.empty())
     {
       _transport.beginTransaction();
-      _transport.transmitBytes(protocolBytes);
+      _transport.transmitBytes(protocolBytes, transports::TransportBrightness::from(_brightness, brightnessAppliedUpstream));
       _transport.endTransaction();
     }
 

@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "colors/IShader.h"
+#include "colors/ColorMath.h"
 #include "core/IPixelBus.h"
 #include <limits>
 #include "protocols/IProtocol.h"
@@ -57,6 +58,10 @@ public:
     }
 
     span<const TColor> protocolInput{};
+    span<TColor> mutableProtocolInput{};
+    auto shaderOwnership = shaders::BrightnessOwnership::None;
+    bool brightnessAppliedUpstream = false;
+
     if (_rootBuffer && _pixelCount > 0)
     {
       if (_shader && _shaderBuffer)
@@ -64,18 +69,53 @@ public:
         std::copy_n(_rootBuffer.get(), _pixelCount, _shaderBuffer.get());
         span<TColor> shaderSpan{_shaderBuffer.get(), _pixelCount};
         _shader->apply(shaderSpan);
-        protocolInput = shaderSpan;
+        shaderOwnership = _shader->brightnessOwnership();
+        if (shaderOwnership == shaders::BrightnessOwnership::Owns)
+        {
+          _shader->applyBrightness(shaderSpan, _brightness);
+          brightnessAppliedUpstream = (_brightness != std::numeric_limits<BrightnessType>::max());
+        }
+        mutableProtocolInput = shaderSpan;
       }
       else if (_shader)
       {
         span<TColor> rootSpan{_rootBuffer.get(), _pixelCount};
         _shader->apply(rootSpan);
-        protocolInput = rootSpan;
+        shaderOwnership = _shader->brightnessOwnership();
+        if (shaderOwnership == shaders::BrightnessOwnership::Owns)
+        {
+          _shader->applyBrightness(rootSpan, _brightness);
+          brightnessAppliedUpstream = (_brightness != std::numeric_limits<BrightnessType>::max());
+        }
+        mutableProtocolInput = rootSpan;
+      }
+      else if ((_brightness != std::numeric_limits<BrightnessType>::max()) && _shaderBuffer)
+      {
+        std::copy_n(_rootBuffer.get(), _pixelCount, _shaderBuffer.get());
+        mutableProtocolInput = span<TColor>{_shaderBuffer.get(), _pixelCount};
       }
       else
       {
         protocolInput = span<const TColor>{_rootBuffer.get(), _pixelCount};
       }
+    }
+
+    if ((shaderOwnership != shaders::BrightnessOwnership::Owns) && (_brightness != std::numeric_limits<BrightnessType>::max()) && !mutableProtocolInput.empty())
+    {
+      for (auto& color : mutableProtocolInput)
+      {
+        for (auto channel : TColor::channelIndexes())
+        {
+          color[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(color[channel], _brightness));
+        }
+      }
+
+      brightnessAppliedUpstream = true;
+    }
+
+    if (!mutableProtocolInput.empty())
+    {
+      protocolInput = mutableProtocolInput;
     }
 
     span<uint8_t> protocolBytes{};
@@ -90,7 +130,7 @@ public:
     if (!protocolBytes.empty())
     {
       _transport->beginTransaction();
-      _transport->transmitBytes(protocolBytes);
+      _transport->transmitBytes(protocolBytes, transports::TransportBrightness::from(_brightness, brightnessAppliedUpstream));
       _transport->endTransaction();
     }
 

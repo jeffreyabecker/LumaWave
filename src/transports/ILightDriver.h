@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <limits>
 #include <type_traits>
 
 #include "core/Compat.h"
@@ -7,16 +9,37 @@
 namespace lw::transports
 {
 
+namespace detail
+{
+
+template <typename TColor, typename = void> struct LightDriverBrightnessTraits
+{
+    using Type = uint16_t;
+};
+
+template <typename TColor> struct LightDriverBrightnessTraits<TColor, std::void_t<typename TColor::ComponentType>>
+{
+    using Type = typename TColor::ComponentType;
+};
+
+} // namespace detail
+
 template <typename TColor> class ILightDriver
 {
   public:
     using ColorType = TColor;
+    using BrightnessType = typename detail::LightDriverBrightnessTraits<TColor>::Type;
 
     virtual ~ILightDriver() = default;
 
     virtual void begin() = 0;
     virtual bool isReadyToUpdate() const = 0;
     virtual void write(const ColorType& color) = 0;
+    virtual void write(const ColorType& color, BrightnessType brightness)
+    {
+        (void)brightness;
+        write(color);
+    }
 };
 
 struct LightDriverSettingsBase

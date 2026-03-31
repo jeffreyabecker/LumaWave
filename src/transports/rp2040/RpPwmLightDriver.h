@@ -14,6 +14,7 @@
 #include "hardware/pwm.h"
 
 #include "colors/ChannelMap.h"
+#include "colors/ColorMath.h"
 #include "transports/ILightDriver.h"
 
 namespace lw::transports::rp2040
@@ -49,6 +50,7 @@ template <typename TColor> class RpPwmLightDriver : public ILightDriver<TColor>
 {
   public:
     using ColorType = TColor;
+        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
     using LightDriverSettingsType = RpPwmLightDriverSettings;
 
     explicit RpPwmLightDriver(LightDriverSettingsType settings)
@@ -118,6 +120,11 @@ template <typename TColor> class RpPwmLightDriver : public ILightDriver<TColor>
 
     void write(const ColorType& color) override
     {
+        write(color, std::numeric_limits<BrightnessType>::max());
+    }
+
+    void write(const ColorType& color, BrightnessType brightness) override
+    {
         if (!_begun)
         {
             begin();
@@ -138,7 +145,7 @@ template <typename TColor> class RpPwmLightDriver : public ILightDriver<TColor>
             }
 
             const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
-            const WideType component = static_cast<WideType>(color[channelTag]);
+            const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
             const WideType scaled = (component * wrap + (componentMax / 2U)) / componentMax;
             const uint16_t level = static_cast<uint16_t>(scaled);
             pwm_set_gpio_level(static_cast<uint>(pin), level);

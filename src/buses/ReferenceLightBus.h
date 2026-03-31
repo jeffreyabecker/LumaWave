@@ -5,6 +5,7 @@
 #include <limits>
 
 #include "colors/IShader.h"
+#include "colors/ColorMath.h"
 #include "core/IPixelBus.h"
 #include "transports/ILightDriver.h"
 
@@ -47,21 +48,32 @@ public:
     }
 
     const TColor* outputPixel = _rootBuffer.get();
+    BrightnessType effectiveBrightness = _brightness;
     if (_shader && _shaderBuffer)
     {
       *_shaderBuffer = *_rootBuffer;
       span<TColor> shaderSpan{_shaderBuffer.get(), 1u};
       _shader->apply(shaderSpan);
+      if (_shader->brightnessOwnership() == shaders::BrightnessOwnership::Owns)
+      {
+        _shader->applyBrightness(shaderSpan, _brightness);
+        effectiveBrightness = std::numeric_limits<BrightnessType>::max();
+      }
       outputPixel = _shaderBuffer.get();
     }
     else if (_shader)
     {
       span<TColor> rootSpan{_rootBuffer.get(), 1u};
       _shader->apply(rootSpan);
+      if (_shader->brightnessOwnership() == shaders::BrightnessOwnership::Owns)
+      {
+        _shader->applyBrightness(rootSpan, _brightness);
+        effectiveBrightness = std::numeric_limits<BrightnessType>::max();
+      }
       outputPixel = _rootBuffer.get();
     }
 
-    _driver->write(*outputPixel);
+    _driver->write(*outputPixel, effectiveBrightness);
     _dirty = false;
   }
 

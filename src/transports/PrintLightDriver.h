@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <limits>
 
 #include "core/Compat.h"
 
@@ -50,6 +51,7 @@ class PrintLightDriverT : public ILightDriver<TColor>
 {
   public:
     using ColorType = TColor;
+        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
     using LightDriverSettingsType = PrintLightDriverSettingsT<TWritable>;
 
     explicit PrintLightDriverT(LightDriverSettingsType settings) : _settings(std::move(settings))
@@ -72,6 +74,11 @@ class PrintLightDriverT : public ILightDriver<TColor>
 
     void write(const ColorType& color) override
     {
+        write(color, std::numeric_limits<BrightnessType>::max());
+    }
+
+    void write(const ColorType& color, BrightnessType brightness) override
+    {
         if (_settings.output == nullptr)
         {
             return;
@@ -80,7 +87,9 @@ class PrintLightDriverT : public ILightDriver<TColor>
         if (_settings.debugOutput)
         {
             writeDebugPrefix();
-            writeLine("write");
+            writeText("write bri=");
+            writeUnsigned(static_cast<unsigned long>(brightness));
+            writeNewline();
         }
 
         if (_settings.asciiOutput)
@@ -166,7 +175,39 @@ class PrintLightDriverT : public ILightDriver<TColor>
     void writeLine(const char* text)
     {
         writeText(text);
+        writeNewline();
+    }
+
+    void writeNewline()
+    {
         writeText("\r\n");
+    }
+
+    void writeUnsigned(unsigned long value)
+    {
+        char buffer[3 * sizeof(unsigned long)]{};
+        size_t index = 0;
+
+        do
+        {
+            if (index >= sizeof(buffer))
+            {
+                return;
+            }
+
+            const unsigned long digit = value % 10UL;
+            buffer[index++] = static_cast<char>('0' + digit);
+            value /= 10UL;
+        } while (value > 0UL);
+
+        for (size_t left = 0, right = index - 1; left < right; ++left, --right)
+        {
+            const char tmp = buffer[left];
+            buffer[left] = buffer[right];
+            buffer[right] = tmp;
+        }
+
+        writeBytes(reinterpret_cast<const uint8_t*>(buffer), index);
     }
 
     void captureIdentifier()

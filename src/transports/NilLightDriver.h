@@ -14,6 +14,7 @@ template <typename TColor> class NilLightDriver : public ILightDriver<TColor>
 {
   public:
     using ColorType = TColor;
+    using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
     using LightDriverSettingsType = NilLightDriverSettings;
 
     explicit NilLightDriver(LightDriverSettingsType = {}) {}
@@ -23,6 +24,8 @@ template <typename TColor> class NilLightDriver : public ILightDriver<TColor>
     bool isReadyToUpdate() const override { return true; }
 
     void write(const ColorType&) override {}
+
+    void write(const ColorType&, BrightnessType) override {}
 };
 
 } // namespace lw::transports

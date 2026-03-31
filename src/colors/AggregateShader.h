@@ -23,6 +23,7 @@ template <typename TColor> class AggregateShader : public IShader<TColor>
   public:
     using ColorType = TColor;
     using SettingsType = AggregateShaderSettings<TColor>;
+    using BrightnessType = typename IShader<TColor>::BrightnessType;
 
     AggregateShader() = default;
 
@@ -38,6 +39,53 @@ template <typename TColor> class AggregateShader : public IShader<TColor>
             }
         }
     }
+
+      BrightnessOwnership brightnessOwnership() const override
+      {
+        size_t ownerCount = 0;
+
+        for (const auto& shader : _shaders)
+        {
+          if (shader == nullptr)
+          {
+            continue;
+          }
+
+          const BrightnessOwnership ownership = shader->brightnessOwnership();
+          if (ownership == BrightnessOwnership::Conflict)
+          {
+            return BrightnessOwnership::Conflict;
+          }
+
+          if (ownership == BrightnessOwnership::Owns)
+          {
+            ++ownerCount;
+            if (ownerCount > 1)
+            {
+              return BrightnessOwnership::Conflict;
+            }
+          }
+        }
+
+        return (ownerCount == 1U) ? BrightnessOwnership::Owns : BrightnessOwnership::None;
+      }
+
+      void applyBrightness(span<TColor> colors, BrightnessType brightness) override
+      {
+        if (brightnessOwnership() != BrightnessOwnership::Owns)
+        {
+          return;
+        }
+
+        for (auto& shader : _shaders)
+        {
+          if ((shader != nullptr) && (shader->brightnessOwnership() == BrightnessOwnership::Owns))
+          {
+            shader->applyBrightness(colors, brightness);
+            return;
+          }
+        }
+      }
 
     void addShader(std::unique_ptr<IShader<TColor>> shader) { _shaders.emplace_back(std::move(shader)); }
 
@@ -72,6 +120,13 @@ template <typename TColor, typename... TShaders> class CompositeShader : public 
     explicit CompositeShader(TShaders... shaders) : _aggregate(makeAggregateSettings(std::move(shaders)...)) {}
 
     void apply(span<TColor> colors) override { _aggregate.apply(colors); }
+
+    BrightnessOwnership brightnessOwnership() const override { return _aggregate.brightnessOwnership(); }
+
+    void applyBrightness(span<TColor> colors, typename IShader<TColor>::BrightnessType brightness) override
+    {
+      _aggregate.applyBrightness(colors, brightness);
+    }
 
   private:
     static typename AggregateShader<TColor>::SettingsType makeAggregateSettings(TShaders... shaders)

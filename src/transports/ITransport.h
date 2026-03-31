@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <limits>
 #include <type_traits>
 
 #if __has_include(<Arduino.h>)
@@ -12,6 +13,22 @@
 
 namespace lw::transports
 {
+
+struct TransportBrightness
+{
+  uint32_t value{static_cast<uint32_t>(std::numeric_limits<uint16_t>::max())};
+  uint32_t max{static_cast<uint32_t>(std::numeric_limits<uint16_t>::max())};
+  bool upstreamApplied{false};
+
+  template <typename TBrightness,
+            typename = std::enable_if_t<std::is_integral_v<TBrightness> && std::is_unsigned_v<TBrightness> &&
+                                        !std::is_same_v<remove_cvref_t<TBrightness>, bool>>>
+  static constexpr TransportBrightness from(TBrightness brightness, bool alreadyApplied = false)
+  {
+    return TransportBrightness{static_cast<uint32_t>(brightness),
+                               static_cast<uint32_t>(std::numeric_limits<TBrightness>::max()), alreadyApplied};
+  }
+};
 
 static constexpr uint8_t BitOrderLsbFirst = 0;
 static constexpr uint8_t BitOrderMsbFirst = 1;
@@ -41,6 +58,12 @@ public:
   virtual void beginTransaction() {}
 
   virtual void transmitBytes(span<uint8_t> data) = 0;
+
+  virtual void transmitBytes(span<uint8_t> data, TransportBrightness brightness)
+  {
+    (void)brightness;
+    transmitBytes(data);
+  }
 
   virtual void endTransaction() {}
 
