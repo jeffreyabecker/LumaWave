@@ -8,6 +8,7 @@
 
 #include "colors/IShader.h"
 #include "core/IPixelBus.h"
+#include <limits>
 #include "protocols/IProtocol.h"
 #include "transports/ITransport.h"
 
@@ -114,6 +115,9 @@ public:
 
   PixelCount pixelCount() const { return _pixelCount; }
 
+  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
+  uint16_t globalBrightness() const override { return _globalBrightness; }
+
   TColor* rootBuffer() { return _rootBuffer.get(); }
 
   const TColor* rootBuffer() const { return _rootBuffer.get(); }
@@ -179,6 +183,7 @@ private:
   std::unique_ptr<IShader<TColor>> _shader;
   std::unique_ptr<TColor[]> _shaderBuffer;
   PixelView<TColor> _pixels;
+  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
   bool _dirty{true};
 };
 

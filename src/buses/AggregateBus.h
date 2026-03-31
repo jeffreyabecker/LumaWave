@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <limits>
 
 #include "core/IPixelBus.h"
 
@@ -88,6 +89,54 @@ template <typename TColor> class ReferenceAggregateBus : public IPixelBus<TColor
     PixelView<TColor>& pixels() override { return _pixels; }
 
     const PixelView<TColor>& pixels() const override { return _pixels; }
+
+    void setGlobalBrightness(uint16_t brightness) override
+    {
+        for (const auto& bus : _buses)
+        {
+            if (bus)
+            {
+                bus->setGlobalBrightness(brightness);
+            }
+        }
+    }
+
+    uint16_t globalBrightness() const override
+    {
+        for (const auto& bus : _buses)
+        {
+            if (bus)
+            {
+                return bus->globalBrightness();
+            }
+        }
+
+        return static_cast<uint16_t>(std::numeric_limits<uint16_t>::max());
+    }
+
+    void setGlobalBrightness(uint16_t brightness) override
+    {
+        for (auto* bus : _buses)
+        {
+            if (bus)
+            {
+                bus->setGlobalBrightness(brightness);
+            }
+        }
+    }
+
+    uint16_t globalBrightness() const override
+    {
+        for (const auto* bus : _buses)
+        {
+            if (bus)
+            {
+                return bus->globalBrightness();
+            }
+        }
+
+        return static_cast<uint16_t>(std::numeric_limits<uint16_t>::max());
+    }
 
   private:
     std::vector<BusType*> _buses;

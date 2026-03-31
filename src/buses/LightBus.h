@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <limits>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
@@ -89,6 +90,9 @@ public:
 
   const ShaderType& shader() const { return _shader; }
 
+  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
+  uint16_t globalBrightness() const override { return _globalBrightness; }
+
   span<ColorType> shaderScratch()
   {
     if constexpr (UsesShaderScratch)
@@ -133,6 +137,7 @@ private:
   std::array<ColorType, 1> _rootPixel{};
   std::array<ColorType, 1> _shaderScratch{};
   PixelView<ColorType> _pixels;
+  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
   bool _dirty{true};
 };
 

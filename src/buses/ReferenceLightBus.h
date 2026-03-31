@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <limits>
 
 #include "colors/IShader.h"
 #include "core/IPixelBus.h"
@@ -96,6 +97,9 @@ public:
 
   const TColor* shaderBuffer() const { return _shaderBuffer.get(); }
 
+  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
+  uint16_t globalBrightness() const override { return _globalBrightness; }
+
 private:
   static span<TColor> makePixelChunk(TColor* buffer)
   {
@@ -112,6 +116,7 @@ private:
   std::unique_ptr<IShader<TColor>> _shader;
   std::unique_ptr<TColor> _shaderBuffer;
   PixelView<TColor> _pixels;
+  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
   bool _dirty{true};
 };
 

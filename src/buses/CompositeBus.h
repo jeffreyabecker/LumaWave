@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <limits>
 
 #include "core/IPixelBus.h"
 
@@ -74,6 +75,30 @@ class CompositeBus : public IPixelBus<typename std::tuple_element<0, std::tuple<
     BusesTupleType& buses() { return _buses; }
 
     const BusesTupleType& buses() const { return _buses; }
+
+    void setGlobalBrightness(uint16_t brightness) override
+    {
+        for (auto* bus : _busPointers)
+        {
+            if (bus)
+            {
+                bus->setGlobalBrightness(brightness);
+            }
+        }
+    }
+
+    uint16_t globalBrightness() const override
+    {
+        for (auto* bus : _busPointers)
+        {
+            if (bus)
+            {
+                return bus->globalBrightness();
+            }
+        }
+
+        return static_cast<uint16_t>(std::numeric_limits<uint16_t>::max());
+    }
 
   private:
     template <size_t... TIndices>

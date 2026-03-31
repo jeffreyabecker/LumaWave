@@ -151,6 +151,31 @@ public:
       protocolBytes = span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()};
     }
 
+    // Apply bus-level global brightness scaling before protocol encoding
+    if ((_globalBrightness != static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())) && !protocolInput.empty())
+    {
+      const size_t count = static_cast<size_t>(protocolInput.size());
+      if (_brightnessScratch.size() != count)
+      {
+        _brightnessScratch.assign(count, ColorType{});
+      }
+
+      for (size_t i = 0; i < count; ++i)
+      {
+        const ColorType& src = protocolInput[i];
+        ColorType& dst = _brightnessScratch[i];
+        for (auto channel : ColorType::channelIndexes())
+        {
+          using CompT = typename ColorType::ComponentType;
+          const auto comp = src.channelAtIndex(channel);
+          const uint32_t scaled = (static_cast<uint32_t>(comp) * static_cast<uint32_t>(_globalBrightness) + 32767u) / 65535u;
+          dst.channelAtIndex(channel) = static_cast<CompT>(scaled);
+        }
+      }
+
+      protocolInput = span<const ColorType>{_brightnessScratch.data(), _brightnessScratch.size()};
+    }
+
     _protocol.update(protocolInput, protocolBytes);
 
     if (!protocolBytes.empty())
@@ -198,6 +223,9 @@ public:
   ShaderType& shader() { return _shader; }
 
   const ShaderType& shader() const { return _shader; }
+
+  void setGlobalBrightness(uint16_t brightness) override { _globalBrightness = brightness; }
+  uint16_t globalBrightness() const override { return _globalBrightness; }
 
 private:
   static size_t normalizePixelCount(size_t pixelCount)
@@ -366,6 +394,8 @@ private:
   PixelView<ColorType> _pixels;
   std::vector<ColorType> _shaderScratch;
   std::vector<uint8_t> _protocolBuffer;
+  uint16_t _globalBrightness{static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())};
+  std::vector<ColorType> _brightnessScratch;
   bool _dirty{true};
 };
 
