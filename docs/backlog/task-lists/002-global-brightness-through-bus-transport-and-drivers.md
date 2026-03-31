@@ -219,6 +219,18 @@ Carry the bus-owned brightness value through the output pipeline without forcing
 - [ ] Keep pass-through transports cheap when they do not apply scaling directly.
 - [ ] Preserve room for future hardware-assisted gain implementations without revisiting the public bus API.
 
+### Shader participation (new)
+
+Objective: allow shaders to optionally assume control of global brightness scaling while keeping the default behavior unchanged.
+
+Tasks:
+
+- [ ] Add optional shader hooks so shaders can indicate they will perform brightness scaling for a given output path (e.g., a capability query method and an apply-brightness hook). The shader API change must be opt-in with a sensible default that preserves existing shaders.
+- [ ] Define the arbitration rules: at most one shader may claim brightness ownership for a given bus output; if multiple do, treat as a configuration error (log or assert) and fall back to bus-side scaling.
+- [ ] Update `PixelBus` and `LightBus` `show()` paths so they query attached shader(s) before applying bus-level scaling. If a shader claims ownership, pass the raw pixel data and the `uint16_t` brightness value through the transport/driver seam and skip bus-side per-pixel scaling.
+- [ ] Ensure composite/aggregate/reference-style buses propagate shader ownership semantics to their children consistently.
+- [ ] Add tests that cover: shader-not-taking-control (bus scales as before), shader-taking-control (shader performs scaling exactly once), and misconfiguration (multiple shaders claiming control) behavior.
+
 ### Target files
 
 - [ ] `src/transports/ITransport.h`
