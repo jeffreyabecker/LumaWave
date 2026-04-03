@@ -91,7 +91,6 @@ This library owns the color model and color-domain semantics.
 - `src/colors/ChannelMap.h`
 - `src/colors/ChannelSource.h`
 - `src/colors/ColorMath.h`
-- `src/colors/ColorHexCodec.h`
 - `src/colors/palette/*`
 
 For the current direction, the cleaner conceptual model is:
