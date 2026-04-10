@@ -60,7 +60,7 @@ public:
 
   static PixelView concatenate(const PixelView& first) { return first; }
 
-  template <typename... TOtherViews, typename = std::enable_if_t<std::conjunction<std::is_same<PixelView, lw::remove_cvref_t<TOtherViews>>...>::value>>
+  template <typename... TOtherViews, typename = std::enable_if_t<(std::is_same_v<PixelView, std::remove_cv_t<std::remove_reference_t<TOtherViews>>> && ...)>>
   static PixelView concatenate(const PixelView& first, const TOtherViews&... others)
   {
     std::vector<ChunkType> concatenated;

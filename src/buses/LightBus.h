@@ -25,16 +25,16 @@ public:
   using DriverSettingsType = typename DriverType::LightDriverSettingsType;
   using ShaderType = TShader;
 
-  static constexpr bool UsesShaderScratch = !std::is_same<lw::remove_cvref_t<ShaderType>, NilShader<ColorType>>::value;
+  static constexpr bool UsesShaderScratch = !std::is_same_v<std::remove_cv_t<std::remove_reference_t<ShaderType>>, NilShader<ColorType>>;
 
   static_assert(transports::SettingsConstructibleLightDriverLike<DriverType>, "Driver type must derive from ILightDriver<ColorType>, declare LightDriverSettingsType, and be "
                                                                               "constructible from those settings.");
-  static_assert(std::is_same<typename DriverType::ColorType, ColorType>::value, "Driver ColorType must match LightBus ColorType.");
-  static_assert(std::is_convertible<ShaderType*, IShader<ColorType>*>::value, "Shader type must derive from IShader<ColorType>.");
+  static_assert(std::is_same_v<typename DriverType::ColorType, ColorType>, "Driver ColorType must match LightBus ColorType.");
+  static_assert(std::is_convertible_v<ShaderType*, IShader<ColorType>*>, "Shader type must derive from IShader<ColorType>.");
 
   LightBus(DriverSettingsType driverSettings, ShaderType shader) : _driver(normalizeDriverSettings(std::move(driverSettings))), _shader(std::move(shader)), _pixels(span<ColorType>{_rootPixel.data(), _rootPixel.size()}) {}
 
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same<lw::remove_cvref_t<TShaderAlias>, NilShader<ColorType>>::value>>
+  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>>>>
   explicit LightBus(DriverSettingsType driverSettings) : _driver(normalizeDriverSettings(std::move(driverSettings))), _shader{}, _pixels(span<ColorType>{_rootPixel.data(), _rootPixel.size()})
   {
   }

@@ -69,7 +69,7 @@ public:
 
   constexpr RgbBasedColor() = default;
 
-  template <typename... Args, typename = std::enable_if_t<(sizeof...(Args) <= NChannels) && std::conjunction<std::is_convertible<Args, TComponent>...>::value>> constexpr RgbBasedColor(Args... args) : Channels{}
+  template <typename... Args, typename = std::enable_if_t<(sizeof...(Args) <= NChannels) && (std::is_convertible_v<Args, TComponent> && ...)>> constexpr RgbBasedColor(Args... args) : Channels{}
   {
     constexpr size_t ArgCount = sizeof...(Args);
     const std::array<TComponent, ArgCount> values{static_cast<TComponent>(args)...};
@@ -82,9 +82,9 @@ public:
 
   constexpr TComponent operator[](char channel) const { return static_cast<TComponent>(Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]); }
 
-  template <typename T = InternalComponentType> std::enable_if_t<std::is_same<T, TComponent>::value, TComponent&> operator[](char channel) { return Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]; }
+  template <typename T = InternalComponentType> std::enable_if_t<std::is_same_v<T, TComponent>, TComponent&> operator[](char channel) { return Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]; }
 
-  template <typename T = InternalComponentType> std::enable_if_t<!std::is_same<T, TComponent>::value, ComponentReference> operator[](char channel)
+  template <typename T = InternalComponentType> std::enable_if_t<!std::is_same_v<T, TComponent>, ComponentReference> operator[](char channel)
   {
     return ComponentReference(Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]);
   }
@@ -95,9 +95,9 @@ public:
 
   constexpr TComponent channelAtIndex(size_t index) const { return static_cast<TComponent>(Channels[index]); }
 
-  template <typename T = InternalComponentType> std::enable_if_t<std::is_same<T, TComponent>::value, TComponent&> channelAtIndex(size_t index) { return Channels[index]; }
+  template <typename T = InternalComponentType> std::enable_if_t<std::is_same_v<T, TComponent>, TComponent&> channelAtIndex(size_t index) { return Channels[index]; }
 
-  template <typename T = InternalComponentType> std::enable_if_t<!std::is_same<T, TComponent>::value, ComponentReference> channelAtIndex(size_t index) { return ComponentReference(Channels[index]); }
+  template <typename T = InternalComponentType> std::enable_if_t<!std::is_same_v<T, TComponent>, ComponentReference> channelAtIndex(size_t index) { return ComponentReference(Channels[index]); }
 
   constexpr bool operator==(const RgbBasedColor& other) const { return Channels == other.Channels; }
 
@@ -111,7 +111,7 @@ public:
 
   constexpr bool operator>=(const RgbBasedColor& other) const { return compareCanonical(other) >= 0; }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint8_t>::value>> constexpr RgbBasedColor& operator=(uint32_t packed)
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint8_t>>> constexpr RgbBasedColor& operator=(uint32_t packed)
   {
     (*this)['R'] = static_cast<TComponent>((packed >> (2u * 8u)) & 0xFFu);
     (*this)['G'] = static_cast<TComponent>((packed >> (1u * 8u)) & 0xFFu);
@@ -125,7 +125,7 @@ public:
     return *this;
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint16_t>::value>> constexpr RgbBasedColor& operator=(uint64_t packed)
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr RgbBasedColor& operator=(uint64_t packed)
   {
     (*this)['R'] = static_cast<TComponent>((packed >> (2u * 16u)) & 0xFFFFull);
     (*this)['G'] = static_cast<TComponent>((packed >> (1u * 16u)) & 0xFFFFull);
@@ -139,12 +139,12 @@ public:
     return *this;
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint16_t>::value>> constexpr RgbBasedColor& operator=(int64_t packed)
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr RgbBasedColor& operator=(int64_t packed)
   {
     return operator=(static_cast<uint64_t>(packed));
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint8_t>::value>> constexpr operator uint32_t() const
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint8_t>>> constexpr operator uint32_t() const
   {
     const uint32_t r = static_cast<uint32_t>((*this)['R']);
     const uint32_t g = static_cast<uint32_t>((*this)['G']);
@@ -154,12 +154,12 @@ public:
     return (w << (3u * 8u)) | (r << (2u * 8u)) | (g << (1u * 8u)) | (b << (0u * 8u));
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint8_t>::value>> constexpr operator int32_t() const
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint8_t>>> constexpr operator int32_t() const
   {
     return static_cast<int32_t>(static_cast<uint32_t>(*this));
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint16_t>::value>> constexpr operator uint64_t() const
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr operator uint64_t() const
   {
     const uint64_t r = static_cast<uint64_t>((*this)['R']);
     const uint64_t g = static_cast<uint64_t>((*this)['G']);
@@ -169,7 +169,7 @@ public:
     return (w << (3u * 16u)) | (r << (2u * 16u)) | (g << (1u * 16u)) | (b << (0u * 16u));
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same<T, uint16_t>::value>> constexpr operator int64_t() const
+  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr operator int64_t() const
   {
     return static_cast<int64_t>(static_cast<uint64_t>(*this));
   }
@@ -223,7 +223,7 @@ template <typename TColor, typename = void> struct ColorTypeImpl : std::false_ty
 };
 
 template <typename TColor>
-struct ColorTypeImpl<TColor, std::void_t<typename TColor::ComponentType, decltype(TColor::ChannelCount)>> : std::integral_constant<bool, std::is_convertible<decltype(TColor::ChannelCount), size_t>::value>
+struct ColorTypeImpl<TColor, std::void_t<typename TColor::ComponentType, decltype(TColor::ChannelCount)>> : std::integral_constant<bool, std::is_convertible_v<decltype(TColor::ChannelCount), size_t>>
 {
 };
 
@@ -237,7 +237,7 @@ template <typename TColor, size_t MaxChannels> static constexpr bool ColorChanne
 
 template <typename TColor, size_t MinChannels, size_t MaxChannels> static constexpr bool ColorChannelsInRange = ColorType<TColor> && (TColor::ChannelCount >= MinChannels) && (TColor::ChannelCount <= MaxChannels);
 
-template <typename TColor, typename TComponent> static constexpr bool ColorComponentTypeIs = ColorType<TColor> && std::is_same<typename TColor::ComponentType, TComponent>::value;
+template <typename TColor, typename TComponent> static constexpr bool ColorComponentTypeIs = ColorType<TColor> && std::is_same_v<typename TColor::ComponentType, TComponent>;
 
 template <typename TColor, size_t BitDepth> static constexpr bool ColorComponentBitDepth = ColorType<TColor> && ((sizeof(typename TColor::ComponentType) * 8) == BitDepth);
 

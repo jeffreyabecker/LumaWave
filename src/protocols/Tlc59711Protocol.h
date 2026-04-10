@@ -25,18 +25,18 @@ namespace lw::protocols
 //
 struct Tlc59711Settings
 {
-    static constexpr uint8_t MaxBrightness = 127;
+  static constexpr uint8_t MaxBrightness = 127;
 
-    bool outtmg{true};
-    bool extgck{false};
-    bool tmgrst{true};
-    bool dsprpt{true};
-    bool blank{false};
+  bool outtmg{true};
+  bool extgck{false};
+  bool tmgrst{true};
+  bool dsprpt{true};
+  bool blank{false};
 };
 
 struct Tlc59711ProtocolSettings : public ProtocolSettings
 {
-    Tlc59711Settings config = {};
+  Tlc59711Settings config = {};
 };
 
 // TLC59711 protocol.
@@ -64,156 +64,152 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 //
 // Latch: ~20 ?s guard after transmission.
 //
-template <typename TInterfaceColor = Rgb8Color>
-class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgb8Color> class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>, public IHaveGain
 {
-  public:
-    using InterfaceColorType = TInterfaceColor;
-    using StripColorType = Rgb16Color;
-    using SettingsType = Tlc59711ProtocolSettings;
+public:
+  using InterfaceColorType = TInterfaceColor;
+  using StripColorType = Rgb16Color;
+  using SettingsType = Tlc59711ProtocolSettings;
 
-    static_assert((std::is_same<typename InterfaceColorType::ComponentType, uint8_t>::value ||
-                   std::is_same<typename InterfaceColorType::ComponentType, uint16_t>::value),
-                  "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
-    static_assert(InterfaceColorType::ChannelCount >= 3, "Tlc59711Protocol requires at least 3 interface channels.");
+  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
+                "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
+  static_assert(InterfaceColorType::ChannelCount >= 3, "Tlc59711Protocol requires at least 3 interface channels.");
 
-    static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
+  static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
+  {
+    const size_t chipCount = (static_cast<size_t>(pixelCount) + PixelsPerChip - 1u) / PixelsPerChip;
+    return chipCount * BytesPerChip;
+  }
+
+  Tlc59711ProtocolT(PixelCount pixelCount, SettingsType settings)
+      : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
+  {
+    _gainValue = 0xff;
+    encodeHeader(_settings.config);
+  }
+
+  void begin() override {}
+
+  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  {
+    if (buffer.size() < _requiredBufferSize)
     {
-        const size_t chipCount = (static_cast<size_t>(pixelCount) + PixelsPerChip - 1u) / PixelsPerChip;
-        return chipCount * BytesPerChip;
+      return;
     }
 
-    Tlc59711ProtocolT(PixelCount pixelCount, SettingsType settings)
-        : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)},
-          _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip},
-          _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
-    {
-        _gainValue = 0xff;
-        encodeHeader(_settings.config);
-    }
+    _byteBuffer = span<uint8_t>{buffer.data(), _requiredBufferSize};
 
-    void begin() override {}
+    // Serialize: reversed chip order, reversed pixel order within chip
+    serialize(colors);
+  }
 
-    void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  ProtocolSettings& settings() override { return _settings; }
+
+  bool alwaysUpdate() const override { return false; }
+
+  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
+
+  void updateSettings(const Tlc59711Settings& settings) { encodeHeader(settings); }
+
+  void setGain(uint8_t gain) override
+  {
+    IHaveGain::setGain(gain);
+    encodeHeader(_settings.config);
+  }
+
+private:
+  static constexpr size_t PixelsPerChip = 4;
+  static constexpr size_t ChannelsPerChip = 12;
+  static constexpr size_t DataBytesPerChip = 24; // 12 ? 2
+  static constexpr size_t HeaderBytesPerChip = 4;
+  static constexpr size_t BytesPerChip = 28; // 4 + 24
+  SettingsType _settings;
+  size_t _chipCount;
+  size_t _requiredBufferSize{0};
+  span<uint8_t> _byteBuffer{};
+  std::array<uint8_t, HeaderBytesPerChip> _header{};
+
+  void encodeHeader(const Tlc59711Settings& config)
+  {
+    const uint8_t normalizedGain = normalizeGainValue(_gainValue, Tlc59711Settings::MaxBrightness);
+    uint8_t bcR = normalizedGain;
+    uint8_t bcG = normalizedGain;
+    uint8_t bcB = normalizedGain;
+
+    // Control bits packed into one byte for convenience
+    uint8_t ctrl = 0;
+    if (config.outtmg)
+      ctrl |= 0x02;
+    if (config.extgck)
+      ctrl |= 0x01;
+    if (config.tmgrst)
+      ctrl |= 0x80;
+    if (config.dsprpt)
+      ctrl |= 0x40;
+    if (config.blank)
+      ctrl |= 0x20;
+
+    // byte[0] = 0b100101_OE  (write command + OUTTMG + EXTGCK)
+    _header[0] = static_cast<uint8_t>(0x94 | (ctrl & 0x03));
+
+    // byte[1] = 0bTDB_bbbbb  (TMGRST, DSPRPT, BLANK, BC_Blue[6:2])
+    _header[1] = static_cast<uint8_t>((ctrl & 0xE0) | (bcB >> 2));
+
+    // byte[2] = 0bbb_gggggg  (BC_Blue[1:0], BC_Green[6:1])
+    _header[2] = static_cast<uint8_t>((bcB << 6) | (bcG >> 1));
+
+    // byte[3] = 0bg_rrrrrrr  (BC_Green[0], BC_Red[6:0])
+    _header[3] = static_cast<uint8_t>((bcG << 7) | bcR);
+  }
+
+  void serialize(span<const InterfaceColorType> colors)
+  {
+    // Walk chips in reverse order (last chip first on wire)
+    size_t bufOffset = 0;
+
+    for (size_t chip = _chipCount; chip > 0; --chip)
     {
-        if (buffer.size() < _requiredBufferSize)
+      size_t chipStartPixel = (chip - 1) * PixelsPerChip;
+
+      // Per-chip header (same for all chips)
+      _byteBuffer[bufOffset++] = _header[0];
+      _byteBuffer[bufOffset++] = _header[1];
+      _byteBuffer[bufOffset++] = _header[2];
+      _byteBuffer[bufOffset++] = _header[3];
+
+      // Channel data: reversed pixel order within chip, BGR per pixel
+      for (size_t px = PixelsPerChip; px > 0; --px)
+      {
+        size_t pixelIdx = chipStartPixel + (px - 1);
+
+        uint16_t b = 0, g = 0, r = 0;
+        if (pixelIdx < colors.size())
         {
-            return;
+          b = toWireComponent16(colors[pixelIdx]['B']);
+          g = toWireComponent16(colors[pixelIdx]['G']);
+          r = toWireComponent16(colors[pixelIdx]['R']);
         }
 
-        _byteBuffer = span<uint8_t>{buffer.data(), _requiredBufferSize};
-
-        // Serialize: reversed chip order, reversed pixel order within chip
-        serialize(colors);
+        // BGR order, big-endian 16-bit each
+        _byteBuffer[bufOffset++] = static_cast<uint8_t>(b >> 8);
+        _byteBuffer[bufOffset++] = static_cast<uint8_t>(b & 0xFF);
+        _byteBuffer[bufOffset++] = static_cast<uint8_t>(g >> 8);
+        _byteBuffer[bufOffset++] = static_cast<uint8_t>(g & 0xFF);
+        _byteBuffer[bufOffset++] = static_cast<uint8_t>(r >> 8);
+        _byteBuffer[bufOffset++] = static_cast<uint8_t>(r & 0xFF);
+      }
     }
+  }
 
-    ProtocolSettings& settings() override { return _settings; }
-
-    bool alwaysUpdate() const override { return false; }
-
-    size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
-
-    void updateSettings(const Tlc59711Settings& settings) { encodeHeader(settings); }
-
-    void setGain(uint8_t gain) override
+  static constexpr uint16_t toWireComponent16(typename InterfaceColorType::ComponentType value)
+  {
+    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>)
     {
-        IHaveGain::setGain(gain);
-        encodeHeader(_settings.config);
+      return value;
     }
 
-  private:
-    static constexpr size_t PixelsPerChip = 4;
-    static constexpr size_t ChannelsPerChip = 12;
-    static constexpr size_t DataBytesPerChip = 24; // 12 ? 2
-    static constexpr size_t HeaderBytesPerChip = 4;
-    static constexpr size_t BytesPerChip = 28; // 4 + 24
-    SettingsType _settings;
-    size_t _chipCount;
-    size_t _requiredBufferSize{0};
-    span<uint8_t> _byteBuffer{};
-    std::array<uint8_t, HeaderBytesPerChip> _header{};
-
-    void encodeHeader(const Tlc59711Settings& config)
-    {
-        const uint8_t normalizedGain = normalizeGainValue(_gainValue, Tlc59711Settings::MaxBrightness);
-        uint8_t bcR = normalizedGain;
-        uint8_t bcG = normalizedGain;
-        uint8_t bcB = normalizedGain;
-
-        // Control bits packed into one byte for convenience
-        uint8_t ctrl = 0;
-        if (config.outtmg)
-            ctrl |= 0x02;
-        if (config.extgck)
-            ctrl |= 0x01;
-        if (config.tmgrst)
-            ctrl |= 0x80;
-        if (config.dsprpt)
-            ctrl |= 0x40;
-        if (config.blank)
-            ctrl |= 0x20;
-
-        // byte[0] = 0b100101_OE  (write command + OUTTMG + EXTGCK)
-        _header[0] = static_cast<uint8_t>(0x94 | (ctrl & 0x03));
-
-        // byte[1] = 0bTDB_bbbbb  (TMGRST, DSPRPT, BLANK, BC_Blue[6:2])
-        _header[1] = static_cast<uint8_t>((ctrl & 0xE0) | (bcB >> 2));
-
-        // byte[2] = 0bbb_gggggg  (BC_Blue[1:0], BC_Green[6:1])
-        _header[2] = static_cast<uint8_t>((bcB << 6) | (bcG >> 1));
-
-        // byte[3] = 0bg_rrrrrrr  (BC_Green[0], BC_Red[6:0])
-        _header[3] = static_cast<uint8_t>((bcG << 7) | bcR);
-    }
-
-    void serialize(span<const InterfaceColorType> colors)
-    {
-        // Walk chips in reverse order (last chip first on wire)
-        size_t bufOffset = 0;
-
-        for (size_t chip = _chipCount; chip > 0; --chip)
-        {
-            size_t chipStartPixel = (chip - 1) * PixelsPerChip;
-
-            // Per-chip header (same for all chips)
-            _byteBuffer[bufOffset++] = _header[0];
-            _byteBuffer[bufOffset++] = _header[1];
-            _byteBuffer[bufOffset++] = _header[2];
-            _byteBuffer[bufOffset++] = _header[3];
-
-            // Channel data: reversed pixel order within chip, BGR per pixel
-            for (size_t px = PixelsPerChip; px > 0; --px)
-            {
-                size_t pixelIdx = chipStartPixel + (px - 1);
-
-                uint16_t b = 0, g = 0, r = 0;
-                if (pixelIdx < colors.size())
-                {
-                    b = toWireComponent16(colors[pixelIdx]['B']);
-                    g = toWireComponent16(colors[pixelIdx]['G']);
-                    r = toWireComponent16(colors[pixelIdx]['R']);
-                }
-
-                // BGR order, big-endian 16-bit each
-                _byteBuffer[bufOffset++] = static_cast<uint8_t>(b >> 8);
-                _byteBuffer[bufOffset++] = static_cast<uint8_t>(b & 0xFF);
-                _byteBuffer[bufOffset++] = static_cast<uint8_t>(g >> 8);
-                _byteBuffer[bufOffset++] = static_cast<uint8_t>(g & 0xFF);
-                _byteBuffer[bufOffset++] = static_cast<uint8_t>(r >> 8);
-                _byteBuffer[bufOffset++] = static_cast<uint8_t>(r & 0xFF);
-            }
-        }
-    }
-
-    static constexpr uint16_t toWireComponent16(typename InterfaceColorType::ComponentType value)
-    {
-        if constexpr (std::is_same<typename InterfaceColorType::ComponentType, uint16_t>::value)
-        {
-            return value;
-        }
-
-        return static_cast<uint16_t>((static_cast<uint16_t>(value) << 8) | static_cast<uint16_t>(value));
-    }
+    return static_cast<uint16_t>((static_cast<uint16_t>(value) << 8) | static_cast<uint16_t>(value));
+  }
 };
 
 } // namespace lw::protocols

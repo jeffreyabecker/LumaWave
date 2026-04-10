@@ -69,12 +69,12 @@ public:
   using ProtocolSettingsType = typename ProtocolType::SettingsType;
   using TransportSettingsType = typename TransportType::TransportSettingsType;
 
-  static_assert(!std::is_same<ProtocolSettingsType, void>::value, "Protocol settings type must not be void.");
-  static_assert(std::is_convertible<ProtocolType*, protocols::IProtocol<ColorType>*>::value, "Protocol type must derive from IProtocol<ColorType>.");
-  static_assert(std::is_convertible<TransportType*, transports::ITransport*>::value, "Transport type must derive from ITransport.");
-  static_assert(std::is_convertible<ShaderType*, shaders::IShader<ColorType>*>::value, "Shader type must derive from IShader<ColorType>.");
+  static_assert(!std::is_same_v<ProtocolSettingsType, void>, "Protocol settings type must not be void.");
+  static_assert(std::is_convertible_v<ProtocolType*, protocols::IProtocol<ColorType>*>, "Protocol type must derive from IProtocol<ColorType>.");
+  static_assert(std::is_convertible_v<TransportType*, transports::ITransport*>, "Transport type must derive from ITransport.");
+  static_assert(std::is_convertible_v<ShaderType*, shaders::IShader<ColorType>*>, "Shader type must derive from IShader<ColorType>.");
 
-  static constexpr bool UsesShaderScratch = !std::is_same<lw::remove_cvref_t<ShaderType>, NilShader<ColorType>>::value;
+  static constexpr bool UsesShaderScratch = !std::is_same_v<std::remove_cv_t<std::remove_reference_t<ShaderType>>, NilShader<ColorType>>;
 
   PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, TransportSettingsType transportSettings, ShaderType shaderInstance)
       : _pixelCount(normalizePixelCount(pixelCount)), _transport(normalizeTransportSettings(std::move(transportSettings), _pixelCount, protocolSettings)),
@@ -88,7 +88,7 @@ public:
   {
   }
 
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same<lw::remove_cvref_t<TShaderAlias>, NilShader<ColorType>>::value>>
+  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>>>>
   PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, TransportSettingsType transportSettings)
       : _pixelCount(normalizePixelCount(pixelCount)), _transport(normalizeTransportSettings(std::move(transportSettings), _pixelCount, protocolSettings)),
         _protocol(makeProtocol(_pixelCount, _transport, normalizeProtocolSettings(std::move(protocolSettings)))), _shader{}, _rootPixels(_pixelCount), _pixels(span<ColorType>{_rootPixels.data(), _rootPixels.size()}),
@@ -96,18 +96,20 @@ public:
   {
   }
 
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same<lw::remove_cvref_t<TShaderAlias>, NilShader<ColorType>>::value>>
+  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>>>>
   PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, transports::OneWireTiming timing, TransportSettingsType transportSettings)
       : PixelBus(pixelCount, assignProtocolTimingIfPresent(std::move(protocolSettings), timing), std::move(transportSettings))
   {
   }
 
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same<lw::remove_cvref_t<TShaderAlias>, NilShader<ColorType>>::value && std::is_default_constructible<ProtocolSettingsType>::value>>
+  template <typename TShaderAlias = ShaderType,
+            typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>> && std::is_default_constructible_v<ProtocolSettingsType>>>
   PixelBus(size_t pixelCount, TransportSettingsType transportSettings) : PixelBus(pixelCount, defaultProtocolSettings(), std::move(transportSettings))
   {
   }
 
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<!std::is_same<lw::remove_cvref_t<TShaderAlias>, NilShader<ColorType>>::value && std::is_default_constructible<ProtocolSettingsType>::value>>
+  template <typename TShaderAlias = ShaderType,
+            typename = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>> && std::is_default_constructible_v<ProtocolSettingsType>>>
   PixelBus(size_t pixelCount, TransportSettingsType transportSettings, ShaderType shaderInstance) : PixelBus(pixelCount, defaultProtocolSettings(), std::move(transportSettings), std::move(shaderInstance))
   {
   }
@@ -247,17 +249,17 @@ private:
   static ProtocolType makeProtocol(size_t pixelCount, TransportType& transport, ProtocolSettingsType settings)
   {
     const uint16_t protocolPixelCount = static_cast<uint16_t>(pixelCount);
-    if constexpr (std::is_constructible<ProtocolType, uint16_t, ProtocolSettingsType>::value)
+    if constexpr (std::is_constructible_v<ProtocolType, uint16_t, ProtocolSettingsType>)
     {
       return ProtocolType{protocolPixelCount, std::move(settings)};
     }
-    else if constexpr (std::is_constructible<ProtocolType, uint16_t, ProtocolSettingsType, TransportType&>::value)
+    else if constexpr (std::is_constructible_v<ProtocolType, uint16_t, ProtocolSettingsType, TransportType&>)
     {
       return ProtocolType{protocolPixelCount, std::move(settings), transport};
     }
     else
     {
-      static_assert(std::is_constructible<ProtocolType, uint16_t, ProtocolSettingsType>::value || std::is_constructible<ProtocolType, uint16_t, ProtocolSettingsType, TransportType&>::value,
+      static_assert(std::is_constructible_v<ProtocolType, uint16_t, ProtocolSettingsType> || std::is_constructible_v<ProtocolType, uint16_t, ProtocolSettingsType, TransportType&>,
                     "Protocol must be constructible with settings (with or without transport reference).");
       return ProtocolType{protocolPixelCount, std::move(settings)};
     }

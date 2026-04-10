@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(LumaWave VERSION 2.8.4 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTS "Build native tests" ON)
@@ -14,7 +14,7 @@ target_include_directories(LumaWave INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(LumaWave INTERFACE cxx_std_17)
+target_compile_features(LumaWave INTERFACE cxx_std_23)
 
 if(BUILD_TESTS)
     enable_testing()
