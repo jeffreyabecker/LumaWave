@@ -36,6 +36,10 @@ Get-ChildItem -Recurse -Path src,include,test,examples -Include *.h,*.hpp,*.c,*.
 
 Requires CMake 3.25+ and either MSVC (Windows) or GCC (Linux).
 
+Native CMake builds now target C++23.
+
+Embedded Arduino targets remain on their toolchain-provided C++17-compatible path. The library keeps the Arduino-facing compatibility layer for those builds, but native host builds and tests are the primary C++23 workflow.
+
 ```powershell
 # Configure
 cmake -S . -B build
@@ -48,6 +52,8 @@ ctest --test-dir build -C Debug --output-on-failure
 ```
 
 Or use the VS Code tasks (`CMake: Configure`, `CMake: Build`, `CMake: Run Tests`) via the command palette.
+
+On Linux, the same configure/build/test flow applies with GCC; the resulting native build uses the project CMake baseline (`CMAKE_CXX_STANDARD 23`).
 
 ## Installing This Library From GitHub (advanced, you want to contribute)
 Create a directory in your Arduino\Library folder named "LumaWave"

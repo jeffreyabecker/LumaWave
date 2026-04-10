@@ -2,6 +2,12 @@
 
 Factory, dynamic builder, and INI parser flags have been removed from the public surface.
 
+## Language Standard Baseline
+
+- Native CMake builds and native tests now target C++23.
+- Embedded Arduino-target builds remain on a C++17-compatible path dictated by the board/toolchain environment.
+- The compilation flags documented below remain valid for both environments unless a target-specific toolchain restricts them.
+
 
 ## Color Compilation Flags
 
