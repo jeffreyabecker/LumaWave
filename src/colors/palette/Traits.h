@@ -12,10 +12,7 @@ template <typename TRange, typename = void> struct IsBeginEndRange : std::false_
 {
 };
 
-template <typename TRange>
-struct IsBeginEndRange<TRange,
-                       std::void_t<decltype(std::declval<TRange&>().begin()), decltype(std::declval<TRange&>().end())>>
-    : std::true_type
+template <typename TRange> struct IsBeginEndRange<TRange, std::void_t<decltype(std::declval<TRange&>().begin()), decltype(std::declval<TRange&>().end())>> : std::true_type
 {
 };
 
@@ -24,13 +21,9 @@ template <typename TPaletteLike, typename = void> struct IsPaletteLike : std::fa
 };
 
 template <typename TPaletteLike>
-struct IsPaletteLike<
-    TPaletteLike, std::void_t<typename TPaletteLike::ColorType, decltype(std::declval<const TPaletteLike&>().stops()),
-                              decltype(std::declval<TPaletteLike&>().update())>>
-    : std::integral_constant<
-          bool, std::is_base_of<IPalette<typename TPaletteLike::ColorType>, TPaletteLike>::value &&
-                    std::is_convertible<decltype(std::declval<const TPaletteLike&>().stops()),
-                                        lw::span<const PaletteStop<typename TPaletteLike::ColorType>>>::value>
+struct IsPaletteLike<TPaletteLike, std::void_t<typename TPaletteLike::ColorType, decltype(std::declval<const TPaletteLike&>().stops()), decltype(std::declval<TPaletteLike&>().update())>>
+    : std::integral_constant<bool, std::is_base_of_v<IPalette<typename TPaletteLike::ColorType>, TPaletteLike> &&
+                                       std::is_convertible_v<decltype(std::declval<const TPaletteLike&>().stops()), lw::span<const PaletteStop<typename TPaletteLike::ColorType>>>>
 {
 };
 

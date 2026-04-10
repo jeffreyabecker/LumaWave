@@ -14,7 +14,7 @@ namespace lw::protocols
 
 struct Lpd6803ProtocolSettings : public ProtocolSettings
 {
-    const char* channelOrder = ChannelOrder::RGB::value;
+  const char* channelOrder = ChannelOrder::RGB::value;
 };
 
 // LPD6803 protocol.
@@ -32,85 +32,78 @@ struct Lpd6803ProtocolSettings : public ProtocolSettings
 //
 template <typename TInterfaceColor = Rgb8Color> class Lpd6803ProtocolT : public IProtocol<TInterfaceColor>
 {
-  public:
-    using InterfaceColorType = TInterfaceColor;
-    using StripColorType = Rgb8Color;
-    using SettingsType = Lpd6803ProtocolSettings;
+public:
+  using InterfaceColorType = TInterfaceColor;
+  using StripColorType = Rgb8Color;
+  using SettingsType = Lpd6803ProtocolSettings;
 
-    static_assert((std::is_same<typename InterfaceColorType::ComponentType, uint8_t>::value ||
-                   std::is_same<typename InterfaceColorType::ComponentType, uint16_t>::value),
-                  "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
-    static_assert(InterfaceColorType::ChannelCount >= 3, "Lpd6803Protocol requires at least 3 interface channels.");
+  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
+                "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
+  static_assert(InterfaceColorType::ChannelCount >= 3, "Lpd6803Protocol requires at least 3 interface channels.");
 
-    static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
+  static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + ((static_cast<size_t>(pixelCount) + 7u) / 8u); }
+
+  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings)
+      : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
+  {
+  }
+
+  void begin() override {}
+
+  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  {
+    if (buffer.size() < _requiredBufferSize)
     {
-        return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) +
-               ((static_cast<size_t>(pixelCount) + 7u) / 8u);
+      return;
     }
 
-    Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings)
-        : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)},
-          _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
+    _byteBuffer = span<uint8_t>{buffer.data(), _requiredBufferSize};
+
+    std::fill(_byteBuffer.begin(), _byteBuffer.begin() + StartFrameSize, 0x00);
+    std::fill(_byteBuffer.end() - _endFrameSize, _byteBuffer.end(), 0x00);
+
+    // Serialize: 5-5-5 packed into 2 bytes per pixel
+    size_t offset = StartFrameSize;
+    const size_t pixelLimit = std::min(colors.size(), static_cast<size_t>(this->pixelCount()));
+    for (size_t index = 0; index < pixelLimit; ++index)
     {
+      const auto& color = colors[index];
+      uint8_t ch1 = toWireComponent8(color[_settings.channelOrder[0]]) & 0xF8;
+      uint8_t ch2 = toWireComponent8(color[_settings.channelOrder[1]]) & 0xF8;
+      uint8_t ch3 = toWireComponent8(color[_settings.channelOrder[2]]) & 0xF8;
+
+      // Pack: 1_ccccc_ccccc_ccccc (big-endian)
+      uint16_t packed = 0x8000 | (static_cast<uint16_t>(ch1) << 7) | (static_cast<uint16_t>(ch2) << 2) | (static_cast<uint16_t>(ch3) >> 3);
+
+      _byteBuffer[offset++] = static_cast<uint8_t>(packed >> 8);
+      _byteBuffer[offset++] = static_cast<uint8_t>(packed & 0xFF);
+    }
+  }
+
+  ProtocolSettings& settings() override { return _settings; }
+
+  bool alwaysUpdate() const override { return false; }
+
+  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
+
+private:
+  static constexpr size_t BytesPerPixel = 2;
+  static constexpr size_t StartFrameSize = 4;
+
+  static constexpr uint8_t toWireComponent8(typename InterfaceColorType::ComponentType value)
+  {
+    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
+    {
+      return value;
     }
 
-    void begin() override {}
+    return static_cast<uint8_t>(value >> 8);
+  }
 
-    void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
-    {
-        if (buffer.size() < _requiredBufferSize)
-        {
-            return;
-        }
-
-        _byteBuffer = span<uint8_t>{buffer.data(), _requiredBufferSize};
-
-        std::fill(_byteBuffer.begin(), _byteBuffer.begin() + StartFrameSize, 0x00);
-        std::fill(_byteBuffer.end() - _endFrameSize, _byteBuffer.end(), 0x00);
-
-        // Serialize: 5-5-5 packed into 2 bytes per pixel
-        size_t offset = StartFrameSize;
-        const size_t pixelLimit = std::min(colors.size(), static_cast<size_t>(this->pixelCount()));
-        for (size_t index = 0; index < pixelLimit; ++index)
-        {
-            const auto& color = colors[index];
-            uint8_t ch1 = toWireComponent8(color[_settings.channelOrder[0]]) & 0xF8;
-            uint8_t ch2 = toWireComponent8(color[_settings.channelOrder[1]]) & 0xF8;
-            uint8_t ch3 = toWireComponent8(color[_settings.channelOrder[2]]) & 0xF8;
-
-            // Pack: 1_ccccc_ccccc_ccccc (big-endian)
-            uint16_t packed = 0x8000 | (static_cast<uint16_t>(ch1) << 7) | (static_cast<uint16_t>(ch2) << 2) |
-                              (static_cast<uint16_t>(ch3) >> 3);
-
-            _byteBuffer[offset++] = static_cast<uint8_t>(packed >> 8);
-            _byteBuffer[offset++] = static_cast<uint8_t>(packed & 0xFF);
-        }
-    }
-
-    ProtocolSettings& settings() override { return _settings; }
-
-    bool alwaysUpdate() const override { return false; }
-
-    size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
-
-  private:
-    static constexpr size_t BytesPerPixel = 2;
-    static constexpr size_t StartFrameSize = 4;
-
-    static constexpr uint8_t toWireComponent8(typename InterfaceColorType::ComponentType value)
-    {
-        if constexpr (std::is_same<typename InterfaceColorType::ComponentType, uint8_t>::value)
-        {
-            return value;
-        }
-
-        return static_cast<uint8_t>(value >> 8);
-    }
-
-    SettingsType _settings;
-    size_t _requiredBufferSize{0};
-    span<uint8_t> _byteBuffer{};
-    size_t _endFrameSize;
+  SettingsType _settings;
+  size_t _requiredBufferSize{0};
+  span<uint8_t> _byteBuffer{};
+  size_t _endFrameSize;
 };
 
 } // namespace lw::protocols

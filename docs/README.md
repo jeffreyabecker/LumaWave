@@ -18,6 +18,7 @@ Architecture, contracts, references, and technical notes:
 
 - [Arduino-Optional Plan](internal/information/arduino-optional-plan.md)
 - [Arduino Examples Authoring Plan](internal/information/arduino-examples-authoring-plan.md)
+- [C++23 Modules Rearchitecture Design](internal/information/cpp23-modules-rearchitecture-design.md)
 - [Library Modularization Refactor Design](internal/information/library-modularization-refactor-design.md)
 - [Object Model Contracts](internal/information/object-model-contracts.md)
 - [One-Wire Timing Reference](internal/information/one-wire-timing-reference.md)
@@ -39,6 +40,7 @@ Architecture, contracts, references, and technical notes:
 
 ## Internal Backlog
 
+- [Platform Library Split Backlog](backlog/task-lists/001-platform-library-split-backlog.md)
 - [Internal Backlog](internal/backlog/todo.md)
 - [Arduino Examples TODO](internal/backlog/arduino-examples-authoring-todo.md)
 - [Typed Settings Access Surface (Design)](internal/backlog/typed-settings-access-surface-design.md)

@@ -37,10 +37,15 @@ Icon
 .Trashes
 
 # =========================
-# PlatformIO
+# CMake
 # =========================
 
-.pio/
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+_deps/
 
 # =========================
 # Editor (local-only)

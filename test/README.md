@@ -31,18 +31,13 @@ Top-level index for native test categories and spec-driven suites.
 
 ## Quick Run
 
-- Full native suite: `pio test -e native-test`
-- Protocol+transport contract compile matrix:
-  - `pio test -e native-test --filter contracts/test_factory_descriptor_first_pass_compile`
-- Nil template compile smoke:
-  - `pio test -e native-test --filter test_nil_template_compile`
-- Bus + topology suites:
-  - `pio test -e native-test --filter busses/test_bus_shader_buffer_behavior`
-  - `pio test -e native-test --filter topologies/test_topology_spec_section2`
-- Shader suites:
-  - `pio test -e native-test --filter shaders/test_color_domain_section1`
-  - `pio test -e native-test --filter shaders/test_current_limiter_shader_section3`
-  - `pio test -e native-test --filter shaders/test_aggregate_shader_section4`
-- Protocol suites:
-  - `pio test -e native-test --filter protocols/test_protocol_spec_sections_1_1_to_1_4_and_1_14`
-  - `pio test -e native-test --filter protocols/test_protocol_spec_sections_1_5_to_1_13`
+- Full native suite: `ctest --test-dir build --output-on-failure`
+- Configure first if not already done: `cmake -S . -B build`
+- Build: `cmake --build build --config Debug`
+- Run a single test by name:
+  - `ctest --test-dir build -R test_factory_descriptor_first_pass_compile --output-on-failure`
+- Run all tests in a category (regex filter):
+  - `ctest --test-dir build -R test_protocol --output-on-failure`
+  - `ctest --test-dir build -R test_shader --output-on-failure`
+  - `ctest --test-dir build -R test_bus --output-on-failure`
+  - `ctest --test-dir build -R test_topology --output-on-failure`

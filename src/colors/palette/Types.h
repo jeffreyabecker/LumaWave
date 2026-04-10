@@ -234,6 +234,60 @@ public:
   const StorageType& storage() const { return _stops; }
 
 private:
+  template <typename TParsedColor> static bool tryParseHexColorToken(const char* tokenStart, const char* tokenEnd, TParsedColor& color)
+  {
+    if (tokenStart == nullptr || tokenEnd == nullptr || tokenStart >= tokenEnd)
+    {
+      return false;
+    }
+
+    const char* cursor = tokenStart;
+    if (*cursor == '#')
+    {
+      ++cursor;
+    }
+    else if (cursor[0] == '0' && (cursor[1] == 'x' || cursor[1] == 'X'))
+    {
+      cursor += 2;
+    }
+
+    constexpr size_t DigitsPerComponent = sizeof(typename TParsedColor::ComponentType) * 2u;
+    constexpr size_t ExpectedDigitCount = static_cast<size_t>(TParsedColor::ChannelCount) * DigitsPerComponent;
+
+    if (static_cast<size_t>(tokenEnd - cursor) != ExpectedDigitCount)
+    {
+      return false;
+    }
+
+    TParsedColor parsed{};
+    for (size_t logicalChannel = 0; logicalChannel < static_cast<size_t>(TParsedColor::ChannelCount); ++logicalChannel)
+    {
+      const char channelTag = defaultHexChannelTag<TParsedColor>(logicalChannel);
+      if (channelTag == '\0')
+      {
+        return false;
+      }
+
+      typename TParsedColor::ComponentType value = 0;
+      for (size_t digit = 0; digit < DigitsPerComponent; ++digit)
+      {
+        const int nibble = hexNibble(*cursor);
+        if (nibble < 0)
+        {
+          return false;
+        }
+
+        value = static_cast<typename TParsedColor::ComponentType>((value << 4) | static_cast<typename TParsedColor::ComponentType>(nibble));
+        ++cursor;
+      }
+
+      parsed[channelTag] = value;
+    }
+
+    color = parsed;
+    return true;
+  }
+
   static bool tryParseStops(const char* text, StorageType& parsedStops)
   {
     if (text == nullptr)
@@ -411,7 +465,11 @@ private:
       }
     }
 
-    color = ColorHexCodec::parseHex<TColor>(tokenStart);
+    if (!tryParseHexColorToken(tokenStart, scan, color))
+    {
+      return false;
+    }
+
     cursor = scan;
     return true;
   }
@@ -434,7 +492,12 @@ private:
     }
     else
     {
-      const TSourceColor parsed = ColorHexCodec::parseHex<TSourceColor>(tokenStart);
+      TSourceColor parsed{};
+      if (!tryParseHexColorToken(tokenStart, tokenEnd, parsed))
+      {
+        return false;
+      }
+
       color = upscaleParsedColor(parsed);
       cursor = tokenEnd;
       return true;
@@ -493,6 +556,45 @@ private:
     }
 
     return -1;
+  }
+
+  template <typename TParsedColor> static constexpr char defaultHexChannelTag(size_t logicalChannel)
+  {
+    switch (logicalChannel)
+    {
+      case 0u:
+        return 'R';
+
+      case 1u:
+        return 'G';
+
+      case 2u:
+        return 'B';
+
+      case 3u:
+        if constexpr (TParsedColor::ChannelCount >= 5)
+        {
+          return 'C';
+        }
+
+        if constexpr (TParsedColor::ChannelCount >= 4)
+        {
+          return 'W';
+        }
+
+        return '\0';
+
+      case 4u:
+        if constexpr (TParsedColor::ChannelCount >= 5)
+        {
+          return 'W';
+        }
+
+        return '\0';
+
+      default:
+        return '\0';
+    }
   }
 
   StorageType _stops{};

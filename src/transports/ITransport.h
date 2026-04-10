@@ -20,13 +20,10 @@ struct TransportBrightness
   uint32_t max{static_cast<uint32_t>(std::numeric_limits<uint16_t>::max())};
   bool upstreamApplied{false};
 
-  template <typename TBrightness,
-            typename = std::enable_if_t<std::is_integral_v<TBrightness> && std::is_unsigned_v<TBrightness> &&
-                                        !std::is_same_v<remove_cvref_t<TBrightness>, bool>>>
+  template <typename TBrightness, typename = std::enable_if_t<std::is_integral_v<TBrightness> && std::is_unsigned_v<TBrightness> && !std::is_same_v<std::remove_cv_t<std::remove_reference_t<TBrightness>>, bool>>>
   static constexpr TransportBrightness from(TBrightness brightness, bool alreadyApplied = false)
   {
-    return TransportBrightness{static_cast<uint32_t>(brightness),
-                               static_cast<uint32_t>(std::numeric_limits<TBrightness>::max()), alreadyApplied};
+    return TransportBrightness{static_cast<uint32_t>(brightness), static_cast<uint32_t>(std::numeric_limits<TBrightness>::max()), alreadyApplied};
   }
 };
 
@@ -76,7 +73,7 @@ template <typename TTransportSettings, typename = void> struct TransportSettings
 
 template <typename TTransportSettings>
 struct TransportSettingsWithInvertImpl<TTransportSettings, std::void_t<decltype(std::declval<TTransportSettings&>().invert)>>
-    : std::integral_constant<bool, std::is_same<remove_cvref_t<decltype(std::declval<TTransportSettings&>().invert)>, bool>::value>
+    : std::integral_constant<bool, std::is_same_v<std::remove_cv_t<std::remove_reference_t<decltype(std::declval<TTransportSettings&>().invert)>>, bool>>
 {
 };
 
@@ -88,12 +85,12 @@ template <typename TTransport, typename = void> struct TransportLikeImpl : std::
 
 template <typename TTransport>
 struct TransportLikeImpl<TTransport, std::void_t<typename TTransport::TransportSettingsType>>
-    : std::integral_constant<bool, std::is_convertible<TTransport*, ITransport*>::value && TransportSettingsWithInvert<typename TTransport::TransportSettingsType>>
+    : std::integral_constant<bool, std::is_convertible_v<TTransport*, ITransport*> && TransportSettingsWithInvert<typename TTransport::TransportSettingsType>>
 {
 };
 
 template <typename TTransport> static constexpr bool TransportLike = TransportLikeImpl<TTransport>::value;
 
-template <typename TTransport> static constexpr bool SettingsConstructibleTransportLike = TransportLike<TTransport> && std::is_constructible<TTransport, typename TTransport::TransportSettingsType>::value;
+template <typename TTransport> static constexpr bool SettingsConstructibleTransportLike = TransportLike<TTransport> && std::is_constructible_v<TTransport, typename TTransport::TransportSettingsType>;
 
 } // namespace lw::transports
