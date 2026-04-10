@@ -437,7 +437,11 @@ public:
 private:
   void rebuild()
   {
-    const TColor liveColor = samplePaletteAt<TColor>(_rainbowGenerator.stops(), _stepIndex, PaletteSampleOptions<TColor>{.wrapMode = WrapMode::Circular, .blendMode = BlendMode::Linear, .quantizedLevels = 0});
+    PaletteSampleOptions<TColor> sampleOpts;
+    sampleOpts.wrapMode = WrapMode::Circular;
+    sampleOpts.blendMode = BlendMode::Linear;
+    sampleOpts.quantizedLevels = 0;
+    const TColor liveColor = samplePaletteAt<TColor>(_rainbowGenerator.stops(), _stepIndex, sampleOpts);
     _stops[0].color = liveColor;
     _stops[1].color = liveColor;
   }

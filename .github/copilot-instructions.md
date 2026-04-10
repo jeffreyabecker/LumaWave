@@ -65,8 +65,8 @@
 - Before creating tests or running compilation/test commands, first verify the code changes meet the intended design/behavior expectations from the relevant source-of-truth docs.
 - For behavior or contract changes, run targeted native tests first, then broader suites as needed.
 - Minimum high-value gates for contract-sensitive changes:
-	- `pio test -e native-test`
-	- `pio test -e native-test --filter contracts/test_factory_descriptor_first_pass_compile`
+	- `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure`
+	- `ctest --test-dir build -R test_factory_descriptor_first_pass_compile --output-on-failure`
 - For protocol byte-stream changes, validate against relevant protocol and byte-stream specs.
 - For shader coverage policy in strict deterministic tests:
 	- In scope: `CurrentLimiterShader`, `AggregateShader`

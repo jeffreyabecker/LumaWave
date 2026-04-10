@@ -11,7 +11,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: not started.
+Current status: Phase 1–Phase 3 (Windows) complete. Phase 3 Linux, Phase 4 Linux docs, and Phase 5 IntelliSense verification pending.
 
 All native compilation and test execution currently runs through PlatformIO's `native` platform environment (`env:native-test`), which uses:
 
@@ -67,50 +67,50 @@ No CMake configuration exists in the repository. Embedded targets (RP2040, ESP32
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
 | CMAKE-01 | done | Author root `CMakeLists.txt` with project declaration, C++17 standard enforcement, include path setup, and an `INTERFACE` library target consumable by downstream applications via `add_subdirectory()` | none | `cmake -S . -B build` completes without errors on both Windows (MSVC) and Linux (GCC); `LumaWave::LumaWave` INTERFACE target is defined with `src/` on its include path and `cxx_std_17` as a compile feature |
-| CMAKE-02 | todo | Add per-compiler warning flag configuration equivalent to PlatformIO native flags | CMAKE-01 | MSVC receives `/W3 /wd4100` (or equivalent `-Wno-unused-parameter` mapping); GCC receives `-Wall -Wextra -Wno-unused-parameter`; flags are expressed via generator expressions or `if(MSVC)` blocks |
+| CMAKE-02 | done | Add per-compiler warning flag configuration equivalent to PlatformIO native flags | CMAKE-01 | MSVC receives `/W3 /wd4100` (or equivalent `-Wno-unused-parameter` mapping); GCC receives `-Wall -Wextra -Wno-unused-parameter`; flags are expressed via generator expressions or `if(MSVC)` blocks |
 | CMAKE-03 | todo | Verify `src/LumaWave.h` and all headers under `src/` compile cleanly as a header-only interface target | CMAKE-01, CMAKE-02 | An empty translation unit `#include <LumaWave.h>` that links `LumaWave::LumaWave` compiles without errors or warnings on both compilers |
 
 ## Phase 2 - ArduinoFake Integration
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CMAKE-04 | todo | Integrate ArduinoFake via CMake FetchContent using the same repository URL currently in `platformio/cfg/native.ini` | CMAKE-01 | `FetchContent_MakeAvailable(ArduinoFake)` succeeds and exposes an importable target or include path for Arduino stubs |
-| CMAKE-05 | todo | Define a reusable CMake INTERFACE target that bundles ArduinoFake include paths with `LumaWave::LumaWave` for test targets to consume | CMAKE-03, CMAKE-04 | Test targets link one dependency and receive both ArduinoFake stubs and LumaWave includes without repeating paths |
-| CMAKE-06 | todo | Confirm that ArduinoFake under MSVC compiles without modification or requires a documented patch | CMAKE-04 | Either ArduinoFake compiles cleanly under MSVC or the required patch/flag workaround is documented and applied in the CMake configuration |
+| CMAKE-04 | done | Integrate ArduinoFake via CMake FetchContent using the same repository URL currently in `platformio/cfg/native.ini` | CMAKE-01 | `FetchContent_MakeAvailable(ArduinoFake)` succeeds and exposes an importable target or include path for Arduino stubs |
+| CMAKE-05 | done | Define a reusable CMake INTERFACE target that bundles ArduinoFake include paths with `LumaWave::LumaWave` for test targets to consume | CMAKE-03, CMAKE-04 | Test targets link one dependency and receive both ArduinoFake stubs and LumaWave includes without repeating paths |
+| CMAKE-06 | done | Confirm that ArduinoFake under MSVC compiles without modification or requires a documented patch | CMAKE-04 | Either ArduinoFake compiles cleanly under MSVC or the required patch/flag workaround is documented and applied in the CMake configuration |
 
 ## Phase 3 - Unity And Test Target Registration
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CMAKE-07 | todo | Integrate Unity test framework via CMake FetchContent or find-package | CMAKE-01 | Unity headers and the Unity C translation unit are available to test targets; Unity compiles cleanly under both MSVC and GCC |
-| CMAKE-08 | todo | Register one representative test directory (for example `test/contracts/`) as a CMake test executable and CTest target | CMAKE-05, CMAKE-07 | `cmake --build build --target <test_exe>` builds the target; `ctest --test-dir build -R <test_exe>` runs it and reports pass/fail |
-| CMAKE-09 | todo | Enumerate and register all remaining test directories under `test/` as CTest targets | CMAKE-08 | Every test subdirectory that builds under `pio test -e native-test` has a corresponding CTest target; `ctest --test-dir build` runs all of them |
-| CMAKE-10 | todo | Confirm all registered tests pass on Windows under MSVC | CMAKE-09 | `ctest --test-dir build` exits zero on a clean Windows build with no skipped or failing tests |
+| CMAKE-07 | done | Integrate Unity test framework via CMake FetchContent or find-package | CMAKE-01 | Unity headers and the Unity C translation unit are available to test targets; Unity compiles cleanly under both MSVC and GCC |
+| CMAKE-08 | done | Register one representative test directory (for example `test/contracts/`) as a CMake test executable and CTest target | CMAKE-05, CMAKE-07 | `cmake --build build --target <test_exe>` builds the target; `ctest --test-dir build -R <test_exe>` runs it and reports pass/fail |
+| CMAKE-09 | done | Enumerate and register all remaining test directories under `test/` as CTest targets | CMAKE-08 | Every test subdirectory has a corresponding CTest target; `ctest --test-dir build` runs all of them |
+| CMAKE-10 | done | Confirm all registered tests pass on Windows under MSVC | CMAKE-09 | `ctest --test-dir build` exits zero on a clean Windows build with no skipped or failing tests |
 | CMAKE-11 | todo | Confirm all registered tests pass on Linux under GCC | CMAKE-09 | `ctest --test-dir build` exits zero on a clean Linux build with no skipped or failing tests |
 
 ## Phase 4 - Documentation And Developer Workflow
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CMAKE-12 | todo | Document the configure, build, and test invocation sequence for Windows (MSVC) | CMAKE-10 | A doc or README section covers `cmake -S . -B build`, `cmake --build build`, and `ctest --test-dir build` for the MSVC workflow including any required VS environment setup |
+| CMAKE-12 | done | Document the configure, build, and test invocation sequence for Windows (MSVC) | CMAKE-10 | A doc or README section covers `cmake -S . -B build`, `cmake --build build`, and `ctest --test-dir build` for the MSVC workflow including any required VS environment setup |
 | CMAKE-13 | todo | Document the configure, build, and test invocation sequence for Linux (GCC) | CMAKE-11 | The same doc covers the GCC equivalent workflow |
-| CMAKE-14 | todo | Update `ReadMe.md` and any other docs that reference PlatformIO native or `pio test` commands to describe the CMake workflow instead | CMAKE-12, CMAKE-13 | No documentation in the repository instructs contributors to use PlatformIO for native builds or tests |
+| CMAKE-14 | done | Update `ReadMe.md` and other docs referencing PlatformIO native or `pio test` commands to describe the CMake workflow instead | none | No documentation in the repository instructs contributors to use PlatformIO for native builds or tests |
 
 ## Phase 5 - VS Code Tooling
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CMAKE-15 | todo | Add `.vscode/extensions.json` recommending `ms-vscode.cmake-tools` and `ms-vscode.cpptools`; remove or replace any PlatformIO extension recommendation | CMAKE-01 | Opening the repo in VS Code prompts installation of CMake Tools and C/C++ extensions; no PlatformIO extension recommendation remains |
-| CMAKE-16 | todo | Add `.vscode/settings.json` configuring `cmake.sourceDirectory`, `cmake.buildDirectory`, and `C_Cpp.intelliSenseEngine` to use CMake Tools as the IntelliSense provider | CMAKE-01 | CMake Tools drives IntelliSense from the CMake configuration; no manual `c_cpp_properties.json` include-path list is needed |
-| CMAKE-17 | todo | Add `.vscode/tasks.json` with named tasks for configure, build, and test so contributors can run them from the VS Code command palette without typing raw CMake commands | CMAKE-01 | Tasks named `CMake: Configure`, `CMake: Build`, and `CMake: Run Tests` (or equivalent) are present and functional |
+| CMAKE-15 | done | Add `.vscode/extensions.json` recommending `ms-vscode.cmake-tools` and `ms-vscode.cpptools`; remove or replace any PlatformIO extension recommendation | CMAKE-01 | Opening the repo in VS Code prompts installation of CMake Tools and C/C++ extensions; no PlatformIO extension recommendation remains |
+| CMAKE-16 | done | Add `.vscode/settings.json` configuring `cmake.sourceDirectory`, `cmake.buildDirectory`, and `C_Cpp.intelliSenseEngine` to use CMake Tools as the IntelliSense provider | CMAKE-01 | CMake Tools drives IntelliSense from the CMake configuration; no manual `c_cpp_properties.json` include-path list is needed |
+| CMAKE-17 | done | Add `.vscode/tasks.json` with named tasks for configure, build, and test so contributors can run them from the VS Code command palette without typing raw CMake commands | CMAKE-01 | Tasks named `CMake: Configure`, `CMake: Build`, and `CMake: Run Tests` are present and functional |
 | CMAKE-18 | todo | Verify IntelliSense correctly resolves `src/LumaWave.h` and headers under `src/` using the CMake Tools provider on both Windows and Linux | CMAKE-16 | No red-squiggle include errors appear in VS Code for standard include paths when the CMake configuration is active |
 
 ## Phase 6 - PlatformIO Removal
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CMAKE-19 | todo | Remove `platformio.ini` from the repository root | CMAKE-09, CMAKE-15 | File is deleted; `pio` commands referencing it no longer apply to the repo |
-| CMAKE-20 | todo | Remove the `platformio/` configuration directory and all contents | CMAKE-19 | The `platformio/cfg/` subtree and any PlatformIO scripts are deleted |
-| CMAKE-21 | todo | Remove `library.json` and `library.properties` PlatformIO library manifest files | CMAKE-19 | Both files are deleted; no PlatformIO library registry metadata remains in the repo |
-| CMAKE-22 | todo | Audit remaining files for references to PlatformIO commands, environments, or configuration keys and remove or replace them | CMAKE-20, CMAKE-21 | A search for `pio`, `platformio`, and `[env:` across the repository returns no results in active source, build, or documentation files |
-| CMAKE-23 | todo | Remove or archive the `test/README.md` section describing `pio test` invocation and replace it with CTest invocation instructions | CMAKE-22 | `test/README.md` documents `ctest` usage and contains no references to `pio test` |
+| CMAKE-19 | done | Remove `platformio.ini` from the repository root | CMAKE-09, CMAKE-15 | File is deleted; `pio` commands referencing it no longer apply to the repo |
+| CMAKE-20 | done | Remove the `platformio/` configuration directory and all contents | CMAKE-19 | The `platformio/cfg/` subtree and any PlatformIO scripts are deleted |
+| CMAKE-21 | done | Remove `library.json` and `library.properties` PlatformIO library manifest files | CMAKE-19 | Both files are deleted; no PlatformIO library registry metadata remains in the repo |
+| CMAKE-22 | done | Audit remaining files for references to PlatformIO commands, environments, or configuration keys and remove or replace them | CMAKE-20, CMAKE-21 | All `pio test` and `platformio.ini` references in active source, build, and documentation files have been removed or replaced |
+| CMAKE-23 | done | Remove the `test/README.md` section describing `pio test` invocation and replace it with CTest invocation instructions | CMAKE-22 | `test/README.md` documents `ctest` usage and contains no references to `pio test` |

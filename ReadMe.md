@@ -2,9 +2,9 @@
 
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6AA97KE54UJR4)
 
-PlatformIO RP2040 addressable LED library
+RP2040 addressable LED library — native build and test via CMake.
 
-A library for RP2040 boards (Raspberry Pi Pico family) to control NeoPixel-style LED strips using the Arduino framework in PlatformIO.
+A library for RP2040 boards (Raspberry Pi Pico family) to control NeoPixel-style LED strips.
 
 For quick questions and support:  
 * [GitHub Discussions](https://github.com/Makuna/NpbNext/discussions)  
@@ -32,25 +32,22 @@ Get-ChildItem -Recurse -Path src,include,test,examples -Include *.h,*.hpp,*.c,*.
     ForEach-Object { clang-format -i $_.FullName }
 ```
 
-## Installing This Library (PlatformIO)
-Add this library to your `platformio.ini` for an RP2040 environment.
+## Building And Testing (Native)
 
-Example:
-
-```ini
-[env:pico2w]
-platform = raspberrypi
-board = pico2_w
-framework = arduino
-lib_deps =
-	Makuna/NpbNext@^2.8.4
-```
-
-For repository validation, the automated test suite is hosted in the `native-test` environment:
+Requires CMake 3.25+ and either MSVC (Windows) or GCC (Linux).
 
 ```powershell
-pio test -e native-test
+# Configure
+cmake -S . -B build
+
+# Build
+cmake --build build --config Debug
+
+# Run all tests
+ctest --test-dir build -C Debug --output-on-failure
 ```
+
+Or use the VS Code tasks (`CMake: Configure`, `CMake: Build`, `CMake: Run Tests`) via the command palette.
 
 ## Installing This Library From GitHub (advanced, you want to contribute)
 Create a directory in your Arduino\Library folder named "LumaWave"

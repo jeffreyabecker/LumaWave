@@ -504,7 +504,7 @@ struct ChannelFoo
 void test_1_4_1_channel_map_accepts_struct_channel_members(void)
 {
   lw::ChannelMap<lw::Rgbcw8Color, int> map{};
-  map = ChannelFoo{.R = 123, .G = 45, .B = 67, .W = 89, .C = 10};
+  map = ChannelFoo{123, 45, 67, 89, 10};
 
   TEST_ASSERT_EQUAL_INT(123, map['R']);
   TEST_ASSERT_EQUAL_INT(45, map['G']);
@@ -515,7 +515,7 @@ void test_1_4_1_channel_map_accepts_struct_channel_members(void)
 
 void test_1_4_2_channel_map_uses_relevant_members_for_color_depth(void)
 {
-  lw::ChannelMap<lw::Rgb8Color, int> map(ChannelFoo{.R = 9, .G = 8, .B = 7, .W = 6, .C = 5});
+  lw::ChannelMap<lw::Rgb8Color, int> map(ChannelFoo{9, 8, 7, 6, 5});
 
   TEST_ASSERT_EQUAL_INT(9, map['R']);
   TEST_ASSERT_EQUAL_INT(8, map['G']);
@@ -524,9 +524,9 @@ void test_1_4_2_channel_map_uses_relevant_members_for_color_depth(void)
 
 void test_1_4_3_channel_source_exposes_expected_fields_by_color(void)
 {
-  lw::ChannelSource<lw::Rgb8Color> rgb{.R = 1, .G = 2, .B = 3};
-  lw::ChannelSource<lw::Rgbw8Color> rgbw{.R = 4, .G = 5, .B = 6, .W = 7};
-  lw::ChannelSource<lw::Rgbcw8Color> rgbcw{.R = 8, .G = 9, .B = 10, .W = 11, .C = 12};
+  lw::ChannelSource<lw::Rgb8Color> rgb{1, 2, 3};
+  lw::ChannelSource<lw::Rgbw8Color> rgbw{4, 5, 6, 7};
+  lw::ChannelSource<lw::Rgbcw8Color> rgbcw{8, 9, 10, 11, 12};
 
   TEST_ASSERT_EQUAL_UINT8(1, rgb.R);
   TEST_ASSERT_EQUAL_UINT8(7, rgbw.W);
@@ -536,7 +536,7 @@ void test_1_4_3_channel_source_exposes_expected_fields_by_color(void)
 void test_1_4_4_channel_source_assigns_into_channel_map(void)
 {
   lw::ChannelMap<lw::Rgbcw8Color, int> map{};
-  map = lw::ChannelSource<lw::Rgbcw8Color, int>{.R = 21, .G = 22, .B = 23, .W = 24, .C = 25};
+  map = lw::ChannelSource<lw::Rgbcw8Color, int>{21, 22, 23, 24, 25};
 
   TEST_ASSERT_EQUAL_INT(21, map['R']);
   TEST_ASSERT_EQUAL_INT(22, map['G']);

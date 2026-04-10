@@ -283,7 +283,7 @@ template <typename TColor> struct ScalarColorMathBackend
     {
         using UnsignedWide = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
 
-        TColor blended;
+        TColor blended{};
         for (auto channel : TColor::channelIndexes())
         {
             const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
