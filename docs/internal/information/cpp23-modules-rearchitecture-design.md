@@ -263,6 +263,65 @@ Headers do not need to disappear immediately. During migration, some implementat
 
 The build system should treat modules as first-class build artifacts.
 
+## Target-Level Library Split
+
+Moving platform-specific transports into their own CMake libraries would clean up the architecture and should be treated as a desirable precursor to the modules migration.
+
+Today the main problem is that platform code is separated mostly by preprocessor gates and directory layout, not by actual build targets. That means generic consumers still pay for platform coupling in include topology and public umbrella structure even when they never use a given platform transport.
+
+Separate CMake libraries fix that by turning the intended architectural seams into real link-time and dependency-time boundaries.
+
+### Why this helps
+
+- generic targets stop carrying platform SDK assumptions transitively
+- tests can link only the generic runtime layers unless a platform transport is under test
+- platform-specific compile definitions, include paths, warnings, and SDK requirements stay local to the platform pack
+- the future module graph maps naturally onto the target graph instead of fighting it
+- the public facade stops being a dumping ground for every transport implementation
+
+### Recommended target shape
+
+The project should prefer a small number of meaningful targets, not one target per concrete class.
+
+A reasonable target layout is:
+
+- `lumawave_core`
+- `lumawave_color`
+- `lumawave_shader`
+- `lumawave_protocol`
+- `lumawave_transport`
+- `lumawave_bus`
+- `lumawave_platform_rp2040`
+- `lumawave_platform_esp32`
+- `lumawave_platform_esp8266` only if that platform is intentionally retained
+- `lumawave` as an optional facade target that re-exports the common public surface without forcing all platform packs into every consumer
+
+### Target rules
+
+- generic targets must not depend on any platform target
+- platform targets may depend on generic seam targets, but not on unrelated platform packs
+- consumers opt into platform targets explicitly instead of inheriting them through the top-level facade
+- if a platform pack remains header-only during migration, it may begin as an `INTERFACE` library
+- if a platform pack gains SDK bridge source files, it should become a `STATIC` or `OBJECT` library with SDK headers isolated to that target
+
+### Relationship to modules
+
+The module transition becomes much simpler if the target graph already matches the intended public module graph.
+
+The clean mapping is:
+
+- `lumawave_core` -> `lw.core`
+- `lumawave_color` -> `lw.color`
+- `lumawave_shader` -> `lw.shader`
+- `lumawave_protocol` -> `lw.protocol`
+- `lumawave_transport` -> `lw.transport`
+- `lumawave_bus` -> `lw.bus`
+- `lumawave_platform_rp2040` -> `lw.platform.rp2040`
+- `lumawave_platform_esp32` -> `lw.platform.esp32`
+- `lumawave` -> `lw`
+
+That does not require a one-step conversion. It simply means the project should stop treating a single flat interface target as the source of truth for the whole library.
+
 ## Native host builds
 
 - CMake becomes the canonical build system for host-native development and tests.
