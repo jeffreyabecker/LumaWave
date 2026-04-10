@@ -1,6 +1,6 @@
 # CMake Native Build System Backlog
 
-Purpose: define and sequence the work needed to migrate the native build and test pipeline from PlatformIO to CMake, targeting MSVC on Windows and GCC on Linux, while leaving embedded targets (RP2040, ESP32, ESP8266) on PlatformIO unchanged.
+Purpose: define and sequence the work needed to migrate the native build and test pipeline from PlatformIO to CMake, targeting MSVC on Windows and GCC on Linux, update VS Code tooling to match the new build system, and fully remove PlatformIO from the repository. Embedded target build restoration is deferred to a follow-on backlog.
 
 Status legend:
 - `todo`: not started
@@ -20,12 +20,12 @@ All native compilation and test execution currently runs through PlatformIO's `n
 - Build flags: `-Isrc -Iinclude -Wall -Wextra -Wno-unused-parameter`
 - C++17 standard mode (`-std=gnu++17` on GCC/Clang via PlatformIO defaults)
 
-No CMake configuration exists in the repository. Embedded targets are explicitly out of scope for this effort and will continue to be built and flashed through PlatformIO.
+No CMake configuration exists in the repository. Embedded targets (RP2040, ESP32, ESP8266) are out of scope for this effort; their build restoration will be addressed in a follow-on backlog after PlatformIO is removed. No `.vscode/` directory currently exists in the repository.
 
 ## Design Intent
 
 - CMake is authoritative for native builds and native test execution on Windows and Linux.
-- PlatformIO remains authoritative for all embedded target builds and uploads; it is not removed or replaced for those environments.
+- PlatformIO is fully removed from the repository; embedded target build restoration is deferred.
 - MSVC is the native compiler on Windows; GCC is the native compiler on Linux. No cross-compiler targets are required.
 - The test suite under `test/` runs via CTest and continues to use Unity as the assertion framework.
 - ArduinoFake continues to satisfy the Arduino header dependency boundary for native compilation; it is fetched and configured via CMake instead of PlatformIO's `lib_deps`.
@@ -39,15 +39,17 @@ No CMake configuration exists in the repository. Embedded targets are explicitly
 - ArduinoFake integration as a CMake FetchContent or find-package dependency
 - Unity test framework integration under CTest
 - All existing test targets under `test/` compiled and passing under the new build system
+- VS Code tooling: CMake Tools extension configuration, IntelliSense configuration, and build/test tasks
+- Full removal of PlatformIO: `platformio.ini`, `platformio/` directory, `library.json`, `library.properties`, and related library manifest files
 - Toolchain documentation covering configure, build, and test invocations on both platforms
 
 ## Non-Goals
 
-- Do not replace or remove PlatformIO for embedded targets (RP2040, ESP32, ESP8266)
+- Do not migrate embedded targets (RP2040, ESP32, ESP8266) to CMake in this effort; that work is deferred
 - Do not add Clang or AppleClang as supported native toolchains in this effort
-- Do not introduce a meta-build layer that drives both CMake and PlatformIO from a single command
 - Do not alter existing test logic, test names, or Unity assertion patterns to fit CMake
 - Do not add CI pipeline configuration; focus is on local developer workflow only
+- Do not add CMake install rules or package export configuration in this effort
 
 ## Architectural Rules
 
@@ -92,4 +94,23 @@ No CMake configuration exists in the repository. Embedded targets are explicitly
 |---|---|---|---|---|
 | CMAKE-12 | todo | Document the configure, build, and test invocation sequence for Windows (MSVC) | CMAKE-10 | A doc or README section covers `cmake -S . -B build`, `cmake --build build`, and `ctest --test-dir build` for the MSVC workflow including any required VS environment setup |
 | CMAKE-13 | todo | Document the configure, build, and test invocation sequence for Linux (GCC) | CMAKE-11 | The same doc covers the GCC equivalent workflow |
-| CMAKE-14 | todo | Update `ReadMe.md` or a dedicated build doc to note that native testing can be driven by either PlatformIO or CMake | CMAKE-12, CMAKE-13 | The repository readme does not imply PlatformIO is the only native test path |
+| CMAKE-14 | todo | Update `ReadMe.md` and any other docs that reference PlatformIO native or `pio test` commands to describe the CMake workflow instead | CMAKE-12, CMAKE-13 | No documentation in the repository instructs contributors to use PlatformIO for native builds or tests |
+
+## Phase 5 - VS Code Tooling
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| CMAKE-15 | todo | Add `.vscode/extensions.json` recommending `ms-vscode.cmake-tools` and `ms-vscode.cpptools`; remove or replace any PlatformIO extension recommendation | CMAKE-01 | Opening the repo in VS Code prompts installation of CMake Tools and C/C++ extensions; no PlatformIO extension recommendation remains |
+| CMAKE-16 | todo | Add `.vscode/settings.json` configuring `cmake.sourceDirectory`, `cmake.buildDirectory`, and `C_Cpp.intelliSenseEngine` to use CMake Tools as the IntelliSense provider | CMAKE-01 | CMake Tools drives IntelliSense from the CMake configuration; no manual `c_cpp_properties.json` include-path list is needed |
+| CMAKE-17 | todo | Add `.vscode/tasks.json` with named tasks for configure, build, and test so contributors can run them from the VS Code command palette without typing raw CMake commands | CMAKE-01 | Tasks named `CMake: Configure`, `CMake: Build`, and `CMake: Run Tests` (or equivalent) are present and functional |
+| CMAKE-18 | todo | Verify IntelliSense correctly resolves `src/LumaWave.h` and headers under `src/` using the CMake Tools provider on both Windows and Linux | CMAKE-16 | No red-squiggle include errors appear in VS Code for standard include paths when the CMake configuration is active |
+
+## Phase 6 - PlatformIO Removal
+
+| ID | Status | Task | Depends On | Definition of Done |
+|---|---|---|---|---|
+| CMAKE-19 | todo | Remove `platformio.ini` from the repository root | CMAKE-09, CMAKE-15 | File is deleted; `pio` commands referencing it no longer apply to the repo |
+| CMAKE-20 | todo | Remove the `platformio/` configuration directory and all contents | CMAKE-19 | The `platformio/cfg/` subtree and any PlatformIO scripts are deleted |
+| CMAKE-21 | todo | Remove `library.json` and `library.properties` PlatformIO library manifest files | CMAKE-19 | Both files are deleted; no PlatformIO library registry metadata remains in the repo |
+| CMAKE-22 | todo | Audit remaining files for references to PlatformIO commands, environments, or configuration keys and remove or replace them | CMAKE-20, CMAKE-21 | A search for `pio`, `platformio`, and `[env:` across the repository returns no results in active source, build, or documentation files |
+| CMAKE-23 | todo | Remove or archive the `test/README.md` section describing `pio test` invocation and replace it with CTest invocation instructions | CMAKE-22 | `test/README.md` documents `ctest` usage and contains no references to `pio test` |
