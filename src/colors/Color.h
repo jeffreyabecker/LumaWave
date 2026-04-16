@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <array>
+#include <cctype>
 #include <limits>
 #include <type_traits>
 
@@ -174,7 +175,334 @@ public:
     return static_cast<int64_t>(static_cast<uint64_t>(*this));
   }
 
+  static RgbBasedColor parse(const char* text)
+  {
+    RgbBasedColor color{};
+    if (!tryParse(text, color))
+    {
+      return {};
+    }
+
+    return color;
+  }
+
+  static bool tryParse(const char* text, RgbBasedColor& color)
+  {
+    if (text == nullptr)
+    {
+      return false;
+    }
+
+    const char* cursor = skipWhitespace(text);
+    if (*cursor == '\0')
+    {
+      return false;
+    }
+
+    RgbBasedColor parsed{};
+    const char* scan = cursor;
+    if (!tryParseToken(scan, parsed))
+    {
+      return false;
+    }
+
+    scan = skipWhitespace(scan);
+    if (*scan != '\0')
+    {
+      return false;
+    }
+
+    color = parsed;
+    return true;
+  }
+
+  static constexpr size_t serializedLength() { return static_cast<size_t>(ChannelCount) * sizeof(TComponent) * 2u; }
+
+  bool serialize(char* sink, size_t length, const char* colorOrder = nullptr) const
+  {
+    static constexpr char HexDigits[] = "0123456789ABCDEF";
+
+    if (sink == nullptr)
+    {
+      return false;
+    }
+
+    const size_t requiredLength = serializedLength();
+    if (length <= requiredLength)
+    {
+      return false;
+    }
+
+    const char* effectiveChannelOrder = detail::normalizeChannelOrderForCount(colorOrder, defaultSerializeChannelOrder(), static_cast<size_t>(ChannelCount));
+    size_t outputIndex = 0;
+
+    for (size_t channelIndex = 0; channelIndex < static_cast<size_t>(ChannelCount); ++channelIndex)
+    {
+      const TComponent component = (*this)[effectiveChannelOrder[channelIndex]];
+      for (size_t nibble = 0; nibble < (sizeof(TComponent) * 2u); ++nibble)
+      {
+        const size_t shift = ((sizeof(TComponent) * 2u) - nibble - 1u) * 4u;
+        sink[outputIndex++] = HexDigits[(static_cast<size_t>(component) >> shift) & 0x0Fu];
+      }
+    }
+
+    sink[outputIndex] = '\0';
+
+    return true;
+  }
+
 private:
+  static constexpr const char* defaultSerializeChannelOrder()
+  {
+    if constexpr (ChannelCount <= 3)
+    {
+      return ChannelOrder::RGB::value;
+    }
+
+    if constexpr (ChannelCount == 4)
+    {
+      return ChannelOrder::RGBW::value;
+    }
+
+    return ChannelOrder::RGBCW::value;
+  }
+
+  static bool tryParseToken(const char*& cursor, RgbBasedColor& color)
+  {
+    const char* tokenStart = cursor;
+    const char* scan = cursor;
+
+    if (*scan == '#')
+    {
+      ++scan;
+    }
+
+    if (scan[0] == '0' && (scan[1] == 'x' || scan[1] == 'X'))
+    {
+      scan += 2;
+    }
+
+    constexpr size_t DigitsPerComponent = sizeof(TComponent) * 2u;
+    constexpr size_t ExpectedDigitCount = static_cast<size_t>(ChannelCount) * DigitsPerComponent;
+
+    size_t digitCount = 0;
+    while (hexNibble(*scan) >= 0)
+    {
+      ++digitCount;
+      ++scan;
+    }
+
+    if (digitCount != ExpectedDigitCount)
+    {
+      switch (digitCount)
+      {
+        case 6u:
+          return tryParseAndUpscaleColor<RgbBasedColor<3, uint8_t, AliasInternalSize<3, uint8_t>>>(tokenStart, scan, cursor, color);
+
+        case 8u:
+          return tryParseAndUpscaleColor<RgbBasedColor<4, uint8_t, AliasInternalSize<4, uint8_t>>>(tokenStart, scan, cursor, color);
+
+        case 10u:
+          return tryParseAndUpscaleColor<RgbBasedColor<5, uint8_t, AliasInternalSize<5, uint8_t>>>(tokenStart, scan, cursor, color);
+
+        case 12u:
+          return tryParseAndUpscaleColor<RgbBasedColor<3, uint16_t, AliasInternalSize<3, uint16_t>>>(tokenStart, scan, cursor, color);
+
+        case 16u:
+          return tryParseAndUpscaleColor<RgbBasedColor<4, uint16_t, AliasInternalSize<4, uint16_t>>>(tokenStart, scan, cursor, color);
+
+        case 20u:
+          return tryParseAndUpscaleColor<RgbBasedColor<5, uint16_t, AliasInternalSize<5, uint16_t>>>(tokenStart, scan, cursor, color);
+
+        default:
+          return false;
+      }
+    }
+
+    if (!tryParseHexColorToken(tokenStart, scan, color))
+    {
+      return false;
+    }
+
+    cursor = scan;
+    return true;
+  }
+
+  template <typename TParsedColor> static bool tryParseHexColorToken(const char* tokenStart, const char* tokenEnd, TParsedColor& color)
+  {
+    if (tokenStart == nullptr || tokenEnd == nullptr || tokenStart >= tokenEnd)
+    {
+      return false;
+    }
+
+    const char* cursor = tokenStart;
+    if (*cursor == '#')
+    {
+      ++cursor;
+    }
+    else if (cursor[0] == '0' && (cursor[1] == 'x' || cursor[1] == 'X'))
+    {
+      cursor += 2;
+    }
+
+    constexpr size_t ParsedDigitsPerComponent = sizeof(typename TParsedColor::ComponentType) * 2u;
+    constexpr size_t ExpectedDigitCount = static_cast<size_t>(TParsedColor::ChannelCount) * ParsedDigitsPerComponent;
+
+    if (static_cast<size_t>(tokenEnd - cursor) != ExpectedDigitCount)
+    {
+      return false;
+    }
+
+    TParsedColor parsed{};
+    for (size_t logicalChannel = 0; logicalChannel < static_cast<size_t>(TParsedColor::ChannelCount); ++logicalChannel)
+    {
+      const char channelTag = defaultHexChannelTag<TParsedColor>(logicalChannel);
+      if (channelTag == '\0')
+      {
+        return false;
+      }
+
+      typename TParsedColor::ComponentType value = 0;
+      for (size_t digit = 0; digit < ParsedDigitsPerComponent; ++digit)
+      {
+        const int nibble = hexNibble(*cursor);
+        if (nibble < 0)
+        {
+          return false;
+        }
+
+        value = static_cast<typename TParsedColor::ComponentType>((value << 4) | static_cast<typename TParsedColor::ComponentType>(nibble));
+        ++cursor;
+      }
+
+      parsed[channelTag] = value;
+    }
+
+    color = parsed;
+    return true;
+  }
+
+  template <typename TSourceColor> static bool tryParseAndUpscaleColor(const char* tokenStart, const char* tokenEnd, const char*& cursor, RgbBasedColor& color)
+  {
+    using SourceComponent = typename TSourceColor::ComponentType;
+
+    constexpr bool ChannelsCompatible = TSourceColor::ChannelCount <= ChannelCount;
+    constexpr bool ComponentCompatible = sizeof(SourceComponent) <= sizeof(TComponent);
+
+    if constexpr (!ChannelsCompatible || !ComponentCompatible)
+    {
+      (void)tokenStart;
+      (void)tokenEnd;
+      (void)cursor;
+      (void)color;
+      return false;
+    }
+    else
+    {
+      TSourceColor parsed{};
+      if (!tryParseHexColorToken(tokenStart, tokenEnd, parsed))
+      {
+        return false;
+      }
+
+      color = upscaleParsedColor(parsed);
+      cursor = tokenEnd;
+      return true;
+    }
+  }
+
+  template <typename TSourceColor> static RgbBasedColor upscaleParsedColor(const TSourceColor& source)
+  {
+    using SourceComponent = typename TSourceColor::ComponentType;
+
+    RgbBasedColor result{};
+    for (auto channel : TSourceColor::channelIndexes())
+    {
+      const SourceComponent value = source[channel];
+
+      if constexpr (sizeof(SourceComponent) == sizeof(TComponent))
+      {
+        result[channel] = static_cast<TComponent>(value);
+      }
+      else
+      {
+        const TComponent widened = static_cast<TComponent>((static_cast<TComponent>(value) << 8) | value);
+        result[channel] = widened;
+      }
+    }
+
+    return result;
+  }
+
+  static const char* skipWhitespace(const char* cursor)
+  {
+    while (*cursor != '\0' && std::isspace(static_cast<unsigned char>(*cursor)))
+    {
+      ++cursor;
+    }
+
+    return cursor;
+  }
+
+  static int hexNibble(char value)
+  {
+    if (value >= '0' && value <= '9')
+    {
+      return value - '0';
+    }
+
+    if (value >= 'a' && value <= 'f')
+    {
+      return 10 + (value - 'a');
+    }
+
+    if (value >= 'A' && value <= 'F')
+    {
+      return 10 + (value - 'A');
+    }
+
+    return -1;
+  }
+
+  template <typename TParsedColor> static constexpr char defaultHexChannelTag(size_t logicalChannel)
+  {
+    switch (logicalChannel)
+    {
+      case 0u:
+        return 'R';
+
+      case 1u:
+        return 'G';
+
+      case 2u:
+        return 'B';
+
+      case 3u:
+        if constexpr (TParsedColor::ChannelCount >= 5)
+        {
+          return 'C';
+        }
+
+        if constexpr (TParsedColor::ChannelCount >= 4)
+        {
+          return 'W';
+        }
+
+        return '\0';
+
+      case 4u:
+        if constexpr (TParsedColor::ChannelCount >= 5)
+        {
+          return 'W';
+        }
+
+        return '\0';
+
+      default:
+        return '\0';
+    }
+  }
+
   constexpr int compareCanonical(const RgbBasedColor& other) const
   {
     constexpr std::array<char, 5> CanonicalChannels = {'R', 'G', 'B', 'C', 'W'};
