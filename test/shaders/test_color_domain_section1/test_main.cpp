@@ -471,19 +471,63 @@ void test_1_4_8_parse_upscales_when_target_is_wider(void)
   TEST_ASSERT_EQUAL_UINT16(0x0000, rgbcw16['C']);
 }
 
-void test_1_4_9_parse_rejects_invalid_and_downscaling_inputs(void)
+void test_1_4_8b_parse_downscales_and_drops_extra_channels_when_target_is_narrower(void)
+{
+  const auto rgb = lw::Rgb8Color::parse("11223344");
+  const auto rgbw = lw::Rgbw8Color::parse("1111222233334444");
+  const auto rgbwFromRgbcw = lw::Rgbw8Color::parse("0102030405");
+  const auto rgbcw = lw::Rgbcw8Color::parse("111122223333");
+
+  TEST_ASSERT_EQUAL_UINT8(0x11, rgb['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x22, rgb['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x33, rgb['B']);
+
+  TEST_ASSERT_EQUAL_UINT8(0x11, rgbw['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x22, rgbw['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x33, rgbw['B']);
+  TEST_ASSERT_EQUAL_UINT8(0x44, rgbw['W']);
+
+  TEST_ASSERT_EQUAL_UINT8(0x01, rgbwFromRgbcw['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x02, rgbwFromRgbcw['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x03, rgbwFromRgbcw['B']);
+  TEST_ASSERT_EQUAL_UINT8(0x05, rgbwFromRgbcw['W']);
+
+  TEST_ASSERT_EQUAL_UINT8(0x11, rgbcw['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x22, rgbcw['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x33, rgbcw['B']);
+  TEST_ASSERT_EQUAL_UINT8(0x00, rgbcw['W']);
+  TEST_ASSERT_EQUAL_UINT8(0x00, rgbcw['C']);
+}
+
+void test_1_4_8a_parse_accepts_span_input_and_keeps_cstr_compatibility(void)
+{
+  const std::array<char, 7> rgbDigits{'1', '1', '2', '2', '3', '3', ' '};
+  const auto rgbFromSpan = lw::Rgb8Color::parse(lw::span<const char>(rgbDigits.data(), rgbDigits.size()));
+
+  lw::Rgb8Color rgbwidened{};
+  const std::array<char, 10> prefixedDigits{' ', '#', 'A', 'A', 'B', 'B', 'C', 'C', ' ', ' '};
+  TEST_ASSERT_TRUE(lw::Rgb8Color::tryParse(lw::span<const char>(prefixedDigits.data(), prefixedDigits.size()), rgbwidened));
+
+  const auto rgbFromCString = lw::Rgb8Color::parse("112233");
+
+  TEST_ASSERT_EQUAL_UINT8(rgbFromCString['R'], rgbFromSpan['R']);
+  TEST_ASSERT_EQUAL_UINT8(rgbFromCString['G'], rgbFromSpan['G']);
+  TEST_ASSERT_EQUAL_UINT8(rgbFromCString['B'], rgbFromSpan['B']);
+
+  TEST_ASSERT_EQUAL_UINT8(0xAA, rgbwidened['R']);
+  TEST_ASSERT_EQUAL_UINT8(0xBB, rgbwidened['G']);
+  TEST_ASSERT_EQUAL_UINT8(0xCC, rgbwidened['B']);
+}
+
+void test_1_4_9_parse_rejects_invalid_inputs(void)
 {
   const auto nullParsed = lw::Rgb8Color::parse(nullptr);
   const auto malformed = lw::Rgb8Color::parse("11ZZ33");
   const auto trailing = lw::Rgb8Color::parse("112233 trailing");
-  const auto downscaleChannels = lw::Rgb8Color::parse("11223344");
-  const auto downscaleBitDepth = lw::Rgbw8Color::parse("1111222233334444");
 
   assert_all_channels_zero(nullParsed);
   assert_all_channels_zero(malformed);
   assert_all_channels_zero(trailing);
-  assert_all_channels_zero(downscaleChannels);
-  assert_all_channels_zero(downscaleBitDepth);
 }
 
 void test_1_4_10_serialize_uses_default_canonical_order(void)
@@ -502,28 +546,7 @@ void test_1_4_10_serialize_uses_default_canonical_order(void)
 
   TEST_ASSERT_EQUAL_STRING("112233", rgbSink);
   TEST_ASSERT_EQUAL_STRING("11223344", rgbwSink);
-  TEST_ASSERT_EQUAL_STRING("10012002300340045005", rgbcwSink);
-}
-
-void test_1_4_11_serialize_supports_custom_and_normalized_order(void)
-{
-  const lw::Rgb8Color rgb{0x11, 0x22, 0x33};
-  const lw::Rgbw8Color rgbw{0x11, 0x22, 0x33, 0x44};
-  const lw::Rgbcw8Color rgbcw{0x11, 0x22, 0x33, 0x44, 0x55};
-
-  char sink[64] = {};
-
-  TEST_ASSERT_TRUE(rgb.serialize(sink, sizeof(sink), lw::ChannelOrder::GRB::value));
-  TEST_ASSERT_EQUAL_STRING("221133", sink);
-
-  TEST_ASSERT_TRUE(rgbw.serialize(sink, sizeof(sink), lw::ChannelOrder::WRGB::value));
-  TEST_ASSERT_EQUAL_STRING("44112233", sink);
-
-  TEST_ASSERT_TRUE(rgbw.serialize(sink, sizeof(sink), lw::ChannelOrder::GRB::value));
-  TEST_ASSERT_EQUAL_STRING("22113344", sink);
-
-  TEST_ASSERT_TRUE(rgbcw.serialize(sink, sizeof(sink), lw::ChannelOrder::GRBCW::value));
-  TEST_ASSERT_EQUAL_STRING("2211334455", sink);
+  TEST_ASSERT_EQUAL_STRING("10012002300350054004", rgbcwSink);
 }
 
 void test_1_4_12_serialize_rejects_null_or_short_sink(void)
@@ -537,6 +560,15 @@ void test_1_4_12_serialize_rejects_null_or_short_sink(void)
   TEST_ASSERT_FALSE(rgb.serialize(tooShort, sizeof(tooShort)));
   TEST_ASSERT_TRUE(rgb.serialize(exact, sizeof(exact)));
   TEST_ASSERT_EQUAL_STRING("112233", exact);
+}
+
+void test_1_4_13_serialize_accepts_span_sink(void)
+{
+  const lw::Rgb8Color rgb{0x11, 0x22, 0x33};
+  std::array<char, lw::Rgb8Color::serializedLength() + 1u> sink{};
+
+  TEST_ASSERT_TRUE(rgb.serialize(lw::span<char>(sink.data(), sink.size())));
+  TEST_ASSERT_EQUAL_STRING("112233", sink.data());
 }
 
 void test_1_5_1_p0_out_of_range_channel_access_use_guarded(void)
@@ -699,10 +731,12 @@ int main(int argc, char** argv)
   RUN_TEST(test_1_4_6_packed_integer_assignment);
   RUN_TEST(test_1_4_7_parse_accepts_exact_hex_forms);
   RUN_TEST(test_1_4_8_parse_upscales_when_target_is_wider);
-  RUN_TEST(test_1_4_9_parse_rejects_invalid_and_downscaling_inputs);
+  RUN_TEST(test_1_4_8b_parse_downscales_and_drops_extra_channels_when_target_is_narrower);
+  RUN_TEST(test_1_4_8a_parse_accepts_span_input_and_keeps_cstr_compatibility);
+  RUN_TEST(test_1_4_9_parse_rejects_invalid_inputs);
   RUN_TEST(test_1_4_10_serialize_uses_default_canonical_order);
-  RUN_TEST(test_1_4_11_serialize_supports_custom_and_normalized_order);
   RUN_TEST(test_1_4_12_serialize_rejects_null_or_short_sink);
+  RUN_TEST(test_1_4_13_serialize_accepts_span_sink);
   RUN_TEST(test_1_5_1_p0_out_of_range_channel_access_use_guarded);
   RUN_TEST(test_1_5_2_boundary_stress_for_conversion_helpers);
   return UNITY_END();

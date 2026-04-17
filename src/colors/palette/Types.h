@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <initializer_list>
 #include <limits>
 #include <memory>
@@ -192,7 +193,8 @@ public:
       _stops.clear();
     }
   }
-  static std::unique_ptr<IPalette<TColor>> parseDynamic(const char* stops)
+
+  static std::unique_ptr<IPalette<TColor>> parseDynamic(span<const char> stops)
   {
     StorageType parsedStops;
     if (!tryParseStops(stops, parsedStops))
@@ -203,7 +205,11 @@ public:
     return std::make_unique<Palette<TColor>>(std::move(parsedStops));
   }
 
-  static Palette parse(const char* stops)
+  static std::unique_ptr<IPalette<TColor>> parseDynamic(span<char> stops) { return parseDynamic(span<const char>(stops.data(), stops.size())); }
+
+  static std::unique_ptr<IPalette<TColor>> parseDynamic(const char* stops) { return parseDynamic(cStringSpan(stops)); }
+
+  static Palette parse(span<const char> stops)
   {
     StorageType parsedStops;
     if (!tryParseStops(stops, parsedStops))
@@ -213,6 +219,10 @@ public:
 
     return Palette(std::move(parsedStops));
   }
+
+  static Palette parse(span<char> stops) { return parse(span<const char>(stops.data(), stops.size())); }
+
+  static Palette parse(const char* stops) { return parse(cStringSpan(stops)); }
 
   StopsView stops() const override { return StopsView(_stops.data(), _stops.size()); }
 
@@ -234,86 +244,28 @@ public:
   const StorageType& storage() const { return _stops; }
 
 private:
-  template <typename TParsedColor> static bool tryParseHexColorToken(const char* tokenStart, const char* tokenEnd, TParsedColor& color)
+  static bool tryParseStops(span<const char> text, StorageType& parsedStops)
   {
-    if (tokenStart == nullptr || tokenEnd == nullptr || tokenStart >= tokenEnd)
+    span<const char> remaining = trimLeadingWhitespace(text);
+    if (remaining.empty())
     {
       return false;
     }
 
-    const char* cursor = tokenStart;
-    if (*cursor == '#')
-    {
-      ++cursor;
-    }
-    else if (cursor[0] == '0' && (cursor[1] == 'x' || cursor[1] == 'X'))
-    {
-      cursor += 2;
-    }
-
-    constexpr size_t DigitsPerComponent = sizeof(typename TParsedColor::ComponentType) * 2u;
-    constexpr size_t ExpectedDigitCount = static_cast<size_t>(TParsedColor::ChannelCount) * DigitsPerComponent;
-
-    if (static_cast<size_t>(tokenEnd - cursor) != ExpectedDigitCount)
-    {
-      return false;
-    }
-
-    TParsedColor parsed{};
-    for (size_t logicalChannel = 0; logicalChannel < static_cast<size_t>(TParsedColor::ChannelCount); ++logicalChannel)
-    {
-      const char channelTag = defaultHexChannelTag<TParsedColor>(logicalChannel);
-      if (channelTag == '\0')
-      {
-        return false;
-      }
-
-      typename TParsedColor::ComponentType value = 0;
-      for (size_t digit = 0; digit < DigitsPerComponent; ++digit)
-      {
-        const int nibble = hexNibble(*cursor);
-        if (nibble < 0)
-        {
-          return false;
-        }
-
-        value = static_cast<typename TParsedColor::ComponentType>((value << 4) | static_cast<typename TParsedColor::ComponentType>(nibble));
-        ++cursor;
-      }
-
-      parsed[channelTag] = value;
-    }
-
-    color = parsed;
-    return true;
-  }
-
-  static bool tryParseStops(const char* text, StorageType& parsedStops)
-  {
-    if (text == nullptr)
-    {
-      return false;
-    }
-
-    const char* cursor = skipWhitespace(text);
-    if (*cursor == '\0')
-    {
-      return false;
-    }
-
-    const char* formatCursor = cursor;
+    size_t ignoredConsumed = 0;
     size_t ignoredIndex = 0;
     TColor ignoredColor{};
-    const bool hasExplicitIndexes = tryParseStop(formatCursor, ignoredIndex, ignoredColor);
+    const bool hasExplicitIndexes = tryParseStop(remaining, ignoredConsumed, ignoredIndex, ignoredColor);
 
-    while (*cursor != '\0')
+    while (!remaining.empty())
     {
       size_t index = 0;
       TColor color{};
+      size_t consumed = 0;
 
       if (hasExplicitIndexes)
       {
-        if (!tryParseStop(cursor, index, color))
+        if (!tryParseStop(remaining, consumed, index, color))
         {
           return false;
         }
@@ -322,7 +274,7 @@ private:
       }
       else
       {
-        if (!tryParseColor(cursor, color))
+        if (!tryParseColor(remaining, consumed, color))
         {
           return false;
         }
@@ -330,19 +282,19 @@ private:
         parsedStops.push_back(PaletteStop<TColor>{0u, color});
       }
 
-      cursor = skipWhitespace(cursor);
-      if (*cursor == '\0')
+      remaining = trimLeadingWhitespace(remaining.subspan(consumed));
+      if (remaining.empty())
       {
         break;
       }
 
-      if (*cursor != '|')
+      if (remaining[0] != '|')
       {
         return false;
       }
 
-      cursor = skipWhitespace(cursor + 1);
-      if (*cursor == '\0')
+      remaining = trimLeadingWhitespace(remaining.subspan(1));
+      if (remaining.empty())
       {
         return false;
       }
@@ -352,8 +304,49 @@ private:
     {
       assignDistributedStopIndexes(parsedStops);
     }
+    else
+    {
+      normalizeParsedStopIndexes(parsedStops);
+    }
 
     return detail::isValidPaletteStops(parsedStops);
+  }
+
+  static void normalizeParsedStopIndexes(StorageType& parsedStops)
+  {
+    if (parsedStops.empty())
+    {
+      return;
+    }
+
+    using lw::colors::palettes::detail::PaletteDomainMaxIndex;
+
+    if (parsedStops.size() == 1u)
+    {
+      parsedStops[0].index = 0u;
+      parsedStops.push_back(PaletteStop<TColor>{PaletteDomainMaxIndex, parsedStops[0].color});
+      return;
+    }
+
+    const palette_stop_index_t minIndex = parsedStops.front().index;
+    const palette_stop_index_t maxIndex = parsedStops.back().index;
+
+    if (minIndex == 0u && maxIndex == PaletteDomainMaxIndex)
+    {
+      return;
+    }
+
+    if (maxIndex <= minIndex)
+    {
+      return;
+    }
+
+    const uint64_t sourceSpan = static_cast<uint64_t>(maxIndex - minIndex);
+    for (auto& stop : parsedStops)
+    {
+      const uint64_t offset = static_cast<uint64_t>(stop.index - minIndex);
+      stop.index = static_cast<palette_stop_index_t>((offset * PaletteDomainMaxIndex) / sourceSpan);
+    }
   }
 
   static void assignDistributedStopIndexes(StorageType& parsedStops)
@@ -365,7 +358,9 @@ private:
 
     if (parsedStops.size() == 1u)
     {
+      using lw::colors::palettes::detail::PaletteDomainMaxIndex;
       parsedStops[0].index = 0u;
+      parsedStops.push_back(PaletteStop<TColor>{PaletteDomainMaxIndex, parsedStops[0].color});
       return;
     }
 
@@ -377,224 +372,99 @@ private:
     }
   }
 
-  static bool tryParseStop(const char*& cursor, palette_stop_index_t& index, TColor& color)
+  static bool tryParseStop(span<const char> text, size_t& consumed, palette_stop_index_t& index, TColor& color)
   {
-    if (!tryParseIndex(cursor, index))
+    const span<const char> trimmed = trimLeadingWhitespace(text);
+    const size_t leadingWhitespace = text.size() - trimmed.size();
+
+    size_t indexConsumed = 0;
+    if (!tryParseIndex(trimmed, indexConsumed, index))
     {
       return false;
     }
 
-    cursor = skipWhitespace(cursor);
-    if (*cursor != ',')
+    span<const char> remaining = trimLeadingWhitespace(trimmed.subspan(indexConsumed));
+    if (remaining.empty() || remaining[0] != ',')
     {
       return false;
     }
 
-    cursor = skipWhitespace(cursor + 1);
-    return tryParseColor(cursor, color);
+    size_t colorConsumed = 0;
+    if (!tryParseColor(remaining.subspan(1), colorConsumed, color))
+    {
+      return false;
+    }
+
+    consumed = leadingWhitespace + indexConsumed + (remaining.size() - remaining.subspan(1).size()) + colorConsumed;
+    return true;
   }
 
-  static bool tryParseIndex(const char*& cursor, size_t& index)
+  static bool tryParseIndex(span<const char> text, size_t& consumed, size_t& index)
   {
-    cursor = skipWhitespace(cursor);
-    if (!std::isdigit(static_cast<unsigned char>(*cursor)))
+    const span<const char> trimmed = trimLeadingWhitespace(text);
+    const size_t leadingWhitespace = text.size() - trimmed.size();
+    if (trimmed.empty() || !std::isdigit(static_cast<unsigned char>(trimmed[0])))
     {
       return false;
     }
 
     size_t parsed = 0;
-    while (std::isdigit(static_cast<unsigned char>(*cursor)))
+    size_t cursor = 0;
+    while (cursor < trimmed.size() && std::isdigit(static_cast<unsigned char>(trimmed[cursor])))
     {
-      parsed = (parsed * 10u) + static_cast<size_t>(*cursor - '0');
+      parsed = (parsed * 10u) + static_cast<size_t>(trimmed[cursor] - '0');
       ++cursor;
     }
 
     index = parsed;
+    consumed = leadingWhitespace + cursor;
     return true;
   }
 
-  static bool tryParseColor(const char*& cursor, TColor& color)
+  static bool tryParseColor(span<const char> text, size_t& consumed, TColor& color)
   {
-    const char* tokenStart = cursor;
-    const char* scan = cursor;
+    const span<const char> trimmed = trimLeadingWhitespace(text);
+    const size_t leadingWhitespace = text.size() - trimmed.size();
 
-    if (*scan == '#')
+    size_t tokenLength = 0;
+    while (tokenLength < trimmed.size() && !std::isspace(static_cast<unsigned char>(trimmed[tokenLength])) && trimmed[tokenLength] != '|')
     {
-      ++scan;
+      ++tokenLength;
     }
 
-    if (scan[0] == '0' && (scan[1] == 'x' || scan[1] == 'X'))
-    {
-      scan += 2;
-    }
-
-    constexpr size_t DigitsPerComponent = sizeof(typename TColor::ComponentType) * 2u;
-    constexpr size_t ExpectedDigitCount = static_cast<size_t>(TColor::ChannelCount) * DigitsPerComponent;
-
-    size_t digitCount = 0;
-    while (hexNibble(*scan) >= 0)
-    {
-      ++digitCount;
-      ++scan;
-    }
-
-    if (digitCount != ExpectedDigitCount)
-    {
-      switch (digitCount)
-      {
-        case 6u:
-          return tryParseAndUpscaleColor<Rgb8Color>(tokenStart, scan, cursor, color);
-
-        case 8u:
-          return tryParseAndUpscaleColor<Rgbw8Color>(tokenStart, scan, cursor, color);
-
-        case 10u:
-          return tryParseAndUpscaleColor<Rgbcw8Color>(tokenStart, scan, cursor, color);
-
-        case 12u:
-          return tryParseAndUpscaleColor<Rgb16Color>(tokenStart, scan, cursor, color);
-
-        case 16u:
-          return tryParseAndUpscaleColor<Rgbw16Color>(tokenStart, scan, cursor, color);
-
-        case 20u:
-          return tryParseAndUpscaleColor<Rgbcw16Color>(tokenStart, scan, cursor, color);
-
-        default:
-          return false;
-      }
-    }
-
-    if (!tryParseHexColorToken(tokenStart, scan, color))
+    if (tokenLength == 0)
     {
       return false;
     }
 
-    cursor = scan;
+    if (!TColor::tryParse(trimmed.first(tokenLength), color))
+    {
+      return false;
+    }
+
+    consumed = leadingWhitespace + tokenLength;
     return true;
   }
 
-  template <typename TSourceColor> static bool tryParseAndUpscaleColor(const char* tokenStart, const char* tokenEnd, const char*& cursor, TColor& color)
+  static span<const char> trimLeadingWhitespace(span<const char> text)
   {
-    using SourceComponent = typename TSourceColor::ComponentType;
-    using TargetComponent = typename TColor::ComponentType;
-
-    constexpr bool ChannelsCompatible = TSourceColor::ChannelCount <= TColor::ChannelCount;
-    constexpr bool ComponentCompatible = sizeof(SourceComponent) <= sizeof(TargetComponent);
-
-    if constexpr (!ChannelsCompatible || !ComponentCompatible)
+    size_t offset = 0;
+    while (offset < text.size() && std::isspace(static_cast<unsigned char>(text[offset])))
     {
-      (void)tokenStart;
-      (void)tokenEnd;
-      (void)cursor;
-      (void)color;
-      return false;
+      ++offset;
     }
-    else
-    {
-      TSourceColor parsed{};
-      if (!tryParseHexColorToken(tokenStart, tokenEnd, parsed))
-      {
-        return false;
-      }
 
-      color = upscaleParsedColor(parsed);
-      cursor = tokenEnd;
-      return true;
-    }
+    return text.subspan(offset);
   }
 
-  template <typename TSourceColor> static TColor upscaleParsedColor(const TSourceColor& source)
+  static span<const char> cStringSpan(const char* text)
   {
-    using SourceComponent = typename TSourceColor::ComponentType;
-    using TargetComponent = typename TColor::ComponentType;
-
-    TColor result{};
-    for (auto channel : TSourceColor::channelIndexes())
+    if (text == nullptr)
     {
-      const SourceComponent value = source[channel];
-
-      if constexpr (sizeof(SourceComponent) == sizeof(TargetComponent))
-      {
-        result[channel] = static_cast<TargetComponent>(value);
-      }
-      else
-      {
-        const TargetComponent widened = static_cast<TargetComponent>((static_cast<TargetComponent>(value) << 8) | value);
-        result[channel] = widened;
-      }
+      return {};
     }
 
-    return result;
-  }
-
-  static const char* skipWhitespace(const char* cursor)
-  {
-    while (*cursor != '\0' && std::isspace(static_cast<unsigned char>(*cursor)))
-    {
-      ++cursor;
-    }
-
-    return cursor;
-  }
-
-  static int hexNibble(char value)
-  {
-    if (value >= '0' && value <= '9')
-    {
-      return value - '0';
-    }
-
-    if (value >= 'a' && value <= 'f')
-    {
-      return 10 + (value - 'a');
-    }
-
-    if (value >= 'A' && value <= 'F')
-    {
-      return 10 + (value - 'A');
-    }
-
-    return -1;
-  }
-
-  template <typename TParsedColor> static constexpr char defaultHexChannelTag(size_t logicalChannel)
-  {
-    switch (logicalChannel)
-    {
-      case 0u:
-        return 'R';
-
-      case 1u:
-        return 'G';
-
-      case 2u:
-        return 'B';
-
-      case 3u:
-        if constexpr (TParsedColor::ChannelCount >= 5)
-        {
-          return 'C';
-        }
-
-        if constexpr (TParsedColor::ChannelCount >= 4)
-        {
-          return 'W';
-        }
-
-        return '\0';
-
-      case 4u:
-        if constexpr (TParsedColor::ChannelCount >= 5)
-        {
-          return 'W';
-        }
-
-        return '\0';
-
-      default:
-        return '\0';
-    }
+    return span<const char>(text, std::strlen(text));
   }
 
   StorageType _stops{};

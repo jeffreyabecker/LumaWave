@@ -181,6 +181,24 @@ void test_owned_palette_parse_allows_whitespace(void)
   TEST_ASSERT_EQUAL_UINT8(0x10, stops[2].color['B']);
 }
 
+void test_owned_palette_parse_accepts_span_input_and_cstring_compatibility(void)
+{
+  std::array<char, 25> stopsText{'0', ',', '1', '1', '2', '2', '3', '3', '|', '2', '5', '5', ',', 'A', 'A', 'B', 'B', 'C', 'C', ' ', ' ', ' ', ' ', ' ', ' '};
+  const auto paletteFromSpan = lw::colors::palettes::Palette<lw::Rgb8Color>::parse(lw::span<char>(stopsText.data(), 19));
+  const auto paletteFromCString = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233|255,AABBCC");
+
+  const auto spanStops = paletteFromSpan.stops();
+  const auto cstringStops = paletteFromCString.stops();
+
+  TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(cstringStops.size()), static_cast<uint32_t>(spanStops.size()));
+  TEST_ASSERT_EQUAL_UINT8(cstringStops[0].color['R'], spanStops[0].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(cstringStops[0].color['G'], spanStops[0].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(cstringStops[0].color['B'], spanStops[0].color['B']);
+  TEST_ASSERT_EQUAL_UINT8(cstringStops[1].color['R'], spanStops[1].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(cstringStops[1].color['G'], spanStops[1].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(cstringStops[1].color['B'], spanStops[1].color['B']);
+}
+
 void test_owned_palette_parse_accepts_hash_and_0x_prefixes(void)
 {
   const auto rgbPalette = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,#112233|255,0xAABBCC");
@@ -204,17 +222,43 @@ void test_owned_palette_parse_accepts_hash_and_0x_prefixes(void)
   TEST_ASSERT_EQUAL_UINT8(0xE0, rgbcwStops[1].color['W']);
 }
 
-void test_owned_palette_parse_rejects_missing_required_endpoints(void)
+void test_owned_palette_parse_normalizes_incomplete_explicit_ranges(void)
 {
   const auto missingZero = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("1,112233|255,445566");
   const auto missing255 = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233|254,445566");
-  const auto singleStop = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233");
+  const auto shiftedRange = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("10,112233|20,445566|30,778899");
+  const auto singleStop = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("37,112233");
   const auto outOfRange = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,112233|256,445566");
 
-  TEST_ASSERT_TRUE(missingZero.stops().empty());
-  TEST_ASSERT_TRUE(missing255.stops().empty());
-  TEST_ASSERT_TRUE(singleStop.stops().empty());
-  TEST_ASSERT_TRUE(outOfRange.stops().empty());
+  const auto missingZeroStops = missingZero.stops();
+  const auto missing255Stops = missing255.stops();
+  const auto shiftedStops = shiftedRange.stops();
+  const auto singleStopStops = singleStop.stops();
+  const auto outOfRangeStops = outOfRange.stops();
+
+  TEST_ASSERT_EQUAL_UINT32(2U, static_cast<uint32_t>(missingZeroStops.size()));
+  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(missingZeroStops[0].index));
+  TEST_ASSERT_EQUAL_UINT32(255U, static_cast<uint32_t>(missingZeroStops[1].index));
+
+  TEST_ASSERT_EQUAL_UINT32(2U, static_cast<uint32_t>(missing255Stops.size()));
+  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(missing255Stops[0].index));
+  TEST_ASSERT_EQUAL_UINT32(255U, static_cast<uint32_t>(missing255Stops[1].index));
+
+  TEST_ASSERT_EQUAL_UINT32(3U, static_cast<uint32_t>(shiftedStops.size()));
+  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(shiftedStops[0].index));
+  TEST_ASSERT_EQUAL_UINT32(127U, static_cast<uint32_t>(shiftedStops[1].index));
+  TEST_ASSERT_EQUAL_UINT32(255U, static_cast<uint32_t>(shiftedStops[2].index));
+
+  TEST_ASSERT_EQUAL_UINT32(2U, static_cast<uint32_t>(singleStopStops.size()));
+  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(singleStopStops[0].index));
+  TEST_ASSERT_EQUAL_UINT32(255U, static_cast<uint32_t>(singleStopStops[1].index));
+  TEST_ASSERT_EQUAL_UINT8(singleStopStops[0].color['R'], singleStopStops[1].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(singleStopStops[0].color['G'], singleStopStops[1].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(singleStopStops[0].color['B'], singleStopStops[1].color['B']);
+
+  TEST_ASSERT_EQUAL_UINT32(2U, static_cast<uint32_t>(outOfRangeStops.size()));
+  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(outOfRangeStops[0].index));
+  TEST_ASSERT_EQUAL_UINT32(255U, static_cast<uint32_t>(outOfRangeStops[1].index));
 }
 
 void test_owned_palette_parse_supports_rgbw_and_rgbcw_8bit(void)
@@ -309,21 +353,54 @@ void test_owned_palette_parse_upscales_bit_depth_and_channel_count_together(void
   TEST_ASSERT_EQUAL_UINT16(0x0000, rgbcwStops[1].color['C']);
 }
 
+void test_owned_palette_parse_downscales_and_drops_extra_channels(void)
+{
+  const auto rgbPalette = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,11223344|255,AABBCCDD");
+  const auto rgbwPalette = lw::colors::palettes::Palette<lw::Rgbw8Color>::parse("0,1111222233334444|255,AAAABBBBCCCCDDDD");
+  const auto rgbwFromRgbcw = lw::colors::palettes::Palette<lw::Rgbw8Color>::parse("0,0102030405|255,A0B0C0D0E0");
+  const auto rgb16FromRgbcw = lw::colors::palettes::Palette<lw::Rgb16Color>::parse("0,0102030405|255,A0B0C0D0E0");
+
+  const auto rgbStops = rgbPalette.stops();
+  const auto rgbwStops = rgbwPalette.stops();
+  const auto rgbwFromRgbcwStops = rgbwFromRgbcw.stops();
+  const auto rgb16Stops = rgb16FromRgbcw.stops();
+
+  TEST_ASSERT_EQUAL_UINT8(0x11, rgbStops[0].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x22, rgbStops[0].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x33, rgbStops[0].color['B']);
+  TEST_ASSERT_EQUAL_UINT8(0xAA, rgbStops[1].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(0xBB, rgbStops[1].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(0xCC, rgbStops[1].color['B']);
+
+  TEST_ASSERT_EQUAL_UINT8(0x11, rgbwStops[0].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x22, rgbwStops[0].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x33, rgbwStops[0].color['B']);
+  TEST_ASSERT_EQUAL_UINT8(0x44, rgbwStops[0].color['W']);
+  TEST_ASSERT_EQUAL_UINT8(0xDD, rgbwStops[1].color['W']);
+
+  TEST_ASSERT_EQUAL_UINT8(0x01, rgbwFromRgbcwStops[0].color['R']);
+  TEST_ASSERT_EQUAL_UINT8(0x02, rgbwFromRgbcwStops[0].color['G']);
+  TEST_ASSERT_EQUAL_UINT8(0x03, rgbwFromRgbcwStops[0].color['B']);
+  TEST_ASSERT_EQUAL_UINT8(0x05, rgbwFromRgbcwStops[0].color['W']);
+  TEST_ASSERT_EQUAL_UINT8(0xE0, rgbwFromRgbcwStops[1].color['W']);
+
+  TEST_ASSERT_EQUAL_UINT16(0x0101, rgb16Stops[0].color['R']);
+  TEST_ASSERT_EQUAL_UINT16(0x0202, rgb16Stops[0].color['G']);
+  TEST_ASSERT_EQUAL_UINT16(0x0303, rgb16Stops[0].color['B']);
+  TEST_ASSERT_EQUAL_UINT16(0xA0A0, rgb16Stops[1].color['R']);
+  TEST_ASSERT_EQUAL_UINT16(0xB0B0, rgb16Stops[1].color['G']);
+  TEST_ASSERT_EQUAL_UINT16(0xC0C0, rgb16Stops[1].color['B']);
+}
+
 void test_owned_palette_parse_rejects_invalid_input(void)
 {
   const auto empty = lw::colors::palettes::Palette<lw::Rgb8Color>::parse(nullptr);
   const auto malformed = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,FF0000|bad");
   const auto badHex = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,FF00ZZ");
-  const auto downscaleChannels = lw::colors::palettes::Palette<lw::Rgb8Color>::parse("0,11223344");
-  const auto downscaleBitDepth = lw::colors::palettes::Palette<lw::Rgbw8Color>::parse("0,1111222233334444|255,AAAABBBBCCCCDDDD");
-  const auto downscaleBoth = lw::colors::palettes::Palette<lw::Rgb16Color>::parse("0,0102030405");
 
   TEST_ASSERT_TRUE(empty.stops().empty());
   TEST_ASSERT_TRUE(malformed.stops().empty());
   TEST_ASSERT_TRUE(badHex.stops().empty());
-  TEST_ASSERT_TRUE(downscaleChannels.stops().empty());
-  TEST_ASSERT_TRUE(downscaleBitDepth.stops().empty());
-  TEST_ASSERT_TRUE(downscaleBoth.stops().empty());
 }
 } // namespace
 
@@ -348,12 +425,14 @@ int main(int, char**)
   RUN_TEST(test_owned_palette_mutable_storage_updates_sampling);
   RUN_TEST(test_owned_palette_parse_reads_stops);
   RUN_TEST(test_owned_palette_parse_allows_whitespace);
+  RUN_TEST(test_owned_palette_parse_accepts_span_input_and_cstring_compatibility);
   RUN_TEST(test_owned_palette_parse_accepts_hash_and_0x_prefixes);
-  RUN_TEST(test_owned_palette_parse_rejects_missing_required_endpoints);
+  RUN_TEST(test_owned_palette_parse_normalizes_incomplete_explicit_ranges);
   RUN_TEST(test_owned_palette_parse_supports_rgbw_and_rgbcw_8bit);
   RUN_TEST(test_owned_palette_parse_upscales_channel_count_at_same_bit_depth);
   RUN_TEST(test_owned_palette_parse_supports_rgbw_and_rgbcw_16bit);
   RUN_TEST(test_owned_palette_parse_upscales_bit_depth_and_channel_count_together);
+  RUN_TEST(test_owned_palette_parse_downscales_and_drops_extra_channels);
   RUN_TEST(test_owned_palette_parse_rejects_invalid_input);
   return UNITY_END();
 }
