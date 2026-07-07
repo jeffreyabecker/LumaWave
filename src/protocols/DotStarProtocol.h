@@ -32,7 +32,7 @@ struct Hd108ProtocolSettings : public ProtocolSettings
   }
 };
 
-template <typename TInterfaceColor = Rgb8Color, typename TStripColor = TInterfaceColor> class Apa102Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = TInterfaceColor> class Apa102Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
@@ -42,8 +42,6 @@ public:
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Apa102Protocol interface color supports uint8_t or uint16_t components.");
   static_assert(std::is_same_v<typename StripColorType::ComponentType, uint8_t>, "Apa102Protocol requires uint8_t strip components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3 && InterfaceColorType::ChannelCount <= 5, "Apa102Protocol interface color requires channel count in [3, 5].");
-  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 5, "Apa102Protocol strip color requires channel count in [3, 5].");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -113,7 +111,7 @@ private:
   span<uint8_t> _byteBuffer{};
 };
 
-template <typename TInterfaceColor = Rgb8Color, typename TStripColor = Rgb16Color> class Hd108Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = Rgbw16Color> class Hd108Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
@@ -123,8 +121,6 @@ public:
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Hd108Protocol interface color supports uint8_t or uint16_t components.");
   static_assert(std::is_same_v<typename StripColorType::ComponentType, uint16_t>, "Hd108Protocol requires uint16_t strip components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3 && InterfaceColorType::ChannelCount <= 5, "Hd108Protocol interface color requires channel count in [3, 5].");
-  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 5, "Hd108Protocol strip color requires channel count in [3, 5].");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 

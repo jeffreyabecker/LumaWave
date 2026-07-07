@@ -21,7 +21,7 @@ using DefaultDebugWritable = Print;
 using DefaultDebugWritable = lw::detail::NullWritable;
 #endif
 
-template <typename TWrappedProtocol = NilProtocol<Rgb8Color>, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>> struct DebugProtocolSettingsT : public ProtocolSettings
+template <typename TWrappedProtocol = NilProtocol<Rgbw8Color>, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>> struct DebugProtocolSettingsT : public ProtocolSettings
 {
   using WrappedSettingsType = typename TWrappedProtocol::SettingsType;
 
@@ -90,7 +90,7 @@ public:
         }
 
         const auto& color = colors[colorIndex];
-        for (auto channel : ColorType::channelIndexes())
+        for (char channel : {'R', 'G', 'B', 'W'})
         {
           using ComponentType = typename ColorType::ComponentType;
           using UnsignedComponentType = std::make_unsigned_t<ComponentType>;

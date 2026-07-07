@@ -26,204 +26,193 @@ using DefaultPrintLightDriverWritable = Print;
 using DefaultPrintLightDriverWritable = lw::detail::NullWritable;
 #endif
 
-template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::enable_if_t<Writable<TWritable>>>
-struct PrintLightDriverSettingsT : LightDriverSettingsBase
+template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::enable_if_t<Writable<TWritable>>> struct PrintLightDriverSettingsT : LightDriverSettingsBase
 {
-    TWritable* output = nullptr;
-    bool asciiOutput = false;
-    bool debugOutput = false;
-    const char* identifier = nullptr;
+  TWritable* output = nullptr;
+  bool asciiOutput = false;
+  bool debugOutput = false;
+  const char* identifier = nullptr;
 
-    static PrintLightDriverSettingsT<TWritable> normalize(PrintLightDriverSettingsT<TWritable> settings)
-    {
+  static PrintLightDriverSettingsT<TWritable> normalize(PrintLightDriverSettingsT<TWritable> settings)
+  {
 #if defined(ARDUINO)
-        if (settings.output == nullptr)
-        {
-            settings.output = &Serial;
-        }
-#endif
-        return settings;
+    if (settings.output == nullptr)
+    {
+      settings.output = &Serial;
     }
+#endif
+    return settings;
+  }
 };
 
-template <typename TColor, typename TWritable, typename = std::enable_if_t<Writable<TWritable>>>
-class PrintLightDriverT : public ILightDriver<TColor>
+template <typename TColor, typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public ILightDriver<TColor>
 {
-  public:
-    using ColorType = TColor;
-        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
-    using LightDriverSettingsType = PrintLightDriverSettingsT<TWritable>;
+public:
+  using ColorType = TColor;
+  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using LightDriverSettingsType = PrintLightDriverSettingsT<TWritable>;
 
-    explicit PrintLightDriverT(LightDriverSettingsType settings) : _settings(std::move(settings))
+  explicit PrintLightDriverT(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }
+
+  explicit PrintLightDriverT(TWritable& output) : _settings{.output = &output} { captureIdentifier(); }
+
+  void begin() override
+  {
+    if (_settings.debugOutput)
     {
-        captureIdentifier();
+      writeDebugPrefix();
+      writeLine("begin");
+    }
+  }
+
+  bool isReadyToUpdate() const override { return true; }
+
+  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+
+  void write(const ColorType& color, BrightnessType brightness) override
+  {
+    if (_settings.output == nullptr)
+    {
+      return;
     }
 
-    explicit PrintLightDriverT(TWritable& output) : _settings{.output = &output} { captureIdentifier(); }
-
-    void begin() override
+    if (_settings.debugOutput)
     {
-        if (_settings.debugOutput)
-        {
-            writeDebugPrefix();
-            writeLine("begin");
-        }
+      writeDebugPrefix();
+      writeText("write bri=");
+      writeUnsigned(static_cast<unsigned long>(brightness));
+      writeNewline();
     }
 
-    bool isReadyToUpdate() const override { return true; }
-
-    void write(const ColorType& color) override
+    if (_settings.asciiOutput)
     {
-        write(color, std::numeric_limits<BrightnessType>::max());
+      writeColorAscii(color);
+      return;
     }
 
-    void write(const ColorType& color, BrightnessType brightness) override
+    writeColorBinary(color);
+  }
+
+private:
+  void writeColorBinary(const ColorType& color)
+  {
+    using ComponentType = typename ColorType::ComponentType;
+    using UnsignedComponentType = std::make_unsigned_t<ComponentType>;
+
+    for (const char channelTag : {'R', 'G', 'B', 'W'})
     {
-        if (_settings.output == nullptr)
-        {
-            return;
-        }
+      const UnsignedComponentType component = static_cast<UnsignedComponentType>(color[channelTag]);
+      for (size_t offset = 0; offset < sizeof(ComponentType); ++offset)
+      {
+        const size_t shift = (sizeof(ComponentType) - 1U - offset) * 8U;
+        const uint8_t byte = static_cast<uint8_t>((component >> shift) & 0xFFU);
+        writeBytes(&byte, 1);
+      }
+    }
+  }
 
-        if (_settings.debugOutput)
-        {
-            writeDebugPrefix();
-            writeText("write bri=");
-            writeUnsigned(static_cast<unsigned long>(brightness));
-            writeNewline();
-        }
+  void writeColorAscii(const ColorType& color)
+  {
+    using ComponentType = typename ColorType::ComponentType;
+    using UnsignedComponentType = std::make_unsigned_t<ComponentType>;
 
-        if (_settings.asciiOutput)
-        {
-            writeColorAscii(color);
-            return;
-        }
+    static constexpr char Hex[] = "0123456789ABCDEF";
+    char componentBuffer[sizeof(ComponentType) * 2U]{};
 
-        writeColorBinary(color);
+    for (const char channelTag : {'R', 'G', 'B', 'W'})
+    {
+      UnsignedComponentType component = static_cast<UnsignedComponentType>(color[channelTag]);
+
+      for (size_t nibble = 0; nibble < (sizeof(ComponentType) * 2U); ++nibble)
+      {
+        const size_t shift = ((sizeof(ComponentType) * 2U) - 1U - nibble) * 4U;
+        componentBuffer[nibble] = Hex[(component >> shift) & 0x0FU];
+      }
+
+      writeBytes(reinterpret_cast<const uint8_t*>(componentBuffer), sizeof(componentBuffer));
+    }
+  }
+
+  void writeBytes(const uint8_t* data, size_t length)
+  {
+    if (_settings.output == nullptr || data == nullptr || length == 0)
+    {
+      return;
     }
 
-  private:
-    void writeColorBinary(const ColorType& color)
-    {
-        using ComponentType = typename ColorType::ComponentType;
-        using UnsignedComponentType = std::make_unsigned_t<ComponentType>;
+    _settings.output->write(data, length);
+  }
 
-        for (const char channelTag : ColorType::channelIndexes())
-        {
-            const UnsignedComponentType component = static_cast<UnsignedComponentType>(color[channelTag]);
-            for (size_t offset = 0; offset < sizeof(ComponentType); ++offset)
-            {
-                const size_t shift = (sizeof(ComponentType) - 1U - offset) * 8U;
-                const uint8_t byte = static_cast<uint8_t>((component >> shift) & 0xFFU);
-                writeBytes(&byte, 1);
-            }
-        }
+  void writeText(const char* text)
+  {
+    if (text == nullptr)
+    {
+      return;
     }
 
-    void writeColorAscii(const ColorType& color)
+    writeBytes(reinterpret_cast<const uint8_t*>(text), std::strlen(text));
+  }
+
+  void writeDebugPrefix()
+  {
+    writeText("[LIGHT");
+    if (_settings.identifier != nullptr && _settings.identifier[0] != '\0')
     {
-        using ComponentType = typename ColorType::ComponentType;
-        using UnsignedComponentType = std::make_unsigned_t<ComponentType>;
+      writeText(":");
+      writeText(_settings.identifier);
+    }
+    writeText("] ");
+  }
 
-        static constexpr char Hex[] = "0123456789ABCDEF";
-        char componentBuffer[sizeof(ComponentType) * 2U]{};
+  void writeLine(const char* text)
+  {
+    writeText(text);
+    writeNewline();
+  }
 
-        for (const char channelTag : ColorType::channelIndexes())
-        {
-            UnsignedComponentType component = static_cast<UnsignedComponentType>(color[channelTag]);
+  void writeNewline() { writeText("\r\n"); }
 
-            for (size_t nibble = 0; nibble < (sizeof(ComponentType) * 2U); ++nibble)
-            {
-                const size_t shift = ((sizeof(ComponentType) * 2U) - 1U - nibble) * 4U;
-                componentBuffer[nibble] = Hex[(component >> shift) & 0x0FU];
-            }
+  void writeUnsigned(unsigned long value)
+  {
+    char buffer[3 * sizeof(unsigned long)]{};
+    size_t index = 0;
 
-            writeBytes(reinterpret_cast<const uint8_t*>(componentBuffer), sizeof(componentBuffer));
-        }
+    do
+    {
+      if (index >= sizeof(buffer))
+      {
+        return;
+      }
+
+      const unsigned long digit = value % 10UL;
+      buffer[index++] = static_cast<char>('0' + digit);
+      value /= 10UL;
+    } while (value > 0UL);
+
+    for (size_t left = 0, right = index - 1; left < right; ++left, --right)
+    {
+      const char tmp = buffer[left];
+      buffer[left] = buffer[right];
+      buffer[right] = tmp;
     }
 
-    void writeBytes(const uint8_t* data, size_t length)
-    {
-        if (_settings.output == nullptr || data == nullptr || length == 0)
-        {
-            return;
-        }
+    writeBytes(reinterpret_cast<const uint8_t*>(buffer), index);
+  }
 
-        _settings.output->write(data, length);
+  void captureIdentifier()
+  {
+    if (_settings.identifier == nullptr || _settings.identifier[0] == '\0')
+    {
+      return;
     }
 
-    void writeText(const char* text)
-    {
-        if (text == nullptr)
-        {
-            return;
-        }
+    const size_t length = std::strlen(_settings.identifier);
+    _identifierStorage.assign(_settings.identifier, _settings.identifier + length + 1U);
+    _settings.identifier = _identifierStorage.data();
+  }
 
-        writeBytes(reinterpret_cast<const uint8_t*>(text), std::strlen(text));
-    }
-
-    void writeDebugPrefix()
-    {
-        writeText("[LIGHT");
-        if (_settings.identifier != nullptr && _settings.identifier[0] != '\0')
-        {
-            writeText(":");
-            writeText(_settings.identifier);
-        }
-        writeText("] ");
-    }
-
-    void writeLine(const char* text)
-    {
-        writeText(text);
-        writeNewline();
-    }
-
-    void writeNewline()
-    {
-        writeText("\r\n");
-    }
-
-    void writeUnsigned(unsigned long value)
-    {
-        char buffer[3 * sizeof(unsigned long)]{};
-        size_t index = 0;
-
-        do
-        {
-            if (index >= sizeof(buffer))
-            {
-                return;
-            }
-
-            const unsigned long digit = value % 10UL;
-            buffer[index++] = static_cast<char>('0' + digit);
-            value /= 10UL;
-        } while (value > 0UL);
-
-        for (size_t left = 0, right = index - 1; left < right; ++left, --right)
-        {
-            const char tmp = buffer[left];
-            buffer[left] = buffer[right];
-            buffer[right] = tmp;
-        }
-
-        writeBytes(reinterpret_cast<const uint8_t*>(buffer), index);
-    }
-
-    void captureIdentifier()
-    {
-        if (_settings.identifier == nullptr || _settings.identifier[0] == '\0')
-        {
-            return;
-        }
-
-        const size_t length = std::strlen(_settings.identifier);
-        _identifierStorage.assign(_settings.identifier, _settings.identifier + length + 1U);
-        _settings.identifier = _identifierStorage.data();
-    }
-
-    LightDriverSettingsType _settings;
-    std::vector<char> _identifierStorage{};
+  LightDriverSettingsType _settings;
+  std::vector<char> _identifierStorage{};
 };
 
 #if LW_HAS_ARDUINO

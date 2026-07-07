@@ -89,7 +89,7 @@ namespace detail::palettegen
   template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> TColor randomColor(uint32_t& state)
   {
     TColor color{};
-    for (char channel : TColor::channelIndexes())
+    for (char channel : {'R', 'G', 'B', 'W'})
     {
       color[channel] = randomComponent<typename TColor::ComponentType>(state);
     }

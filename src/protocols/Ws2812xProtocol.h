@@ -75,8 +75,7 @@ public:
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
   static_assert((std::is_same_v<typename StripColorType::ComponentType, uint8_t> || std::is_same_v<typename StripColorType::ComponentType, uint16_t>), "Ws2812xProtocol strip color supports uint8_t or uint16_t components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3 && InterfaceColorType::ChannelCount <= 5, "Ws2812xProtocol interface color expects 3 to 5 channels.");
-  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 5, "Ws2812xProtocol strip color expects 3 to 5 channels.");
+  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 4, "Ws2812xProtocol strip color expects 3 or 4 channels.");
 
   Ws2812xProtocol(PixelCount pixelCount, SettingsType settings)
       : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)},

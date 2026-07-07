@@ -11,9 +11,11 @@ Status legend:
 
 ## Implementation Status
 
-Current status: not started.
+Current status: not started (but informed by completed color/shader simplifications).
 
 The repository currently exposes a single top-level `LumaWave` interface target in CMake, while public headers still mix generic and platform-specific transport surfaces. The existing transport layout already groups platform code under `src/transports/rp2040/`, `src/transports/esp32/`, and `src/transports/esp8266/`, but those groupings are not yet reflected in the build graph. As a result, target boundaries, include boundaries, and architectural seams do not currently align.
+
+The shader layer has been eliminated (backlog 003 complete), and the color layer has been simplified to a fixed 4-channel `RgbwColor<TComponent>` with no template channel-count parameter (backlog 002 phases 1-2 complete). These simplifications remove `lumawave_shader` from the target graph entirely, simplify `lumawave_color` to own all of `src/colors/`, and remove the shader dependency from `lumawave_bus`.
 
 This backlog focuses on introducing target-level separation for platform packs first. It does not require the full native-SDK migration or C++23 module conversion to happen in the same change set, but it should leave the codebase ready for both.
 
@@ -57,7 +59,6 @@ The intended target shape for this backlog is:
 
 - `lumawave_core`
 - `lumawave_color`
-- `lumawave_shader`
 - `lumawave_protocol`
 - `lumawave_transport`
 - `lumawave_bus`
@@ -80,11 +81,6 @@ lumawave_color
 	-> lumawave_core
 	-> color types, channel maps, color math, palette domain/types
 
-lumawave_shader
-	-> lumawave_core
-	-> lumawave_color
-	-> shader interfaces and generic shader implementations
-
 lumawave_transport
 	-> lumawave_core
 	-> lumawave_color
@@ -99,7 +95,6 @@ lumawave_protocol
 lumawave_bus
 	-> lumawave_core
 	-> lumawave_color
-	-> lumawave_shader
 	-> lumawave_transport
 	-> lumawave_protocol
 	-> PixelBus, LightBus, composite/reference bus types
@@ -123,7 +118,6 @@ lumawave_platform_esp8266
 lumawave
 	-> lumawave_core
 	-> lumawave_color
-	-> lumawave_shader
 	-> lumawave_transport
 	-> lumawave_protocol
 	-> lumawave_bus
@@ -133,11 +127,10 @@ lumawave
 The intended ownership split is:
 
 - `lumawave_core`: `src/core/Compat.h`, `src/core/Core.h`, `src/core/IPixelBus.h`, `src/core/PixelView.h`, `src/core/Topology.h`, and similar seam-level utilities.
-- `lumawave_color`: `src/colors/` except shader implementations that conceptually belong in the shader layer.
-- `lumawave_shader`: shader interfaces and shader implementations under the color domain.
+- `lumawave_color`: `src/colors/` (color types, channel maps, color math, palette domain).
 - `lumawave_transport`: `src/transports/ITransport.h`, `src/transports/ILightDriver.h`, `src/transports/NilTransport.h`, `src/transports/NilLightDriver.h`, `src/transports/PrintTransport.h`, `src/transports/PrintLightDriver.h`, `src/transports/OneWireTiming.h`, `src/transports/OneWireEncoding.h`, and generic `SpiTransport.h` if it remains adapter-level rather than platform-owned.
 - `lumawave_protocol`: `src/protocols/` and related protocol aliases once those aliases no longer hardwire platform defaults.
-- `lumawave_bus`: `src/buses/` and any generic factory or facade helpers that compose protocol, transport, and shader layers without naming a concrete platform.
+- `lumawave_bus`: `src/buses/` and any generic factory or facade helpers that compose protocol and transport layers without naming a concrete platform.
 - `lumawave_platform_*`: only the concrete platform implementations and platform-specific convenience headers.
 
 The graph should remain acyclic and intentional:
@@ -242,7 +235,7 @@ Definition of success for this stage:
 ### Stage 3 - Packaging shape inside the monorepo
 
 - document the intended package boundaries even if the build still ships from one repository.
-- treat `lumawave_core`, `lumawave_color`, `lumawave_shader`, `lumawave_transport`, `lumawave_protocol`, `lumawave_bus`, and each retained `lumawave_platform_*` target as the canonical packaging units.
+- treat `lumawave_core`, `lumawave_color`, `lumawave_transport`, `lumawave_protocol`, `lumawave_bus`, and each retained `lumawave_platform_*` target as the canonical packaging units.
 - ensure installation, export, and documentation paths can describe those units cleanly.
 
 Definition of success for this stage:
@@ -266,7 +259,7 @@ This stage is intentionally deferred. The backlog should optimize first for clea
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| PLS-01 | todo | Replace the single flat `LumaWave` interface target with a small layered target graph for generic code (`lumawave_core`, `lumawave_color`, `lumawave_shader`, `lumawave_protocol`, `lumawave_transport`, `lumawave_bus`, optional facade `lumawave`) | none | CMake exposes the generic targets and existing native tests still configure and build against the facade or the relevant lower-layer targets |
+| PLS-01 | todo | Replace the single flat `LumaWave` interface target with a small layered target graph for generic code (`lumawave_core`, `lumawave_color`, `lumawave_protocol`, `lumawave_transport`, `lumawave_bus`, optional facade `lumawave`) | none | CMake exposes the generic targets and existing native tests still configure and build against the facade or the relevant lower-layer targets |
 | PLS-02 | todo | Remove platform-target dependency assumptions from generic targets so no generic layer pulls in `rp2040`, `esp32`, or `esp8266` headers transitively | PLS-01 | Generic targets configure without platform include paths or platform compile definitions |
 
 ## Phase 2 - Public Surface Cleanup For Opt-In Platforms

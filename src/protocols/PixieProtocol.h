@@ -15,16 +15,15 @@ struct PixieProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-template <typename TInterfaceColor = Rgb8Color> class PixieProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgbw8Color> class PixieProtocolT : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = Rgb8Color;
+  using StripColorType = void; //Rgb8Color;
   using SettingsType = PixieProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "PixieProtocol requires uint8_t or uint16_t interface components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3, "PixieProtocol requires at least 3 interface channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 

@@ -233,7 +233,7 @@ template <typename TColor> struct ScalarColorMathBackend
 
   static constexpr void darken(TColor& color, ComponentType delta)
   {
-    for (auto channel : TColor::channelIndexes())
+    for (char channel : {'R', 'G', 'B', 'W'})
     {
       auto& component = color[channel];
       if (component > delta)
@@ -249,7 +249,7 @@ template <typename TColor> struct ScalarColorMathBackend
 
   static constexpr void lighten(TColor& color, ComponentType delta)
   {
-    for (auto channel : TColor::channelIndexes())
+    for (char channel : {'R', 'G', 'B', 'W'})
     {
       auto& component = color[channel];
       if (component < static_cast<ComponentType>(TColor::MaxComponent - delta))
@@ -268,7 +268,7 @@ template <typename TColor> struct ScalarColorMathBackend
     using UnsignedWide = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
 
     TColor blended{};
-    for (auto channel : TColor::channelIndexes())
+    for (char channel : {'R', 'G', 'B', 'W'})
     {
       const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
       const UnsignedWide rightValue = static_cast<UnsignedWide>(right[channel]);
@@ -296,7 +296,7 @@ template <typename TColor> struct ScalarColorMathBackend
     }
 
     TColor blended;
-    for (auto channel : TColor::channelIndexes())
+    for (char channel : {'R', 'G', 'B', 'W'})
     {
       const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
       const UnsignedWide rightValue = static_cast<UnsignedWide>(right[channel]);

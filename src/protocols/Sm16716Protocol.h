@@ -30,16 +30,15 @@ struct Sm16716ProtocolSettings : public ProtocolSettings
 //
 // No end frame. Entire stream transmitted as bytes via transmitBytes().
 //
-template <typename TInterfaceColor = Rgb8Color> class Sm16716ProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgbw8Color> class Sm16716ProtocolT : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = Rgb8Color;
+  using StripColorType = void; //Rgb8Color;
   using SettingsType = Sm16716ProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Sm16716Protocol requires uint8_t or uint16_t interface components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3, "Sm16716Protocol requires at least 3 interface channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (StartFrameBits + (static_cast<size_t>(pixelCount) * BitsPerPixel) + 7u) / 8u; }
 

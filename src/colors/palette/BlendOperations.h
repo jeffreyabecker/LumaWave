@@ -18,7 +18,7 @@ template <typename TColor> TColor applyQuantizedBlend(const TColor& left, const 
   const uint32_t step = maxValue / (clampedLevels - 1u);
 
   TColor out = lw::colors::linearBlendProgress8(left, right, progress);
-  for (char channel : TColor::channelIndexes())
+  for (char channel : {'R', 'G', 'B', 'W'})
   {
     const uint32_t value = static_cast<uint32_t>(out[channel]);
     uint32_t quantized = ((value + (step / 2u)) / step) * step;
@@ -51,7 +51,7 @@ template <typename TColor> TColor applyBlendMode(BlendMode blendMode, const TCol
       using Component = typename TColor::ComponentType;
       TColor out{};
 
-      for (char channel : TColor::channelIndexes())
+      for (char channel : {'R', 'G', 'B', 'W'})
       {
         const uint32_t leftValue = static_cast<uint32_t>(left[channel]);
         const uint32_t rightValue = static_cast<uint32_t>(right[channel]);
@@ -74,7 +74,7 @@ template <typename TColor> TColor applyBlendMode(BlendMode blendMode, const TCol
 
       TColor out = lw::colors::linearBlendProgress8(left, right, progress);
       uint8_t channelOrdinal = 0;
-      for (char channel : TColor::channelIndexes())
+      for (char channel : {'R', 'G', 'B', 'W'})
       {
         uint32_t value = static_cast<uint32_t>(out[channel]);
         const uint8_t noise = static_cast<uint8_t>((sampleIndex * 37u) + (channelOrdinal * 97u));

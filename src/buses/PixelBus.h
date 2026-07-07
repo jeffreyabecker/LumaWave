@@ -130,7 +130,7 @@ public:
       {
         const ColorType& src = protocolInput[i];
         ColorType& dst = _brightnessScratch[i];
-        for (auto channel : ColorType::channelIndexes())
+        for (char channel : {'R', 'G', 'B', 'W'})
         {
           const auto comp = src[channel];
           dst[channel] = static_cast<typename ColorType::ComponentType>(lw::colors::applyBrightness(comp, _brightness));

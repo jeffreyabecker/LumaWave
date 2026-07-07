@@ -22,7 +22,7 @@ struct Ws2801ProtocolSettings : public ProtocolSettings
 // No start or end frame.
 // Latch: 500 ?s clock-low after last byte.
 //
-template <typename TInterfaceColor = Rgb8Color, typename TStripColor = Rgb8Color> class Ws2801ProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = TInterfaceColor> class Ws2801ProtocolT : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
@@ -32,8 +32,6 @@ public:
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Ws2801Protocol requires uint8_t or uint16_t interface components.");
   static_assert((std::is_same_v<typename StripColorType::ComponentType, uint8_t> || std::is_same_v<typename StripColorType::ComponentType, uint16_t>), "Ws2801Protocol requires uint8_t or uint16_t strip components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3, "Ws2801Protocol requires at least 3 interface channels.");
-  static_assert(StripColorType::ChannelCount >= 3, "Ws2801Protocol requires at least 3 strip channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 

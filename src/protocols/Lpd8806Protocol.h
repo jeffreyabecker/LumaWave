@@ -25,16 +25,15 @@ struct Lpd8806ProtocolSettings : public ProtocolSettings
 //   Pixel data: 3 bytes per pixel
 //   End:   ceil(N / 32) bytes of 0xFF
 //
-template <typename TInterfaceColor = Rgb8Color> class Lpd8806ProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgbw8Color> class Lpd8806ProtocolT : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = Rgb8Color;
+  using StripColorType = void; //Rgb8Color;
   using SettingsType = Lpd8806ProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Lpd8806Protocol requires uint8_t or uint16_t interface components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3, "Lpd8806Protocol requires at least 3 interface channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {

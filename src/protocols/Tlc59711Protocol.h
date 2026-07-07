@@ -64,16 +64,15 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 //
 // Latch: ~20 ?s guard after transmission.
 //
-template <typename TInterfaceColor = Rgb8Color> class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color> class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = Rgb16Color;
+  using StripColorType = void; //Rgb16Color;
   using SettingsType = Tlc59711ProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3, "Tlc59711Protocol requires at least 3 interface channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {

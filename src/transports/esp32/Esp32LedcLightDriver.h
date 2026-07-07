@@ -27,207 +27,201 @@ namespace lw::transports::esp32
 
 struct Esp32LedcLightDriverSettings : LightDriverSettingsBase
 {
-    static constexpr size_t MaxChannels = 5;
-    using PinsMap = ChannelMap<Rgbcw8Color, int>;
-    static constexpr uint32_t DefaultFrequencyHz = 5000;
-    static constexpr uint8_t DefaultResolutionBits = 8;
+  static constexpr size_t MaxChannels = 4;
+  using PinsMap = ChannelMap<int>;
+  static constexpr uint32_t DefaultFrequencyHz = 5000;
+  static constexpr uint8_t DefaultResolutionBits = 8;
 
-    PinsMap pins{-1};
-    uint32_t frequencyHz{DefaultFrequencyHz};
-    uint8_t resolutionBits{DefaultResolutionBits};
-    bool invert{false};
+  PinsMap pins{-1};
+  uint32_t frequencyHz{DefaultFrequencyHz};
+  uint8_t resolutionBits{DefaultResolutionBits};
+  bool invert{false};
 
-    static Esp32LedcLightDriverSettings normalize(Esp32LedcLightDriverSettings settings)
+  static Esp32LedcLightDriverSettings normalize(Esp32LedcLightDriverSettings settings)
+  {
+    if (settings.frequencyHz == 0)
     {
-        if (settings.frequencyHz == 0)
-        {
-            settings.frequencyHz = DefaultFrequencyHz;
-        }
+      settings.frequencyHz = DefaultFrequencyHz;
+    }
 
 #if defined(ARDUINO_ARCH_ESP8266)
-        if (settings.resolutionBits < 1)
-        {
-            settings.resolutionBits = 1;
-        }
-        else if (settings.resolutionBits > 16)
-        {
-            settings.resolutionBits = 16;
-        }
+    if (settings.resolutionBits < 1)
+    {
+      settings.resolutionBits = 1;
+    }
+    else if (settings.resolutionBits > 16)
+    {
+      settings.resolutionBits = 16;
+    }
 #else
-        if (settings.resolutionBits < 1)
-        {
-            settings.resolutionBits = 1;
-        }
-        else if (settings.resolutionBits > 14)
-        {
-            settings.resolutionBits = 14;
-        }
+    if (settings.resolutionBits < 1)
+    {
+      settings.resolutionBits = 1;
+    }
+    else if (settings.resolutionBits > 14)
+    {
+      settings.resolutionBits = 14;
+    }
 #endif
 
-        return settings;
-    }
+    return settings;
+  }
 };
 
 template <typename TColor> class Esp32LedcLightDriver : public ILightDriver<TColor>
 {
-  public:
-    using ColorType = TColor;
-        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
-    using LightDriverSettingsType = Esp32LedcLightDriverSettings;
+public:
+  using ColorType = TColor;
+  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using LightDriverSettingsType = Esp32LedcLightDriverSettings;
 
-    explicit Esp32LedcLightDriver(LightDriverSettingsType settings)
-        : _settings(LightDriverSettingsType::normalize(settings)), _maxDuty(computeMaxDuty(_settings.resolutionBits))
+  explicit Esp32LedcLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)), _maxDuty(computeMaxDuty(_settings.resolutionBits)) {}
+
+  ~Esp32LedcLightDriver() override
+  {
+    if (!_begun)
     {
+      return;
     }
 
-    ~Esp32LedcLightDriver() override
+    for (size_t channel = 0; channel < activeChannelCount(); ++channel)
     {
-        if (!_begun)
-        {
-            return;
-        }
-
-        for (size_t channel = 0; channel < activeChannelCount(); ++channel)
-        {
-            const int pin = _settings.pins[channel];
-            if (pin < 0)
-            {
-                continue;
-            }
+      const int pin = _settings.pins[channel];
+      if (pin < 0)
+      {
+        continue;
+      }
 
 #if defined(ARDUINO_ARCH_ESP32)
-            ledcWrite(static_cast<uint8_t>(channel), 0U);
-            ledcDetachPin(static_cast<uint8_t>(pin));
+      ledcWrite(static_cast<uint8_t>(channel), 0U);
+      ledcDetachPin(static_cast<uint8_t>(pin));
 #else
-            ledc_stop(LEDC_LOW_SPEED_MODE, static_cast<ledc_channel_t>(channel), 0U);
+      ledc_stop(LEDC_LOW_SPEED_MODE, static_cast<ledc_channel_t>(channel), 0U);
 #endif
-            pinMode(pin, INPUT);
-        }
+      pinMode(pin, INPUT);
     }
+  }
 
-    void begin() override
+  void begin() override
+  {
+    if (_begun)
     {
-        if (_begun)
-        {
-            return;
-        }
+      return;
+    }
 
 #if defined(ARDUINO_ARCH_ESP8266)
-        ledc_timer_config_t timerConfig{};
-        timerConfig.speed_mode = LEDC_LOW_SPEED_MODE;
-        timerConfig.duty_resolution = static_cast<ledc_timer_bit_t>(_settings.resolutionBits);
-        timerConfig.timer_num = LEDC_TIMER_0;
-        timerConfig.freq_hz = _settings.frequencyHz;
-        timerConfig.clk_cfg = LEDC_AUTO_CLK;
-        ledc_timer_config(&timerConfig);
+    ledc_timer_config_t timerConfig{};
+    timerConfig.speed_mode = LEDC_LOW_SPEED_MODE;
+    timerConfig.duty_resolution = static_cast<ledc_timer_bit_t>(_settings.resolutionBits);
+    timerConfig.timer_num = LEDC_TIMER_0;
+    timerConfig.freq_hz = _settings.frequencyHz;
+    timerConfig.clk_cfg = LEDC_AUTO_CLK;
+    ledc_timer_config(&timerConfig);
 #endif
 
-        for (size_t channel = 0; channel < activeChannelCount(); ++channel)
-        {
-            const int pin = _settings.pins[channel];
-            if (pin < 0)
-            {
-                continue;
-            }
+    for (size_t channel = 0; channel < activeChannelCount(); ++channel)
+    {
+      const int pin = _settings.pins[channel];
+      if (pin < 0)
+      {
+        continue;
+      }
 
-            pinMode(pin, OUTPUT);
+      pinMode(pin, OUTPUT);
 
 #if defined(ARDUINO_ARCH_ESP32)
-            const uint8_t ledcChannel = static_cast<uint8_t>(channel);
-            ledcSetup(ledcChannel, _settings.frequencyHz, _settings.resolutionBits);
-            ledcAttachPin(static_cast<uint8_t>(pin), ledcChannel);
-            ledcWrite(ledcChannel, 0U);
+      const uint8_t ledcChannel = static_cast<uint8_t>(channel);
+      ledcSetup(ledcChannel, _settings.frequencyHz, _settings.resolutionBits);
+      ledcAttachPin(static_cast<uint8_t>(pin), ledcChannel);
+      ledcWrite(ledcChannel, 0U);
 #else
-            ledc_channel_config_t channelConfig{};
-            channelConfig.gpio_num = static_cast<int>(pin);
-            channelConfig.speed_mode = LEDC_LOW_SPEED_MODE;
-            channelConfig.channel = static_cast<ledc_channel_t>(channel);
-            channelConfig.intr_type = LEDC_INTR_DISABLE;
-            channelConfig.timer_sel = LEDC_TIMER_0;
-            channelConfig.duty = 0;
-            channelConfig.hpoint = 0;
-            ledc_channel_config(&channelConfig);
+      ledc_channel_config_t channelConfig{};
+      channelConfig.gpio_num = static_cast<int>(pin);
+      channelConfig.speed_mode = LEDC_LOW_SPEED_MODE;
+      channelConfig.channel = static_cast<ledc_channel_t>(channel);
+      channelConfig.intr_type = LEDC_INTR_DISABLE;
+      channelConfig.timer_sel = LEDC_TIMER_0;
+      channelConfig.duty = 0;
+      channelConfig.hpoint = 0;
+      ledc_channel_config(&channelConfig);
 #endif
-        }
-
-        _begun = true;
     }
 
-    bool isReadyToUpdate() const override { return true; }
+    _begun = true;
+  }
 
-    void write(const ColorType& color) override
+  bool isReadyToUpdate() const override { return true; }
+
+  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+
+  void write(const ColorType& color, BrightnessType brightness) override
+  {
+    if (!_begun)
     {
-        write(color, std::numeric_limits<BrightnessType>::max());
+      begin();
     }
 
-    void write(const ColorType& color, BrightnessType brightness) override
+    using ComponentType = typename ColorType::ComponentType;
+    using WideType = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
+
+    const WideType componentMax = static_cast<WideType>(std::numeric_limits<ComponentType>::max());
+    const WideType pwmMax = static_cast<WideType>(_maxDuty);
+
+    for (size_t channel = 0; channel < activeChannelCount(); ++channel)
     {
-        if (!_begun)
-        {
-            begin();
-        }
+      const int pin = _settings.pins[channel];
+      if (pin < 0)
+      {
+        continue;
+      }
 
-        using ComponentType = typename ColorType::ComponentType;
-        using WideType = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
-
-        const WideType componentMax = static_cast<WideType>(std::numeric_limits<ComponentType>::max());
-        const WideType pwmMax = static_cast<WideType>(_maxDuty);
-
-        for (size_t channel = 0; channel < activeChannelCount(); ++channel)
-        {
-            const int pin = _settings.pins[channel];
-            if (pin < 0)
-            {
-                continue;
-            }
-
-            const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
-            const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
-            WideType duty = (component * pwmMax + (componentMax / 2U)) / componentMax;
-            if (_settings.invert)
-            {
-                duty = pwmMax - duty;
-            }
+      const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
+      const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
+      WideType duty = (component * pwmMax + (componentMax / 2U)) / componentMax;
+      if (_settings.invert)
+      {
+        duty = pwmMax - duty;
+      }
 
 #if defined(ARDUINO_ARCH_ESP32)
-            ledcWrite(static_cast<uint8_t>(channel), static_cast<uint32_t>(duty));
+      ledcWrite(static_cast<uint8_t>(channel), static_cast<uint32_t>(duty));
 #else
-            ledc_set_duty(LEDC_LOW_SPEED_MODE, static_cast<ledc_channel_t>(channel), static_cast<uint32_t>(duty));
-            ledc_update_duty(LEDC_LOW_SPEED_MODE, static_cast<ledc_channel_t>(channel));
+      ledc_set_duty(LEDC_LOW_SPEED_MODE, static_cast<ledc_channel_t>(channel), static_cast<uint32_t>(duty));
+      ledc_update_duty(LEDC_LOW_SPEED_MODE, static_cast<ledc_channel_t>(channel));
 #endif
-        }
+    }
+  }
+
+private:
+  static uint32_t computeMaxDuty(uint8_t resolutionBits)
+  {
+    if (resolutionBits >= 31)
+    {
+      return 0x7FFFFFFFU;
     }
 
-  private:
-    static uint32_t computeMaxDuty(uint8_t resolutionBits)
-    {
-        if (resolutionBits >= 31)
-        {
-            return 0x7FFFFFFFU;
-        }
+    return (1UL << resolutionBits) - 1UL;
+  }
 
-        return (1UL << resolutionBits) - 1UL;
-    }
+  size_t activeChannelCount() const
+  {
+    const size_t colorChannels = static_cast<size_t>(ColorType::ChannelCount);
+    const size_t configuredPins = _settings.pins.size();
 
-    size_t activeChannelCount() const
-    {
-        const size_t colorChannels = static_cast<size_t>(ColorType::ChannelCount);
-        const size_t configuredPins = _settings.pins.size();
-
-        size_t count = (colorChannels < configuredPins) ? colorChannels : configuredPins;
+    size_t count = (colorChannels < configuredPins) ? colorChannels : configuredPins;
 #if defined(LEDC_CHANNEL_MAX)
-        const size_t hardwareChannels = static_cast<size_t>(LEDC_CHANNEL_MAX);
-        if (count > hardwareChannels)
-        {
-            count = hardwareChannels;
-        }
-#endif
-        return count;
+    const size_t hardwareChannels = static_cast<size_t>(LEDC_CHANNEL_MAX);
+    if (count > hardwareChannels)
+    {
+      count = hardwareChannels;
     }
+#endif
+    return count;
+  }
 
-    LightDriverSettingsType _settings;
-    uint32_t _maxDuty{255};
-    bool _begun{false};
+  LightDriverSettingsType _settings;
+  uint32_t _maxDuty{255};
+  bool _begun{false};
 };
 
 } // namespace lw::transports::esp32

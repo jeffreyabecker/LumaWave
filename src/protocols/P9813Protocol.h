@@ -27,16 +27,15 @@ struct P9813ProtocolSettings : public ProtocolSettings
 //   Start: 4 ? 0x00
 //   End:   4 ? 0x00
 //
-template <typename TInterfaceColor = Rgb8Color> class P9813ProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgbw8Color> class P9813ProtocolT : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = Rgb8Color;
+  using StripColorType = void; //Rgb8Color;
   using SettingsType = P9813ProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "P9813Protocol requires uint8_t or uint16_t interface components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3, "P9813Protocol requires at least 3 interface channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (FrameSize * 2u) + (static_cast<size_t>(pixelCount) * BytesPerPixel); }
 

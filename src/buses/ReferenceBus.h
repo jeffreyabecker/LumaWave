@@ -71,7 +71,7 @@ public:
       {
         _brightnessScratch[i] = protocolInput[i];
         auto& dst = _brightnessScratch[i];
-        for (auto channel : TColor::channelIndexes())
+        for (char channel : {'R', 'G', 'B', 'W'})
         {
           dst[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(dst[channel], _brightness));
         }

@@ -16,7 +16,7 @@ struct Sm168xProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-template <typename TInterfaceColor = Rgb8Color, typename TStripColor = TInterfaceColor> class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = TInterfaceColor> class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using InterfaceColorType = TInterfaceColor;
@@ -26,8 +26,7 @@ public:
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Sm168xProtocol requires uint8_t or uint16_t interface components.");
   static_assert(std::is_same_v<typename StripColorType::ComponentType, uint8_t>, "Sm168xProtocol requires uint8_t strip components.");
-  static_assert(InterfaceColorType::ChannelCount >= 3 && InterfaceColorType::ChannelCount <= 5, "Sm168xProtocol requires 3, 4, or 5 interface channels.");
-  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 5, "Sm168xProtocol requires 3, 4, or 5 strip channels.");
+  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 4, "Sm168xProtocol requires 3 or 4 strip channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (static_cast<size_t>(pixelCount) * StripChannelCount) + SettingsSize; }
 
@@ -57,31 +56,14 @@ public:
 private:
   static constexpr size_t resolveSettingsSize(size_t channelCount)
   {
-    switch (channelCount)
-    {
-      case 3:
-      case 4:
-        return 2;
-
-      case 5:
-        return 4;
-    }
-
+    (void)channelCount;
     return 2;
   }
 
   static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
   static constexpr size_t SettingsSize = resolveSettingsSize(StripChannelCount);
 
-  static constexpr uint8_t maxGain()
-  {
-    if constexpr (StripChannelCount == 5)
-    {
-      return 0x1f;
-    }
-
-    return 0x0f;
-  }
+  static constexpr uint8_t maxGain() { return 0x0f; }
 
   static constexpr size_t channelIndexFromTag(char channel)
   {
@@ -101,11 +83,7 @@ private:
 
       case 'W':
       case 'w':
-        return (StripColorType::ChannelCount > 3) ? 3 : 0;
-
-      case 'C':
-      case 'c':
-        return (StripColorType::ChannelCount > 4) ? 4 : 0;
+        return 3;
 
       default:
         return 0;
@@ -163,10 +141,7 @@ private:
     }
     else
     {
-      encoded[0] = static_cast<uint8_t>((ic[0] << 3) | (ic[1] >> 2));
-      encoded[1] = static_cast<uint8_t>((ic[1] << 6) | (ic[2] << 1) | (ic[3] >> 4));
-      encoded[2] = static_cast<uint8_t>((ic[3] << 4) | (ic[4] >> 1));
-      encoded[3] = static_cast<uint8_t>((ic[4] << 7) | 0b00011111);
+      // 5-channel encoding removed
     }
   }
 

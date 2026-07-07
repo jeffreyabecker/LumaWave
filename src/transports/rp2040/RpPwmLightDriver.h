@@ -22,139 +22,133 @@ namespace lw::transports::rp2040
 
 struct RpPwmLightDriverSettings : LightDriverSettingsBase
 {
-    static constexpr size_t MaxChannels = 5;
-    using PinsMap = ChannelMap<Rgbcw8Color, int>;
+  static constexpr size_t MaxChannels = 4;
+  using PinsMap = ChannelMap<int>;
 
-    PinsMap pins{-1};
-    uint16_t wrap{255};
-    float clockDiv{4.0f};
-    bool invert{false};
+  PinsMap pins{-1};
+  uint16_t wrap{255};
+  float clockDiv{4.0f};
+  bool invert{false};
 
-    static RpPwmLightDriverSettings normalize(RpPwmLightDriverSettings settings)
+  static RpPwmLightDriverSettings normalize(RpPwmLightDriverSettings settings)
+  {
+    if (settings.wrap == 0)
     {
-        if (settings.wrap == 0)
-        {
-            settings.wrap = 1;
-        }
-
-        if (settings.clockDiv < 1.0f)
-        {
-            settings.clockDiv = 1.0f;
-        }
-
-        return settings;
+      settings.wrap = 1;
     }
+
+    if (settings.clockDiv < 1.0f)
+    {
+      settings.clockDiv = 1.0f;
+    }
+
+    return settings;
+  }
 };
 
 template <typename TColor> class RpPwmLightDriver : public ILightDriver<TColor>
 {
-  public:
-    using ColorType = TColor;
-        using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
-    using LightDriverSettingsType = RpPwmLightDriverSettings;
+public:
+  using ColorType = TColor;
+  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using LightDriverSettingsType = RpPwmLightDriverSettings;
 
-    explicit RpPwmLightDriver(LightDriverSettingsType settings)
-        : _settings(LightDriverSettingsType::normalize(settings))
+  explicit RpPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
+
+  ~RpPwmLightDriver() override
+  {
+    if (!_begun)
     {
+      return;
     }
 
-    ~RpPwmLightDriver() override
+    for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
     {
-        if (!_begun)
-        {
-            return;
-        }
+      const int pin = _settings.pins[channel];
+      if (pin >= 0)
+      {
+        pinMode(pin, INPUT);
+      }
+    }
+  }
 
-        for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
-        {
-            const int pin = _settings.pins[channel];
-            if (pin >= 0)
-            {
-                pinMode(pin, INPUT);
-            }
-        }
+  void begin() override
+  {
+    if (_begun)
+    {
+      return;
     }
 
-    void begin() override
+    std::array<bool, NUM_PWM_SLICES> initializedSlices{};
+
+    for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
     {
-        if (_begun)
-        {
-            return;
-        }
+      const int pin = _settings.pins[channel];
+      if (pin < 0)
+      {
+        continue;
+      }
 
-        std::array<bool, NUM_PWM_SLICES> initializedSlices{};
+      const uint gpioPin = static_cast<uint>(pin);
+      gpio_set_function(gpioPin, GPIO_FUNC_PWM);
 
-        for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
-        {
-            const int pin = _settings.pins[channel];
-            if (pin < 0)
-            {
-                continue;
-            }
+      const uint slice = pwm_gpio_to_slice_num(gpioPin);
+      if (!initializedSlices[slice])
+      {
+        pwm_config config = pwm_get_default_config();
+        pwm_config_set_clkdiv(&config, _settings.clockDiv);
+        pwm_config_set_wrap(&config, _settings.wrap);
+        pwm_init(slice, &config, true);
+        initializedSlices[slice] = true;
+      }
 
-            const uint gpioPin = static_cast<uint>(pin);
-            gpio_set_function(gpioPin, GPIO_FUNC_PWM);
+      if (_settings.invert)
+      {
+        gpio_set_outover(gpioPin, GPIO_OVERRIDE_INVERT);
+      }
 
-            const uint slice = pwm_gpio_to_slice_num(gpioPin);
-            if (!initializedSlices[slice])
-            {
-                pwm_config config = pwm_get_default_config();
-                pwm_config_set_clkdiv(&config, _settings.clockDiv);
-                pwm_config_set_wrap(&config, _settings.wrap);
-                pwm_init(slice, &config, true);
-                initializedSlices[slice] = true;
-            }
-
-            if (_settings.invert)
-            {
-                gpio_set_outover(gpioPin, GPIO_OVERRIDE_INVERT);
-            }
-
-            pwm_set_gpio_level(gpioPin, 0);
-        }
-
-        _begun = true;
+      pwm_set_gpio_level(gpioPin, 0);
     }
 
-    bool isReadyToUpdate() const override { return true; }
+    _begun = true;
+  }
 
-    void write(const ColorType& color) override
+  bool isReadyToUpdate() const override { return true; }
+
+  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+
+  void write(const ColorType& color, BrightnessType brightness) override
+  {
+    if (!_begun)
     {
-        write(color, std::numeric_limits<BrightnessType>::max());
+      begin();
     }
 
-    void write(const ColorType& color, BrightnessType brightness) override
+    using ComponentType = typename ColorType::ComponentType;
+    using WideType = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
+
+    const WideType componentMax = static_cast<WideType>(std::numeric_limits<ComponentType>::max());
+    const WideType wrap = static_cast<WideType>(_settings.wrap);
+
+    for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
     {
-        if (!_begun)
-        {
-            begin();
-        }
+      const int pin = _settings.pins[channel];
+      if (pin < 0)
+      {
+        continue;
+      }
 
-        using ComponentType = typename ColorType::ComponentType;
-        using WideType = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
-
-        const WideType componentMax = static_cast<WideType>(std::numeric_limits<ComponentType>::max());
-        const WideType wrap = static_cast<WideType>(_settings.wrap);
-
-        for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
-        {
-            const int pin = _settings.pins[channel];
-            if (pin < 0)
-            {
-                continue;
-            }
-
-            const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
-            const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
-            const WideType scaled = (component * wrap + (componentMax / 2U)) / componentMax;
-            const uint16_t level = static_cast<uint16_t>(scaled);
-            pwm_set_gpio_level(static_cast<uint>(pin), level);
-        }
+      const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
+      const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
+      const WideType scaled = (component * wrap + (componentMax / 2U)) / componentMax;
+      const uint16_t level = static_cast<uint16_t>(scaled);
+      pwm_set_gpio_level(static_cast<uint>(pin), level);
     }
+  }
 
-  private:
-    LightDriverSettingsType _settings;
-    bool _begun{false};
+private:
+  LightDriverSettingsType _settings;
+  bool _begun{false};
 };
 
 } // namespace lw::transports::rp2040

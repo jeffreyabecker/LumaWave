@@ -11,7 +11,7 @@ Status legend:
 
 ## Current Status
 
-Phase 1 complete. Branch `refactor-color`.
+Phases 1–4 complete. Branch `refactor-color`.
 
 ## Motivation
 
@@ -66,18 +66,21 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 
 Protocols still need their own channel count for wire-format serialization (e.g., WS2812 sends 3 bytes/pixel, TM1814 sends 4). This is a protocol implementation detail, not a color object property.
 
-- [ ] **`P3a`** — `DotStarProtocol.h`: change `StripColorType` from template to explicit `StripChannelCount` constant (3 or 4). Remove `ChannelCount`-based `static_assert`s that check `InterfaceColorType::ChannelCount` — interface color is always 4.
-- [ ] **`P3b`** — `Ws2812xProtocol.h`: change `StripColorType` from template to explicit `channelCount` constant. Remove `static_assert`s on `InterfaceColorType::ChannelCount`.
-- [ ] **`P3c`** — `Sm168xProtocol.h`: replace `StripColorType` template with `StripChannelCount` constant. Remove `channelIndexFromTag()` and 5-channel special cases. `static_assert` on strip channel count (3 or 4) instead of color type.
-- [ ] **`P3d`** — `IProtocol.h`: remove `NChannels`/`ChannelCount` from `IProtocol<TColor>` — `TColor` is always `4`-channel `RgbwColor<TComponent>`. Protocol-level channel count moves to each concrete implementation's own constant.
-- [ ] **`P3e`** — All other protocol headers: remove `static_assert`s that constrain `InterfaceColorType::ChannelCount`. Keep protocol-local `StripChannelCount` or equivalent as a private implementation constant.
+- [x] **`P3a`** — `DotStarProtocol.h`: changed default template params from `Rgb8Color`/`Rgb16Color` to `Rgbw8Color`/`Rgbw16Color`. Removed `InterfaceColorType::ChannelCount` static_asserts. `StripColorType` template retained for strip format (3-channel for APA102).
+- [x] **`P3b`** — `Ws2812xProtocol.h`: removed `InterfaceColorType::ChannelCount` static_assert. Kept `StripColorType` for wire format (3 or 4 channel).
+- [x] **`P3c`** — `Sm168xProtocol.h`: removed 5-channel `resolveSettingsSize()` case (always 2 now), `maxGain()` (always 0x0f), `channelIndexFromTag()` simplified to fixed RGWB. Interface static_assert removed, strip limited to 3-4 channels.
+- [x] **`P3d`** — `IProtocol.h`: no change needed — it's generic over `TColor`.
+- [x] **`P3e`** — All other protocol headers: `Lpd6803Protocol.h`, `Lpd8806Protocol.h`, `P9813Protocol.h`, `PixieProtocol.h`, `Sm16716Protocol.h`, `Tlc59711Protocol.h`, `Ws2801Protocol.h`, `Tm1814Protocol.h`, `Tm1914Protocol.h`, `DebugProtocol.h` — removed all `InterfaceColorType::ChannelCount` static_asserts; changed default `Rgb8Color`/`Rgb16Color` params to `Rgbw8Color`/`Rgbw16Color`; replaced `Rgb8Color` strip typedefs with comments. `ProtocolAliases.h`: fixed `DotStar`, `Hd108`, `None`, `Debug`, `Tm1914` defaults; replaced `ColorAtLeastAsLarge` with direct `sizeof(ComponentType)` comparisons.
 
 ### Phase 4 — Transports and buses
 
 Transports and buses still need their own channel count for hardware pin mapping and frame buffer sizing. This is an implementation detail of each transport/bus, not a color object property.
 
-- [ ] **`P4a`** — `AnalogPwmLightDriver.h`: change `MaxChannels = 5` → `4`; change `PinsMap` from `Rgbcw8Color` to `Rgbw8Color`. Keep `MaxChannels` as a transport-level pin count constant.
-- [ ] **`P4b`** — `PixelBus`/`LightBus`/`AggregateBus` etc.: remove `NChannels` from `TColor` template assumptions — interface color is always 4. Keep bus-local channel count where needed for buffer sizing, derived from the protocol's strip channel count rather than the color type.
+- [x] **`P4a`** — `AnalogPwmLightDriver.h`: `MaxChannels` 5→4; `PinsMap` from `ChannelMap<Rgbcw8Color, int>` to `ChannelMap<int>`.
+- [x] **`P4b`** — `Esp32SigmaDeltaLightDriver.h`, `Esp32LedcLightDriver.h`, `RpPwmLightDriver.h`: same `MaxChannels` 5→4 and `PinsMap` fix.
+- [x] **`P4c`** — `PixelBus.h`: replaced `ColorType::channelIndexes()` with `{'R', 'G', 'B', 'W'}`.
+- [x] **`P4d`** — `ReferenceBus.h`: same channelIndexes fix.
+- [x] **`P4e`** — `PrintLightDriver.h`: same channelIndexes fix.
 
 ### Phase 5 — Public surface
 
