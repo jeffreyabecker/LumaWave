@@ -72,11 +72,6 @@ public:
 
   void transmitBytes(span<uint8_t> data) override
   {
-    transmitBytes(data, TransportBrightness{});
-  }
-
-  void transmitBytes(span<uint8_t> data, TransportBrightness) override
-  {
     if (_config.spi == nullptr || data.empty())
     {
       return;

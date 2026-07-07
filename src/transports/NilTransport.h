@@ -9,24 +9,22 @@ namespace lw::transports
 
 struct NilTransportSettings : TransportSettingsBase
 {
-    static NilTransportSettings normalize(NilTransportSettings settings) { return settings; }
+  static NilTransportSettings normalize(NilTransportSettings settings) { return settings; }
 };
 
 class NilTransport : public ITransport
 {
-  public:
-    using TransportSettingsType = NilTransportSettings;
-    explicit NilTransport(NilTransportSettings = {}) {}
+public:
+  using TransportSettingsType = NilTransportSettings;
+  explicit NilTransport(NilTransportSettings = {}) {}
 
-    void begin() override {}
+  void begin() override {}
 
-    void beginTransaction() override {}
+  void beginTransaction() override {}
 
-    void endTransaction() override {}
+  void endTransaction() override {}
 
-    void transmitBytes(span<uint8_t>) override {}
-
-    void transmitBytes(span<uint8_t>, TransportBrightness) override {}
+  void transmitBytes(span<uint8_t>) override {}
 };
 
 } // namespace lw::transports
