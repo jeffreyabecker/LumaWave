@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "colors/Color.h"
+#include "colors/ChannelOrder.h"
 #include "core/Compat.h"
 namespace lw::protocols
 {

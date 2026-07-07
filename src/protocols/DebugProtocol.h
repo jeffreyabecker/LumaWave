@@ -30,7 +30,7 @@ template <typename TWrappedProtocol = NilProtocol<Rgbw8Color>, typename TWritabl
   bool invert = false;
 };
 
-template <typename TWrappedProtocol = NilProtocol<Rgb8Color>, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>>
+template <typename TWrappedProtocol = NilProtocol<Rgbw8Color>, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>>
 class DebugProtocol : public ProtocolDecoratorBase<DebugProtocol<TWrappedProtocol, TWritable>, TWrappedProtocol, typename TWrappedProtocol::ColorType, DebugProtocolSettingsT<TWrappedProtocol, TWritable>>
 {
 public:

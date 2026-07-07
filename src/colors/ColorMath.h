@@ -396,7 +396,7 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> const
   return detail::ScalarColorMathBackend<TColor>::integerSqrt(value);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorChannelsAtLeast<TColor, 3>>> constexpr TColor hslToRgb(typename TColor::ComponentType h, typename TColor::ComponentType s, typename TColor::ComponentType l)
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor hslToRgb(typename TColor::ComponentType h, typename TColor::ComponentType s, typename TColor::ComponentType l)
 {
   uint8_t r = 0u;
   uint8_t g = 0u;
@@ -408,21 +408,12 @@ template <typename TColor, typename = std::enable_if_t<ColorChannelsAtLeast<TCol
   rgb['R'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(r);
   rgb['G'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(g);
   rgb['B'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(b);
-
-  if constexpr (ColorChannelsAtLeast<TColor, 4>)
-  {
-    rgb['W'] = static_cast<typename TColor::ComponentType>(0);
-  }
-
-  if constexpr (ColorChannelsAtLeast<TColor, 5>)
-  {
-    rgb['C'] = static_cast<typename TColor::ComponentType>(0);
-  }
+  rgb['W'] = static_cast<typename TColor::ComponentType>(0);
 
   return rgb;
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorChannelsAtLeast<TColor, 3>>> constexpr TColor hsbToRgb(typename TColor::ComponentType h, typename TColor::ComponentType s, typename TColor::ComponentType b)
+template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor hsbToRgb(typename TColor::ComponentType h, typename TColor::ComponentType s, typename TColor::ComponentType b)
 {
   uint8_t r = 0u;
   uint8_t g = 0u;
@@ -434,16 +425,7 @@ template <typename TColor, typename = std::enable_if_t<ColorChannelsAtLeast<TCol
   rgb['R'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(r);
   rgb['G'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(g);
   rgb['B'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(blue);
-
-  if constexpr (ColorChannelsAtLeast<TColor, 4>)
-  {
-    rgb['W'] = static_cast<typename TColor::ComponentType>(0);
-  }
-
-  if constexpr (ColorChannelsAtLeast<TColor, 5>)
-  {
-    rgb['C'] = static_cast<typename TColor::ComponentType>(0);
-  }
+  rgb['W'] = static_cast<typename TColor::ComponentType>(0);
 
   return rgb;
 }
