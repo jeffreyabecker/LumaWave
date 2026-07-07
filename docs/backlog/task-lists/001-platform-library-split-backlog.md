@@ -15,7 +15,7 @@ Current status: not started (but informed by completed color/shader simplificati
 
 The repository currently exposes a single top-level `LumaWave` interface target in CMake, while public headers still mix generic and platform-specific transport surfaces. The existing transport layout already groups platform code under `src/transports/rp2040/`, `src/transports/esp32/`, and `src/transports/esp8266/`, but those groupings are not yet reflected in the build graph. As a result, target boundaries, include boundaries, and architectural seams do not currently align.
 
-The shader layer has been eliminated (backlog 003 complete), and the color layer has been simplified to a fixed 4-channel `RgbwColor<TComponent>` with no template channel-count parameter (backlog 002 phases 1-2 complete). These simplifications remove `lumawave_shader` from the target graph entirely, simplify `lumawave_color` to own all of `src/colors/`, and remove the shader dependency from `lumawave_bus`.
+The shader layer has been eliminated (backlog 003 complete), and the color layer has been simplified to a fixed 4-channel `RgbwColor<TComponent>` with no template channel-count parameter (backlog 002 phases 1-2 complete). These simplifications let the target graph collapse: `lumawave_color` merges into `lumawave_core`, and the thin transport-seam layer merges into `lumawave_protocol`. The resulting generic graph has only three targets.
 
 This backlog focuses on introducing target-level separation for platform packs first. It does not require the full native-SDK migration or C++23 module conversion to happen in the same change set, but it should leave the codebase ready for both.
 
@@ -57,10 +57,8 @@ This backlog focuses on introducing target-level separation for platform packs f
 
 The intended target shape for this backlog is:
 
-- `lumawave_core`
-- `lumawave_color`
-- `lumawave_protocol`
-- `lumawave_transport`
+- `lumawave_core` (absorbs `lumawave_color`)
+- `lumawave_protocol` (absorbs `lumawave_transport`)
 - `lumawave_bus`
 - `lumawave_platform_rp2040`
 - `lumawave_platform_esp32`
@@ -75,50 +73,38 @@ The proposed target graph for the first complete split is:
 
 ```text
 lumawave_core
-	-> low-level compatibility, span/type aliases, core utilities, topology primitives, writable abstractions
-
-lumawave_color
-	-> lumawave_core
-	-> color types, channel maps, color math, palette domain/types
-
-lumawave_transport
-	-> lumawave_core
-	-> lumawave_color
-	-> generic transport seams and generic transport implementations only
+	-> low-level compatibility, span/type aliases, core utilities,
+	   topology primitives, writable abstractions,
+	   color types, channel maps, color math, palette domain/types
 
 lumawave_protocol
 	-> lumawave_core
-	-> lumawave_color
-	-> lumawave_transport
-	-> protocol seams and protocol implementations
+	-> generic transport seams (ITransport, ILightDriver, NilTransport, etc.),
+	   generic transport implementations, protocol seams and implementations
 
 lumawave_bus
 	-> lumawave_core
-	-> lumawave_color
-	-> lumawave_transport
 	-> lumawave_protocol
 	-> PixelBus, LightBus, composite/reference bus types
 
 lumawave_platform_rp2040
-	-> lumawave_transport
+	-> lumawave_protocol
 	-> lumawave_bus
 	-> RP2040-specific transports, drivers, and RP2040 convenience entry points
 
 lumawave_platform_esp32
-	-> lumawave_transport
+	-> lumawave_protocol
 	-> lumawave_bus
 	-> ESP32-specific transports, drivers, and ESP32 convenience entry points
 
 lumawave_platform_esp8266
-	-> lumawave_transport
+	-> lumawave_protocol
 	-> lumawave_bus
 	-> ESP8266-specific transports, drivers, and ESP8266 convenience entry points
 	-> only if explicitly retained
 
 lumawave
 	-> lumawave_core
-	-> lumawave_color
-	-> lumawave_transport
 	-> lumawave_protocol
 	-> lumawave_bus
 	-> optional generic facade only; must not link platform targets transitively
@@ -126,11 +112,9 @@ lumawave
 
 The intended ownership split is:
 
-- `lumawave_core`: `src/core/Compat.h`, `src/core/Core.h`, `src/core/IPixelBus.h`, `src/core/PixelView.h`, `src/core/Topology.h`, and similar seam-level utilities.
-- `lumawave_color`: `src/colors/` (color types, channel maps, color math, palette domain).
-- `lumawave_transport`: `src/transports/ITransport.h`, `src/transports/ILightDriver.h`, `src/transports/NilTransport.h`, `src/transports/NilLightDriver.h`, `src/transports/PrintTransport.h`, `src/transports/PrintLightDriver.h`, `src/transports/OneWireTiming.h`, `src/transports/OneWireEncoding.h`, and generic `SpiTransport.h` if it remains adapter-level rather than platform-owned.
-- `lumawave_protocol`: `src/protocols/` and related protocol aliases once those aliases no longer hardwire platform defaults.
-- `lumawave_bus`: `src/buses/` and any generic factory or facade helpers that compose protocol and transport layers without naming a concrete platform.
+- `lumawave_core`: `src/core/` (Compat.h, Core.h, IPixelBus.h, PixelView.h, Topology.h, Writable.h, etc.) and `src/colors/` (Color.h, ChannelMap.h, ChannelOrder.h, ChannelSource.h, ColorChannelIndexIterator.h, ColorMath.h, palette/).
+- `lumawave_protocol`: `src/transports/` generic seam headers (ITransport.h, ILightDriver.h, NilTransport.h, NilLightDriver.h, PrintTransport.h, PrintLightDriver.h, OneWireTiming.h, OneWireEncoding.h, generic SpiTransport.h) plus `src/protocols/` (protocol seams and implementations, protocol aliases).
+- `lumawave_bus`: `src/buses/` and any generic factory or facade helpers that compose protocol-layer primitives without naming a concrete platform.
 - `lumawave_platform_*`: only the concrete platform implementations and platform-specific convenience headers.
 
 The graph should remain acyclic and intentional:
@@ -235,7 +219,7 @@ Definition of success for this stage:
 ### Stage 3 - Packaging shape inside the monorepo
 
 - document the intended package boundaries even if the build still ships from one repository.
-- treat `lumawave_core`, `lumawave_color`, `lumawave_transport`, `lumawave_protocol`, `lumawave_bus`, and each retained `lumawave_platform_*` target as the canonical packaging units.
+- treat `lumawave_core`, `lumawave_protocol`, `lumawave_bus`, and each retained `lumawave_platform_*` target as the canonical packaging units.
 - ensure installation, export, and documentation paths can describe those units cleanly.
 
 Definition of success for this stage:
@@ -259,7 +243,7 @@ This stage is intentionally deferred. The backlog should optimize first for clea
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| PLS-01 | todo | Replace the single flat `LumaWave` interface target with a small layered target graph for generic code (`lumawave_core`, `lumawave_color`, `lumawave_protocol`, `lumawave_transport`, `lumawave_bus`, optional facade `lumawave`) | none | CMake exposes the generic targets and existing native tests still configure and build against the facade or the relevant lower-layer targets |
+| PLS-01 | todo | Replace the single flat `LumaWave` interface target with a small layered target graph for generic code (`lumawave_core`, `lumawave_protocol`, `lumawave_bus`, optional facade `lumawave`) | none | CMake exposes the generic targets and existing native tests still configure and build against the facade or the relevant lower-layer targets |
 | PLS-02 | todo | Remove platform-target dependency assumptions from generic targets so no generic layer pulls in `rp2040`, `esp32`, or `esp8266` headers transitively | PLS-01 | Generic targets configure without platform include paths or platform compile definitions |
 
 ## Phase 2 - Public Surface Cleanup For Opt-In Platforms
@@ -310,6 +294,6 @@ This stage is intentionally deferred. The backlog should optimize first for clea
 ## Open Questions
 
 - Should `PlatformDefaultLightDriver` remain a generic facade concept at all, or should platform defaults move behind explicit platform entry points?
-- Does `SpiTransport.h` remain in the generic transport layer, or should it become a platform- or adapter-owned surface as the Arduino boundary disappears?
+- Does `SpiTransport.h` remain in the combined `lumawave_protocol` target, or should it become a platform- or adapter-owned surface as the Arduino boundary disappears?
 - Is ESP8266 still strategic enough to justify a dedicated target and future SDK work?
 - Should platform-specific convenience headers live under `src/platform/` rather than under `src/transports/` once the target split is in place?
