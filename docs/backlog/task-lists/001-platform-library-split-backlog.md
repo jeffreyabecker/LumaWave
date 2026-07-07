@@ -68,6 +68,198 @@ The intended target shape for this backlog is:
 
 This backlog does not require every generic target above to be perfect on the first pass, but the split should move the codebase toward that shape and away from a single flat `LumaWave` target.
 
+## Target Graph Proposal
+
+The proposed target graph for the first complete split is:
+
+```text
+lumawave_core
+	-> low-level compatibility, span/type aliases, core utilities, topology primitives, writable abstractions
+
+lumawave_color
+	-> lumawave_core
+	-> color types, channel maps, color math, palette domain/types
+
+lumawave_shader
+	-> lumawave_core
+	-> lumawave_color
+	-> shader interfaces and generic shader implementations
+
+lumawave_transport
+	-> lumawave_core
+	-> lumawave_color
+	-> generic transport seams and generic transport implementations only
+
+lumawave_protocol
+	-> lumawave_core
+	-> lumawave_color
+	-> lumawave_transport
+	-> protocol seams and protocol implementations
+
+lumawave_bus
+	-> lumawave_core
+	-> lumawave_color
+	-> lumawave_shader
+	-> lumawave_transport
+	-> lumawave_protocol
+	-> PixelBus, LightBus, composite/reference bus types
+
+lumawave_platform_rp2040
+	-> lumawave_transport
+	-> lumawave_bus
+	-> RP2040-specific transports, drivers, and RP2040 convenience entry points
+
+lumawave_platform_esp32
+	-> lumawave_transport
+	-> lumawave_bus
+	-> ESP32-specific transports, drivers, and ESP32 convenience entry points
+
+lumawave_platform_esp8266
+	-> lumawave_transport
+	-> lumawave_bus
+	-> ESP8266-specific transports, drivers, and ESP8266 convenience entry points
+	-> only if explicitly retained
+
+lumawave
+	-> lumawave_core
+	-> lumawave_color
+	-> lumawave_shader
+	-> lumawave_transport
+	-> lumawave_protocol
+	-> lumawave_bus
+	-> optional generic facade only; must not link platform targets transitively
+```
+
+The intended ownership split is:
+
+- `lumawave_core`: `src/core/Compat.h`, `src/core/Core.h`, `src/core/IPixelBus.h`, `src/core/PixelView.h`, `src/core/Topology.h`, and similar seam-level utilities.
+- `lumawave_color`: `src/colors/` except shader implementations that conceptually belong in the shader layer.
+- `lumawave_shader`: shader interfaces and shader implementations under the color domain.
+- `lumawave_transport`: `src/transports/ITransport.h`, `src/transports/ILightDriver.h`, `src/transports/NilTransport.h`, `src/transports/NilLightDriver.h`, `src/transports/PrintTransport.h`, `src/transports/PrintLightDriver.h`, `src/transports/OneWireTiming.h`, `src/transports/OneWireEncoding.h`, and generic `SpiTransport.h` if it remains adapter-level rather than platform-owned.
+- `lumawave_protocol`: `src/protocols/` and related protocol aliases once those aliases no longer hardwire platform defaults.
+- `lumawave_bus`: `src/buses/` and any generic factory or facade helpers that compose protocol, transport, and shader layers without naming a concrete platform.
+- `lumawave_platform_*`: only the concrete platform implementations and platform-specific convenience headers.
+
+The graph should remain acyclic and intentional:
+
+- generic targets may include other generic targets only in the dependency direction above.
+- platform targets may depend on generic layers, but generic layers may not depend on platform targets.
+- the generic `lumawave` facade should stay thin enough that a native-only consumer can link it without platform SDK headers becoming part of the translation unit surface.
+
+## Public Header Split Plan
+
+The public header split should make platform inclusion opt-in instead of implicit.
+
+### Generic public surface
+
+The generic surface should remain reachable from:
+
+- `src/LumaWave.h`
+- `src/core/Core.h`
+- `src/colors/Colors.h`
+- `src/transports/Transports.h`
+- `src/protocols/Protocols.h`
+- `src/buses/Busses.h`
+
+The generic surface should own:
+
+- all seam interfaces and generic utilities.
+- all protocol declarations and aliases that do not require a platform implementation header.
+- all bus types that operate on explicitly selected transport or driver types.
+- generic defaults such as `NilTransport` or host-safe behavior.
+
+The generic surface should stop owning:
+
+- conditional includes of `src/transports/rp2040/*`, `src/transports/esp32/*`, and `src/transports/esp8266/*` from `src/transports/Transports.h`.
+- platform-default type aliases in generic umbrella headers.
+- convenience aliases in `src/LumaWave.h` that silently select concrete RP2040, ESP32, or ESP8266 transport implementations.
+
+### Platform entry points
+
+Each retained platform pack should get explicit public entry points. The exact file names can be adjusted, but the shape should look like:
+
+- `src/platform/rp2040/Rp2040.h`
+- `src/platform/esp32/Esp32.h`
+- `src/platform/esp8266/Esp8266.h` if retained
+
+Each platform entry point should:
+
+- include the generic `LumaWave.h` facade or the narrower generic headers it needs.
+- include only that platform's transport and driver headers.
+- define any platform-local convenience aliases such as `PlatformDefaultTransport`, `PlatformDefaultLightDriver`, or platform-oriented `Strip` aliases if those concepts are retained.
+
+### Alias migration rules
+
+The split should move alias ownership as follows:
+
+- `lw::busses::PlatformDefaultTransport` should stop existing in generic bus headers.
+- `lw::transports::PlatformDefaultLightDriver` should stop existing in generic transport headers.
+- generic `Strip` and `Light` aliases in `src/LumaWave.h` should either require explicit transport/driver types or degrade to host-safe generic defaults.
+- if ergonomic platform defaults are still wanted, they should be reintroduced under explicit platform entry points rather than in the generic facade.
+
+### Header transition sequence
+
+The intended order of operations is:
+
+1. make `src/transports/Transports.h` generic-only.
+2. remove platform default aliases from `src/buses/PixelBus.h` and `src/LumaWave.h`.
+3. add platform-specific umbrella headers that restore convenience for consumers who explicitly opt in.
+4. update examples and platform-focused docs to include the new explicit platform entry points.
+5. add compile smoke coverage that proves the generic headers no longer leak platform implementation headers.
+
+## Monorepo Migration Plan
+
+This backlog should treat the current repository as a monorepo with layered packages rather than immediately splitting into separate repositories.
+
+### Stage 0 - Baseline inventory
+
+- identify all generic headers that still include platform headers directly or indirectly.
+- identify all aliases and defaults that currently select concrete platform implementations from generic headers.
+- identify all tests and examples that assume `LumaWave.h` exposes every retained platform surface.
+
+### Stage 1 - Internal target split
+
+- replace the single `LumaWave` interface target with the layered generic targets plus explicit platform targets.
+- keep the repository layout intact while changing only target ownership and include discipline.
+- preserve a compatibility `lumawave` facade target that represents the generic surface only.
+
+Definition of success for this stage:
+
+- native tests can link generic targets without any platform pack transitively linked.
+- retained platform packs can be linked independently by focused compile coverage.
+
+### Stage 2 - Public header split inside the monorepo
+
+- introduce explicit platform umbrella headers under a platform-specific public path.
+- move platform-default aliases and convenience types behind those platform headers.
+- update examples so platform-focused sketches opt into the correct platform umbrella instead of relying on generic leakage.
+
+Definition of success for this stage:
+
+- `src/LumaWave.h` remains a generic facade.
+- platform examples and platform consumers compile only when they include their selected platform entry point.
+
+### Stage 3 - Packaging shape inside the monorepo
+
+- document the intended package boundaries even if the build still ships from one repository.
+- treat `lumawave_core`, `lumawave_color`, `lumawave_shader`, `lumawave_transport`, `lumawave_protocol`, `lumawave_bus`, and each retained `lumawave_platform_*` target as the canonical packaging units.
+- ensure installation, export, and documentation paths can describe those units cleanly.
+
+Definition of success for this stage:
+
+- the repo can publish one source archive while still expressing multiple coherent consumer-facing targets.
+- future extraction to package feeds or separate repos becomes a packaging decision rather than an architectural refactor.
+
+### Stage 4 - Optional later extraction
+
+Once the monorepo target and header split is stable, the project can make a later decision to:
+
+- keep a single repository with multiple published packages.
+- keep a single repository with one release artifact but explicit target-level consumption.
+- extract selected platform packs into separate repositories if release cadence or SDK ownership demands it.
+
+This stage is intentionally deferred. The backlog should optimize first for clean boundaries inside the current repo, because that reduces risk and preserves the ability to choose a later packaging model based on real maintenance pressure instead of early guesswork.
+
 ## Work Phases
 
 ## Phase 1 - Baseline Target Graph Cleanup
