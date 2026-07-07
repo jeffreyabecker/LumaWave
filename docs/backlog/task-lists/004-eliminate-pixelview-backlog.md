@@ -11,7 +11,7 @@ Status legend:
 
 ## Current Status
 
-Not started.
+**Superseded.** Merged into [Backlog 007](007-combined-bus-unification-backlog.md) — combined bus unification, PixelView elimination, and brightness relocation.
 
 ## Motivation
 

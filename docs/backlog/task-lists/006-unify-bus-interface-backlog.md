@@ -11,7 +11,7 @@ Status legend:
 
 ## Current Status
 
-Not started. Depends on backlog 005 (eliminate color templates) being substantially complete so that `IPixelBus`, `IProtocol`, and `ILightDriver` are non-templated.
+**Superseded.** Merged into [Backlog 007](007-combined-bus-unification-backlog.md) — combined bus unification, PixelView elimination, and brightness relocation.
 
 ## Motivation
 
@@ -24,7 +24,7 @@ Not started. Depends on backlog 005 (eliminate color templates) being substantia
 | `LightBus<TDriver>` | 1 (driver) | 1 | driver.write(color, brightness) | value |
 | `ReferenceLightBus` | 0 | 1 | driver.write(color, brightness) | unique_ptr |
 | `CompositeBus<TBuses...>` | variadic | Σ | delegates to children | value |
-| `AggregateBus` | 0 (after 005) | Σ | delegates to children | unique_ptr |
+| `AggregateBus` | 0 | Σ | delegates to children | unique_ptr |
 
 All six classes implement the same `IPixelBus` interface. All six track dirtiness. All six delegate `show()` to something below. The only real differences are (a) what sits below the bus and (b) whether it's owned by value or by pointer. That's two axes of variation generating six classes.
 
@@ -59,7 +59,7 @@ In `LightBus` and `ReferenceLightBus`, brightness is already at the right level 
 ## Target Shape After This Backlog
 
 ```
-IPixelBus (non-templated, after 005)
+IPixelBus (non-templated)
     │
     ├── Bus  (NEW — single non-templated class)
     │       │
@@ -126,23 +126,24 @@ Replaces the dual role of `ILightDriver` (for single-pixel) and `IProtocol`+`ITr
 ### Updated public aliases in `LumaWave.h`
 
 ```cpp
-// Before                                    // After
-Light<TColor, TDriver>                       Bus + LightOutputPipeline (factory function)
-Strip<TProtocol, TTransport>                 Bus + ProtocolTransportPipeline (factory function)
-ReferenceLight<TColor>                       Bus (direct construction)
-ReferenceStrip                               Bus (direct construction)
-CompositeStrip<TBuses...>                    AggregateBus (non-templated)
+// Before (post-005)                          // After
+Light<TDriver>                                Bus + LightOutputPipeline (factory function)
+Strip<TProtocol, TTransport>                  Bus + ProtocolTransportPipeline (factory function)
+ReferenceLight                                Bus (direct construction)
+ReferenceStrip                                Bus (direct construction)
+CompositeStrip<TBuses...>                     AggregateBus (already non-templated)
+Driver::PlatformDefault                       Bus factory default
 ```
 
-The `Light<>` and `Strip<>` aliases are replaced by factory functions (see Phase 6) or direct `Bus` construction with the appropriate pipeline.
+The `Light<>` and `Strip<>` aliases are replaced by factory functions (see Phase 6) or direct `Bus` construction with the appropriate pipeline. `ReferenceLight` and `ReferenceStrip` aliases currently have dead `TColor` default parameters that are silently ignored — these get cleaned up as part of the alias removal.
 
 ## Non-Goals
 
 - Do not change `ILightDriver`, `IProtocol`, or `ITransport` interfaces (except removing `TransportBrightness` from `ITransmit::transmitBytes`).
 - Do not change concrete driver, protocol, or transport implementations.
-- Do not change the `AggregateBus` / `ReferenceAggregateBus` delegation model (except making them non-templated per backlog 005).
-- Do not change `IPixelBus` interface (except non-templating per backlog 005).
-- Do not change the `PixelView` abstraction (pending its own elimination per backlog 004).
+- Do not change the `AggregateBus` / `ReferenceAggregateBus` delegation model (both are already non-templated post-005).
+- Do not change `IPixelBus` interface (already non-templated post-005).
+- Do not change the `PixelView` abstraction (already non-templated post-005; pending its own elimination per backlog 004).
 - Do not change color math, palette, or factory infrastructure.
 - Do not add compatibility shims for removed bus types.
 
@@ -150,7 +151,7 @@ The `Light<>` and `Strip<>` aliases are replaced by factory functions (see Phase
 
 | Backlog | Status | Relationship |
 |---|---|---|
-| 005 — Eliminate color templates | In progress | Required: `IPixelBus`, `IProtocol`, `ILightDriver` must be non-templated first |
+| 005 — Eliminate color templates | **Done** | All types are non-templated. Two cosmetic dead `TColor` defaults remain on aliases (cleaned up in Phase 6). |
 | 004 — Eliminate PixelView | Pending | Optional: simplifies `Bus` pixel access but not a hard blocker |
 | 003 — Eliminate shader concept | Done | Already removed shader from bus pipeline, clearing the way |
 | 002 — Color simplification | Done | Color is fixed 4-channel RGBW |
@@ -204,10 +205,10 @@ The `Light<>` and `Strip<>` aliases are replaced by factory functions (see Phase
 ### Phase 6 — Update public surface (`LumaWave.h`)
 
 - [ ] **`P6a`** — Remove `Strip<TProtocol, TTransport>` alias.
-- [ ] **`P6b`** — Remove `Light<TColor, TDriver>` alias.
-- [ ] **`P6c`** — Remove `ReferenceLight<TColor>` alias.
+- [ ] **`P6b`** — Remove `Light<TDriver>` alias (post-005, only `TDriver` remains).
+- [ ] **`P6c`** — Remove `ReferenceLight` alias (post-005, non-templated but alias still has a dead `TColor` default — both the alias and the dead param go).
 - [ ] **`P6d`** — Remove `CompositeStrip<TBuses...>` alias.
-- [ ] **`P6e`** — Remove `ReferenceAggregateStrip<TColor>` alias.
+- [ ] **`P6e`** — Remove `ReferenceAggregateStrip` alias (already non-templated post-005).
 - [ ] **`P6f`** — Export `lw::busses::Bus` into the global namespace (when `LW_USE_EXPLICIT_NAMESPACES` is not set).
 - [ ] **`P6g`** — Add convenience factory functions in `namespace lw`:
   - `template<typename TDriver, typename... Args> Bus makeLight(span<Color> pixel, Args&&... driverArgs)` — creates a `Bus` with `LightOutputPipeline`.
@@ -222,7 +223,7 @@ The `Light<>` and `Strip<>` aliases are replaced by factory functions (see Phase
 - [ ] **`P7c`** — Rewrite `test/busses/test_static_bus_driver_pixel_bus/test_main.cpp` → test `Bus` with `ProtocolTransportPipeline`. Same coverage: multi-pixel write+show, brightness scaling applied by pipeline, protocol encoding, transport transmission.
 - [ ] **`P7d`** — Rewrite `test/busses/test_reference_bus/test_main.cpp` → merge into `P7c`.
 - [ ] **`P7e`** — Update `test/busses/test_composite_bus/test_main.cpp` → replace `CompositeBus` usage with `AggregateBus` (or delete if `AggregateBus` tests already cover the same ground).
-- [ ] **`P7f`** — Update `test/busses/test_aggregate_bus/test_main.cpp` — remove template parameters, use non-templated `AggregateBus` with `Bus` children.
+- [ ] **`P7f`** — Update `test/busses/test_aggregate_bus/test_main.cpp` — replace old bus types with `Bus` children (AggregateBus is already non-templated post-005).
 - [ ] **`P7g`** — Add focused tests for `ProtocolTransportPipeline`: verify brightness is applied on-the-fly (no full-frame scratch allocation), verify protocol receives brightness-dimmed colors.
 - [ ] **`P7h`** — Add focused tests for `LightOutputPipeline`: verify driver receives correct color and brightness.
 - [ ] **`P7i`** — Add focused tests for `Bus`: verify `span`-based pixel storage (pixel writes through `pixels()` go to caller's buffer).
