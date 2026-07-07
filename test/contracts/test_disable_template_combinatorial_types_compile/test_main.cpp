@@ -20,9 +20,9 @@ struct StubBus : lw::IPixelBus
 
   bool isReadyToUpdate() const override { return true; }
 
-  lw::PixelView& pixels() override { return _pixels; }
+  lw::span<lw::Color>& pixels() override { return _pixels; }
 
-  const lw::PixelView& pixels() const override { return _pixels; }
+  const lw::span<lw::Color>& pixels() const override { return _pixels; }
 
   void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
 
@@ -30,8 +30,7 @@ struct StubBus : lw::IPixelBus
 
 private:
   std::array<lw::Color, 1> _storage{};
-  std::array<lw::span<lw::Color>, 1> _chunks{lw::span<lw::Color>(_storage.data(), _storage.size())};
-  lw::PixelView _pixels{lw::span<lw::span<lw::Color>>(_chunks.data(), _chunks.size())};
+  lw::span<lw::Color> _pixels{lw::span<lw::Color>(_storage.data(), _storage.size())};
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
 };
 

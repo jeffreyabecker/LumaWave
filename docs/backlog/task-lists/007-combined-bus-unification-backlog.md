@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-Not started. All dependencies are resolved — backlog 005 is complete (`IPixelBus`, `IProtocol`, `ILightDriver`, `PixelView`, `AggregateBus` are all non-templated). Two dead `TColor` default parameters remain on the `ReferenceLight<>` and `Driver::PlatformDefault<>` aliases in `LumaWave.h` (cosmetic, cleaned up in Phase 7).
+**Phase 1 complete.** All six old bus types deleted (`PixelBus`, `LightBus`, `ReferenceBus`, `ReferenceLightBus`, `CompositeBus`). `PixelView.h` deleted. Owning `AggregateBus` class stripped from `AggregateBus.h`. `TransportBrightness` removed from `ITransport` and all transport implementations. `test_pixel_view` directory removed. Build is intentionally broken — new types created in Phases 2+.
 
 ## Motivation
 
@@ -175,20 +175,20 @@ LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES       (deleted)
 
 ## Task List
 
-### Phase 1 — Bulk deletion (old bus types, PixelView, TransportBrightness)
+### Phase 1 — Bulk deletion (old bus types, PixelView, TransportBrightness) — ✅ DONE
 
 Clean slate. Delete everything being replaced before building the new types. No analysis, no refactoring, no conversion work — just delete.
 
-- [ ] **`P1a`** — Delete `src/buses/PixelBus.h`.
-- [ ] **`P1b`** — Delete `src/buses/LightBus.h`.
-- [ ] **`P1c`** — Delete `src/buses/ReferenceBus.h`.
-- [ ] **`P1d`** — Delete `src/buses/ReferenceLightBus.h`.
-- [ ] **`P1e`** — Delete `src/buses/CompositeBus.h`.
-- [ ] **`P1f`** — Delete `src/buses/AggregateBus.h` (owning variant). `ReferenceAggregateBus` is reworked in Phase 6.
-- [ ] **`P1g`** — Delete `src/core/PixelView.h`.
-- [ ] **`P1h`** — Remove `TransportBrightness` struct and the two-arg `transmitBytes(span<uint8_t>, TransportBrightness)` overload from `ITransport`. Update all transport implementations to remove the two-arg override.
-- [ ] **`P1i`** — Remove `#include "core/PixelView.h"` from `src/core/Core.h`.
-- [ ] **`P1j`** — Remove `test/core/test_pixel_view/` directory and its test target from `test/CMakeLists.txt`.
+- [x] **`P1a`** — Delete `src/buses/PixelBus.h`.
+- [x] **`P1b`** — Delete `src/buses/LightBus.h`.
+- [x] **`P1c`** — Delete `src/buses/ReferenceBus.h`.
+- [x] **`P1d`** — Delete `src/buses/ReferenceLightBus.h`.
+- [x] **`P1e`** — Delete `src/buses/CompositeBus.h`.
+- [x] **`P1f`** — Delete `src/buses/AggregateBus.h` (owning variant). `ReferenceAggregateBus` is reworked in Phase 6.
+- [x] **`P1g`** — Delete `src/core/PixelView.h`.
+- [x] **`P1h`** — Remove `TransportBrightness` struct and the two-arg `transmitBytes(span<uint8_t>, TransportBrightness)` overload from `ITransport`. Update all transport implementations to remove the two-arg override.
+- [x] **`P1i`** — Remove `#include "core/PixelView.h"` from `src/core/Core.h`.
+- [x] **`P1j`** — Remove `test/core/test_pixel_view/` directory and its test target from `test/CMakeLists.txt`.
 
 ### Phase 2 — Define `IOutputPipeline` seam
 

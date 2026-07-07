@@ -5,7 +5,6 @@
 
 #include "colors/Color.h"
 #include "core/Compat.h"
-#include "core/PixelView.h"
 
 namespace lw
 {
@@ -26,8 +25,8 @@ public:
   virtual void setBrightness(BrightnessType brightness) = 0;
   virtual BrightnessType brightness() const = 0;
 
-  virtual PixelView& pixels() = 0;
-  virtual const PixelView& pixels() const = 0;
+  virtual span<colors::Color>& pixels() = 0;
+  virtual const span<colors::Color>& pixels() const = 0;
 };
 
 } // namespace lw
