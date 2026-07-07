@@ -3,8 +3,8 @@
 
 void setup()
 {
-    lw::Rgb8Color color{};
-    (void)color;
+  lw::Rgbw8Color color{};
+  (void)color;
 }
 
 void loop()

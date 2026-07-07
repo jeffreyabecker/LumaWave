@@ -166,7 +166,7 @@ struct Ws2812x
   using StripColorType = TStripColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using EffectiveInterfaceColor = std::conditional_t<lw::ColorAtLeastAsLarge<TInterfaceColor, TStripColor>, TInterfaceColor, TStripColor>;
+  using EffectiveInterfaceColor = std::conditional_t<(sizeof(typename TInterfaceColor::ComponentType) >= sizeof(typename TStripColor::ComponentType)), TInterfaceColor, TStripColor>;
 
   using ProtocolType = lw::protocols::Ws2812xProtocol<EffectiveInterfaceColor, StripColorType>;
   using SettingsType = typename ProtocolType::SettingsType;
