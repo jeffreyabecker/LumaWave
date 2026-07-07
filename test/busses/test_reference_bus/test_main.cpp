@@ -7,7 +7,6 @@
 
 #include "buses/ReferenceBus.h"
 #include "colors/Color.h"
-#include "colors/IShader.h"
 #include "protocols/IProtocol.h"
 #include "transports/ITransport.h"
 
@@ -17,218 +16,154 @@ using TestColor = lw::Rgb8Color;
 
 class CaptureProtocol : public lw::protocols::IProtocol<TestColor>
 {
-  public:
-    explicit CaptureProtocol(uint16_t pixelCount) : lw::protocols::IProtocol<TestColor>(pixelCount) {}
+public:
+  explicit CaptureProtocol(uint16_t pixelCount) : lw::protocols::IProtocol<TestColor>(pixelCount) {}
 
-    ~CaptureProtocol() override { ++destructorCount; }
+  ~CaptureProtocol() override { ++destructorCount; }
 
-    void begin() override { began = true; }
+  void begin() override { began = true; }
 
-    void update(lw::span<const TestColor> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
+  void update(lw::span<const TestColor> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
+  {
+    lastSource = colors.data();
+    captured.assign(colors.begin(), colors.end());
+    lastBufferSize = buffer.size();
+    if (!buffer.empty())
     {
-        lastSource = colors.data();
-        captured.assign(colors.begin(), colors.end());
-        lastBufferSize = buffer.size();
-        if (!buffer.empty())
-        {
-            std::fill(buffer.begin(), buffer.end(), 0x5A);
-        }
+      std::fill(buffer.begin(), buffer.end(), 0x5A);
     }
+  }
 
-    lw::protocols::ProtocolSettings& settings() override { return _settings; }
+  lw::protocols::ProtocolSettings& settings() override { return _settings; }
 
-    bool alwaysUpdate() const override { return false; }
+  bool alwaysUpdate() const override { return false; }
 
-    size_t requiredBufferSizeBytes() const override { return 4U; }
+  size_t requiredBufferSizeBytes() const override { return 4U; }
 
-    static int destructorCount;
-    bool began{false};
-    const TestColor* lastSource{nullptr};
-    size_t lastBufferSize{0};
-    std::vector<TestColor> captured{};
+  static int destructorCount;
+  bool began{false};
+  const TestColor* lastSource{nullptr};
+  size_t lastBufferSize{0};
+  std::vector<TestColor> captured{};
 
-  private:
-    lw::protocols::ProtocolSettings _settings{};
+private:
+  lw::protocols::ProtocolSettings _settings{};
 };
 
 int CaptureProtocol::destructorCount = 0;
 
 class CaptureTransport : public lw::transports::ITransport
 {
-  public:
-    ~CaptureTransport() override { ++destructorCount; }
+public:
+  ~CaptureTransport() override { ++destructorCount; }
 
-    void begin() override { began = true; }
+  void begin() override { began = true; }
 
-    void beginTransaction() override { ++beginTransactionCount; }
+  void beginTransaction() override { ++beginTransactionCount; }
 
-    void transmitBytes(lw::span<uint8_t> bytes) override { transmitted.assign(bytes.begin(), bytes.end()); }
+  void transmitBytes(lw::span<uint8_t> bytes) override { transmitted.assign(bytes.begin(), bytes.end()); }
 
-    void endTransaction() override { ++endTransactionCount; }
+  void endTransaction() override { ++endTransactionCount; }
 
-    static int destructorCount;
-    bool began{false};
-    size_t beginTransactionCount{0};
-    size_t endTransactionCount{0};
-    std::vector<uint8_t> transmitted{};
+  static int destructorCount;
+  bool began{false};
+  size_t beginTransactionCount{0};
+  size_t endTransactionCount{0};
+  std::vector<uint8_t> transmitted{};
 };
 
 int CaptureTransport::destructorCount = 0;
 
-class IncrementRedShader : public lw::IShader<TestColor>
-{
-  public:
-    ~IncrementRedShader() override { ++destructorCount; }
-
-    void apply(lw::span<TestColor> colors) override
-    {
-        for (auto& color : colors)
-        {
-            ++color['R'];
-        }
-    }
-
-    static int destructorCount;
-};
-
-int IncrementRedShader::destructorCount = 0;
-
 struct OwnedColor
 {
-    static int destructorCount;
+  static int destructorCount;
 
-    OwnedColor() = default;
+  OwnedColor() = default;
 
-    ~OwnedColor() { ++destructorCount; }
+  ~OwnedColor() { ++destructorCount; }
 };
 
 int OwnedColor::destructorCount = 0;
 
 class NoopProtocolOwnedColor : public lw::protocols::IProtocol<OwnedColor>
 {
-  public:
-    explicit NoopProtocolOwnedColor(uint16_t pixelCount) : lw::protocols::IProtocol<OwnedColor>(pixelCount) {}
+public:
+  explicit NoopProtocolOwnedColor(uint16_t pixelCount) : lw::protocols::IProtocol<OwnedColor>(pixelCount) {}
 
-    ~NoopProtocolOwnedColor() override { ++destructorCount; }
+  ~NoopProtocolOwnedColor() override { ++destructorCount; }
 
-    void begin() override {}
+  void begin() override {}
 
-    void update(lw::span<const OwnedColor>, lw::span<uint8_t> = lw::span<uint8_t>{}) override {}
+  void update(lw::span<const OwnedColor>, lw::span<uint8_t> = lw::span<uint8_t>{}) override {}
 
-    lw::protocols::ProtocolSettings& settings() override { return _settings; }
+  lw::protocols::ProtocolSettings& settings() override { return _settings; }
 
-    bool alwaysUpdate() const override { return false; }
+  bool alwaysUpdate() const override { return false; }
 
-    static int destructorCount;
+  static int destructorCount;
 
-  private:
-    lw::protocols::ProtocolSettings _settings{};
+private:
+  lw::protocols::ProtocolSettings _settings{};
 };
 
 int NoopProtocolOwnedColor::destructorCount = 0;
 
 class NoopTransportOwnedColor : public lw::transports::ITransport
 {
-  public:
-    ~NoopTransportOwnedColor() override { ++destructorCount; }
+public:
+  ~NoopTransportOwnedColor() override { ++destructorCount; }
 
-    void begin() override {}
+  void begin() override {}
 
-    void transmitBytes(lw::span<uint8_t>) override {}
+  void transmitBytes(lw::span<uint8_t>) override {}
 
-    static int destructorCount;
+  static int destructorCount;
 };
 
 int NoopTransportOwnedColor::destructorCount = 0;
 
-class NoopShaderOwnedColor : public lw::IShader<OwnedColor>
-{
-  public:
-    ~NoopShaderOwnedColor() override { ++destructorCount; }
-
-    void apply(lw::span<OwnedColor>) override {}
-
-    static int destructorCount;
-};
-
-int NoopShaderOwnedColor::destructorCount = 0;
-
 void resetDestructorCounters()
 {
-    CaptureProtocol::destructorCount = 0;
-    CaptureTransport::destructorCount = 0;
-    IncrementRedShader::destructorCount = 0;
-    NoopProtocolOwnedColor::destructorCount = 0;
-    NoopTransportOwnedColor::destructorCount = 0;
-    NoopShaderOwnedColor::destructorCount = 0;
-    OwnedColor::destructorCount = 0;
+  CaptureProtocol::destructorCount = 0;
+  CaptureTransport::destructorCount = 0;
+  NoopProtocolOwnedColor::destructorCount = 0;
+  NoopTransportOwnedColor::destructorCount = 0;
+  OwnedColor::destructorCount = 0;
 }
 
-void test_reference_bus_uses_shader_scratch_when_provided(void)
+void test_reference_bus_uses_root_buffer_directly(void)
 {
-    resetDestructorCounters();
+  resetDestructorCounters();
 
-    auto protocol = std::make_unique<CaptureProtocol>(2);
-    auto transport = std::make_unique<CaptureTransport>();
-    auto shader = std::make_unique<IncrementRedShader>();
-    auto* protocolPtr = protocol.get();
-    auto* transportPtr = transport.get();
+  auto protocol = std::make_unique<CaptureProtocol>(2);
+  auto transport = std::make_unique<CaptureTransport>();
+  auto* protocolPtr = protocol.get();
 
-    lw::busses::ReferenceBus<TestColor> bus(2, std::move(protocol), std::move(transport), std::move(shader));
-    bus.pixels()[0] = TestColor{1, 2, 3};
-    bus.pixels()[1] = TestColor{4, 5, 6};
+  lw::busses::ReferenceBus<TestColor> bus(2, std::move(protocol), std::move(transport));
+  bus.pixels()[0] = TestColor{10, 2, 3};
+  bus.pixels()[1] = TestColor{20, 5, 6};
 
-    bus.begin();
-    bus.show();
+  bus.show();
 
-    TEST_ASSERT_TRUE(protocolPtr->began);
-    TEST_ASSERT_TRUE(transportPtr->began);
-    TEST_ASSERT_TRUE(protocolPtr->lastSource == bus.shaderBuffer());
-    TEST_ASSERT_EQUAL_UINT8(1, bus.rootBuffer()[0]['R']);
-    TEST_ASSERT_EQUAL_UINT8(4, bus.rootBuffer()[1]['R']);
-    TEST_ASSERT_EQUAL_UINT8(2, bus.shaderBuffer()[0]['R']);
-    TEST_ASSERT_EQUAL_UINT8(5, bus.shaderBuffer()[1]['R']);
-    TEST_ASSERT_EQUAL_UINT32(4U, static_cast<uint32_t>(protocolPtr->lastBufferSize));
-    TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(transportPtr->beginTransactionCount));
-    TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(transportPtr->endTransactionCount));
-    TEST_ASSERT_EQUAL_UINT32(4U, static_cast<uint32_t>(transportPtr->transmitted.size()));
-}
-
-void test_reference_bus_uses_root_buffer_when_shader_is_absent(void)
-{
-    resetDestructorCounters();
-
-    auto protocol = std::make_unique<CaptureProtocol>(2);
-    auto transport = std::make_unique<CaptureTransport>();
-    auto* protocolPtr = protocol.get();
-
-    lw::busses::ReferenceBus<TestColor> bus(2, std::move(protocol), std::move(transport));
-    bus.pixels()[0] = TestColor{10, 2, 3};
-    bus.pixels()[1] = TestColor{20, 5, 6};
-
-    bus.show();
-
-    TEST_ASSERT_TRUE(protocolPtr->lastSource == bus.rootBuffer());
-    TEST_ASSERT_EQUAL_UINT8(10, bus.rootBuffer()[0]['R']);
-    TEST_ASSERT_EQUAL_UINT8(20, bus.rootBuffer()[1]['R']);
+  TEST_ASSERT_TRUE(protocolPtr->lastSource == bus.rootBuffer());
+  TEST_ASSERT_EQUAL_UINT8(10, bus.rootBuffer()[0]['R']);
+  TEST_ASSERT_EQUAL_UINT8(20, bus.rootBuffer()[1]['R']);
 }
 
 void test_reference_bus_owns_all_resources(void)
 {
-    resetDestructorCounters();
+  resetDestructorCounters();
 
-    {
-        auto protocol = std::make_unique<NoopProtocolOwnedColor>(1);
-        auto transport = std::make_unique<NoopTransportOwnedColor>();
-        auto shader = std::make_unique<NoopShaderOwnedColor>();
+  {
+    auto protocol = std::make_unique<NoopProtocolOwnedColor>(1);
+    auto transport = std::make_unique<NoopTransportOwnedColor>();
 
-        lw::busses::ReferenceBus<OwnedColor> bus(1, std::move(protocol), std::move(transport), std::move(shader));
-    }
+    lw::busses::ReferenceBus<OwnedColor> bus(1, std::move(protocol), std::move(transport));
+  }
 
-    TEST_ASSERT_EQUAL_INT(1, NoopProtocolOwnedColor::destructorCount);
-    TEST_ASSERT_EQUAL_INT(1, NoopTransportOwnedColor::destructorCount);
-    TEST_ASSERT_EQUAL_INT(1, NoopShaderOwnedColor::destructorCount);
-    TEST_ASSERT_EQUAL_INT(2, OwnedColor::destructorCount);
+  TEST_ASSERT_EQUAL_INT(1, NoopProtocolOwnedColor::destructorCount);
+  TEST_ASSERT_EQUAL_INT(1, NoopTransportOwnedColor::destructorCount);
+  TEST_ASSERT_EQUAL_INT(2, OwnedColor::destructorCount);
 }
 } // namespace
 
@@ -242,12 +177,11 @@ void tearDown(void)
 
 int main(int argc, char** argv)
 {
-    (void)argc;
-    (void)argv;
+  (void)argc;
+  (void)argv;
 
-    UNITY_BEGIN();
-    RUN_TEST(test_reference_bus_uses_shader_scratch_when_provided);
-    RUN_TEST(test_reference_bus_uses_root_buffer_when_shader_is_absent);
-    RUN_TEST(test_reference_bus_owns_all_resources);
-    return UNITY_END();
+  UNITY_BEGIN();
+  RUN_TEST(test_reference_bus_uses_root_buffer_directly);
+  RUN_TEST(test_reference_bus_owns_all_resources);
+  return UNITY_END();
 }

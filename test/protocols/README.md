@@ -24,11 +24,9 @@ Spec source: `docs/internal/testing-spec-protocols.md`
 - `test_protocol_debug_pipeline`
 - `test_protocol_spec_sections_1_1_to_1_4_and_1_14`
 - `test_protocol_spec_sections_1_5_to_1_13`
-- `test_withshader_dirty_toggle`
 
 ## Run Commands
 
 - `pio test -e native-test -f protocols/test_protocol_spec_sections_1_1_to_1_4_and_1_14`
 - `pio test -e native-test -f protocols/test_protocol_spec_sections_1_5_to_1_13`
-- `pio test -e native-test -f protocols/test_withshader_dirty_toggle`
 - `pio test -e native-test -f protocols/*`

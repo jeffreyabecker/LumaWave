@@ -6,9 +6,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "colors/IShader.h"
 #include "colors/ColorMath.h"
-#include "colors/NilShader.h"
 #include "core/IPixelBus.h"
 #include "transports/ILightDriver.h"
 #include "transports/Transports.h"
@@ -16,28 +14,19 @@
 namespace lw::busses
 {
 
-template <typename TColor = lw::colors::DefaultColorType, typename TDriver = transports::PlatformDefaultLightDriver<TColor>, typename TShader = NilShader<TColor>> class LightBus : public IPixelBus<TColor>
+template <typename TColor = lw::colors::DefaultColorType, typename TDriver = transports::PlatformDefaultLightDriver<TColor>> class LightBus : public IPixelBus<TColor>
 {
 public:
   using ColorType = TColor;
   using BrightnessType = typename IPixelBus<ColorType>::BrightnessType;
   using DriverType = TDriver;
   using DriverSettingsType = typename DriverType::LightDriverSettingsType;
-  using ShaderType = TShader;
-
-  static constexpr bool UsesShaderScratch = !std::is_same_v<std::remove_cv_t<std::remove_reference_t<ShaderType>>, NilShader<ColorType>>;
 
   static_assert(transports::SettingsConstructibleLightDriverLike<DriverType>, "Driver type must derive from ILightDriver<ColorType>, declare LightDriverSettingsType, and be "
                                                                               "constructible from those settings.");
   static_assert(std::is_same_v<typename DriverType::ColorType, ColorType>, "Driver ColorType must match LightBus ColorType.");
-  static_assert(std::is_convertible_v<ShaderType*, IShader<ColorType>*>, "Shader type must derive from IShader<ColorType>.");
 
-  LightBus(DriverSettingsType driverSettings, ShaderType shader) : _driver(normalizeDriverSettings(std::move(driverSettings))), _shader(std::move(shader)), _pixels(span<ColorType>{_rootPixel.data(), _rootPixel.size()}) {}
-
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>>>>
-  explicit LightBus(DriverSettingsType driverSettings) : _driver(normalizeDriverSettings(std::move(driverSettings))), _shader{}, _pixels(span<ColorType>{_rootPixel.data(), _rootPixel.size()})
-  {
-  }
+  explicit LightBus(DriverSettingsType driverSettings) : _driver(normalizeDriverSettings(std::move(driverSettings))), _pixels(span<ColorType>{_rootPixel.data(), _rootPixel.size()}) {}
 
   void begin() override { _driver.begin(); }
 
@@ -53,22 +42,7 @@ public:
       return;
     }
 
-    const ColorType* outputPixel = _rootPixel.data();
-    BrightnessType effectiveBrightness = _brightness;
-    if constexpr (UsesShaderScratch)
-    {
-      _shaderScratch[0] = _rootPixel[0];
-      span<ColorType> shaderPixel{_shaderScratch.data(), _shaderScratch.size()};
-      _shader.apply(shaderPixel);
-      if (_shader.brightnessOwnership() == shaders::BrightnessOwnership::Owns)
-      {
-        _shader.applyBrightness(shaderPixel, _brightness);
-        effectiveBrightness = std::numeric_limits<BrightnessType>::max();
-      }
-      outputPixel = _shaderScratch.data();
-    }
-
-    _driver.write(*outputPixel, effectiveBrightness);
+    _driver.write(_rootPixel[0], _brightness);
     _dirty = false;
   }
 
@@ -94,32 +68,8 @@ public:
 
   const DriverType& driver() const { return _driver; }
 
-  ShaderType& shader() { return _shader; }
-
-  const ShaderType& shader() const { return _shader; }
-
   void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
   BrightnessType brightness() const override { return _brightness; }
-
-  span<ColorType> shaderScratch()
-  {
-    if constexpr (UsesShaderScratch)
-    {
-      return span<ColorType>{_shaderScratch.data(), _shaderScratch.size()};
-    }
-
-    return span<ColorType>{};
-  }
-
-  span<const ColorType> shaderScratch() const
-  {
-    if constexpr (UsesShaderScratch)
-    {
-      return span<const ColorType>{_shaderScratch.data(), _shaderScratch.size()};
-    }
-
-    return span<const ColorType>{};
-  }
 
 private:
   template <typename TSettings, typename = void> struct DriverSettingsHasNormalize : std::false_type
@@ -141,9 +91,7 @@ private:
   }
 
   DriverType _driver;
-  ShaderType _shader;
   std::array<ColorType, 1> _rootPixel{};
-  std::array<ColorType, 1> _shaderScratch{};
   PixelView<ColorType> _pixels;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};

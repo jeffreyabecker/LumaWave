@@ -12,7 +12,7 @@
 
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
-| Primary model | Hybrid: template-instantiated chipset/platform controllers attached to runtime `fl::CLEDController` linked list | Virtual-first seam model (`IPixelBus`, `IShader`, `IProtocol`, `ITransport`) |
+| Primary model | Hybrid: template-instantiated chipset/platform controllers attached to runtime `fl::CLEDController` linked list | Virtual-first seam model (`IPixelBus`, `IProtocol`, `ITransport`) |
 | User-facing construction | `FastLED.addLeds<CHIPSET, ...>(...)` compile-time selection | `makeBus(...)` / descriptor-driven factory (static + dynamic paths) |
 | Runtime polymorphism | Yes at controller list level (`virtual show()/showColor()`) | Yes across all seam boundaries |
 | Runtime reconfiguration | Limited (enable/disable controllers, selected runtime controls on some platforms) | Core design goal via descriptors + `DynamicBusBuilder`/INI |
@@ -22,7 +22,7 @@
 
 FastLED combines two strategies: template specialization for chipset/platform implementation details, then runtime iteration via a linked list of `CLEDController` instances. This gives very good per-platform optimization while still allowing a single `FastLED.show()` call over multiple strips.
 
-LumaWave places explicit architectural seams at bus/shader/protocol/transport boundaries and keeps that abstraction first-class in both static and dynamic factory paths. In exchange for some virtual dispatch overhead, it enables cleaner runtime composition and descriptor-driven wiring.
+LumaWave places explicit architectural seams at bus/protocol/transport boundaries and keeps that abstraction first-class in both static and dynamic factory paths. In exchange for some virtual dispatch overhead, it enables cleaner runtime composition and descriptor-driven wiring.
 
 ### 1.2  Separation of Concerns
 

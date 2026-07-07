@@ -32,7 +32,6 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 - Component type: `uint8_t` or `uint16_t`
 - Concrete aliases: `Rgbw8Color`, `Rgbw16Color`
 - Removed: `Rgb8Color`, `Rgb16Color`, `Rgbcw8Color`, `Rgbcw16Color`, `RgbBasedColor<>` template, `ChannelOrder::RGBCW/GRBCW/BGRCW`, `ChannelSource<T,5>`, `ChannelSource<T,3>`
-- Shader changes (`CCTWhiteBalanceShader`, `AutoWhiteBalanceShader::dualWhite`) tracked separately in their own backlog
 
 ## Non-Goals
 
@@ -95,12 +94,12 @@ Transports and buses still need their own channel count for hardware pin mapping
 - [ ] **`P7a`** — `test/protocols/test_protocol_spec_sections_1_5_to_1_13/`: remove RGBCW test cases.
 - [ ] **`P7b`** — `test/protocols/test_protocol_debug_pipeline/`: change `TestColor = lw::Rgbcw8Color` → `lw::Rgbw8Color`.
 - [ ] **`P7c`** — Search and update all test files that use `Rgb8Color`, `Rgb16Color`, `Rgbcw8Color`, `Rgbcw16Color`, `RgbBasedColor`, or `'C'` channel — replace with `Rgbw8Color`/`Rgbw16Color`.
-- [ ] **`P7d`** — Update `test/shaders/test_color_domain_section1/` — remove tests that verify 3-channel or 5-channel behavior.
-- [ ] **`P7e`** — Remove `test/shaders/test_cct_white_balance_shader_section8/` directory (shader tracked separately, but tests reference removed types).
+- [ ] **`P7d`** — Update `test/shaders/test_color_domain_section1/` — remove tests that verify 3-channel or 5-channel behavior (type cleanup, not shader logic).
+- [ ] **`P7e`** — Remove `test/shaders/test_cct_white_balance_shader_section8/` directory (references removed color types).
 
 ### Phase 8 — Examples
 
-- [ ] **`P8a`** — Remove entire `examples/shaders/cct-white-balance/` directory.
+- [ ] **`P8a`** — Remove entire `examples/shaders/cct-white-balance/` directory (references removed color types).
 - [ ] **`P8b`** — `examples/hello/light/`: change from `Rgbcw16Color` to `Rgbw16Color`.
 - [ ] **`P8c`** — Search all examples for `Rgb8Color`, `Rgb16Color`, `Rgbcw*` and update to `Rgbw8Color`/`Rgbw16Color`.
 

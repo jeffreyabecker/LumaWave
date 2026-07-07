@@ -9,9 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include "colors/IShader.h"
 #include "colors/ColorMath.h"
-#include "colors/NilShader.h"
 #include "core/IPixelBus.h"
 #include "protocols/IProtocol.h"
 #include "transports/ITransport.h"
@@ -55,15 +53,13 @@ using PlatformDefaultTransportSettings = typename PlatformDefaultTransport::Tran
 
 #if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
 
-template <typename TProtocol, typename TTransport = PlatformDefaultTransport, typename TShader = NilShader<typename detail::ResolveProtocolType<TProtocol>::Type::ColorType>>
-class PixelBus : public IPixelBus<typename detail::ResolveProtocolType<TProtocol>::Type::ColorType>
+template <typename TProtocol, typename TTransport = PlatformDefaultTransport> class PixelBus : public IPixelBus<typename detail::ResolveProtocolType<TProtocol>::Type::ColorType>
 {
 public:
   using ProtocolSpecType = TProtocol;
 
   using ProtocolType = typename detail::ResolveProtocolType<ProtocolSpecType>::Type;
   using TransportType = TTransport;
-  using ShaderType = TShader;
   using ColorType = typename ProtocolType::ColorType;
   using BrightnessType = typename ColorType::ComponentType;
   using ProtocolSettingsType = typename ProtocolType::SettingsType;
@@ -72,45 +68,21 @@ public:
   static_assert(!std::is_same_v<ProtocolSettingsType, void>, "Protocol settings type must not be void.");
   static_assert(std::is_convertible_v<ProtocolType*, protocols::IProtocol<ColorType>*>, "Protocol type must derive from IProtocol<ColorType>.");
   static_assert(std::is_convertible_v<TransportType*, transports::ITransport*>, "Transport type must derive from ITransport.");
-  static_assert(std::is_convertible_v<ShaderType*, shaders::IShader<ColorType>*>, "Shader type must derive from IShader<ColorType>.");
 
-  static constexpr bool UsesShaderScratch = !std::is_same_v<std::remove_cv_t<std::remove_reference_t<ShaderType>>, NilShader<ColorType>>;
-
-  PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, TransportSettingsType transportSettings, ShaderType shaderInstance)
-      : _pixelCount(normalizePixelCount(pixelCount)), _transport(normalizeTransportSettings(std::move(transportSettings), _pixelCount, protocolSettings)),
-        _protocol(makeProtocol(_pixelCount, _transport, normalizeProtocolSettings(std::move(protocolSettings)))), _shader(std::move(shaderInstance)), _rootPixels(_pixelCount),
-        _pixels(span<ColorType>{_rootPixels.data(), _rootPixels.size()}), _shaderScratch(_pixelCount), _protocolBuffer(_protocol.requiredBufferSizeBytes(), static_cast<uint8_t>(0))
-  {
-  }
-
-  PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, transports::OneWireTiming timing, TransportSettingsType transportSettings, ShaderType shaderInstance)
-      : PixelBus(pixelCount, assignProtocolTimingIfPresent(std::move(protocolSettings), timing), std::move(transportSettings), std::move(shaderInstance))
-  {
-  }
-
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>>>>
   PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, TransportSettingsType transportSettings)
       : _pixelCount(normalizePixelCount(pixelCount)), _transport(normalizeTransportSettings(std::move(transportSettings), _pixelCount, protocolSettings)),
-        _protocol(makeProtocol(_pixelCount, _transport, normalizeProtocolSettings(std::move(protocolSettings)))), _shader{}, _rootPixels(_pixelCount), _pixels(span<ColorType>{_rootPixels.data(), _rootPixels.size()}),
-        _shaderScratch(0), _protocolBuffer(_protocol.requiredBufferSizeBytes(), static_cast<uint8_t>(0))
+        _protocol(makeProtocol(_pixelCount, _transport, normalizeProtocolSettings(std::move(protocolSettings)))), _rootPixels(_pixelCount), _pixels(span<ColorType>{_rootPixels.data(), _rootPixels.size()}),
+        _protocolBuffer(_protocol.requiredBufferSizeBytes(), static_cast<uint8_t>(0))
   {
   }
 
-  template <typename TShaderAlias = ShaderType, typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>>>>
   PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, transports::OneWireTiming timing, TransportSettingsType transportSettings)
       : PixelBus(pixelCount, assignProtocolTimingIfPresent(std::move(protocolSettings), timing), std::move(transportSettings))
   {
   }
 
-  template <typename TShaderAlias = ShaderType,
-            typename = std::enable_if_t<std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>> && std::is_default_constructible_v<ProtocolSettingsType>>>
+  template <typename = std::enable_if_t<std::is_default_constructible_v<ProtocolSettingsType>>>
   PixelBus(size_t pixelCount, TransportSettingsType transportSettings) : PixelBus(pixelCount, defaultProtocolSettings(), std::move(transportSettings))
-  {
-  }
-
-  template <typename TShaderAlias = ShaderType,
-            typename = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<TShaderAlias>>, NilShader<ColorType>> && std::is_default_constructible_v<ProtocolSettingsType>>>
-  PixelBus(size_t pixelCount, TransportSettingsType transportSettings, ShaderType shaderInstance) : PixelBus(pixelCount, defaultProtocolSettings(), std::move(transportSettings), std::move(shaderInstance))
   {
   }
 
@@ -133,29 +105,10 @@ public:
     }
 
     span<const ColorType> protocolInput{};
-    auto shaderOwnership = shaders::BrightnessOwnership::None;
-    bool brightnessAppliedUpstream = false;
 
     if (!_rootPixels.empty())
     {
-      if constexpr (UsesShaderScratch)
-      {
-        std::copy(_rootPixels.begin(), _rootPixels.end(), _shaderScratch.begin());
-
-        span<ColorType> shaderSpan{_shaderScratch.data(), _shaderScratch.size()};
-        _shader.apply(shaderSpan);
-        shaderOwnership = _shader.brightnessOwnership();
-        if (shaderOwnership == shaders::BrightnessOwnership::Owns)
-        {
-          _shader.applyBrightness(shaderSpan, _brightness);
-          brightnessAppliedUpstream = (_brightness != std::numeric_limits<BrightnessType>::max());
-        }
-        protocolInput = shaderSpan;
-      }
-      else
-      {
-        protocolInput = span<const ColorType>{_rootPixels.data(), _rootPixels.size()};
-      }
+      protocolInput = span<const ColorType>{_rootPixels.data(), _rootPixels.size()};
     }
 
     span<uint8_t> protocolBytes{};
@@ -165,7 +118,7 @@ public:
     }
 
     // Apply bus-level global brightness scaling before protocol encoding.
-    if ((shaderOwnership != shaders::BrightnessOwnership::Owns) && (_brightness != std::numeric_limits<BrightnessType>::max()) && !protocolInput.empty())
+    if ((_brightness != std::numeric_limits<BrightnessType>::max()) && !protocolInput.empty())
     {
       const size_t count = static_cast<size_t>(protocolInput.size());
       if (_brightnessScratch.size() != count)
@@ -185,7 +138,6 @@ public:
       }
 
       protocolInput = span<const ColorType>{_brightnessScratch.data(), _brightnessScratch.size()};
-      brightnessAppliedUpstream = true;
     }
 
     _protocol.update(protocolInput, protocolBytes);
@@ -193,7 +145,7 @@ public:
     if (!protocolBytes.empty())
     {
       _transport.beginTransaction();
-      _transport.transmitBytes(protocolBytes, transports::TransportBrightness::from(_brightness, brightnessAppliedUpstream));
+      _transport.transmitBytes(protocolBytes, transports::TransportBrightness::from(_brightness, false));
       _transport.endTransaction();
     }
 
@@ -216,10 +168,6 @@ public:
 
   span<const ColorType> rootPixels() const { return span<const ColorType>{_rootPixels.data(), _rootPixels.size()}; }
 
-  span<ColorType> shaderScratch() { return span<ColorType>{_shaderScratch.data(), _shaderScratch.size()}; }
-
-  span<const ColorType> shaderScratch() const { return span<const ColorType>{_shaderScratch.data(), _shaderScratch.size()}; }
-
   span<uint8_t> protocolBuffer() { return span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()}; }
 
   span<const uint8_t> protocolBuffer() const { return span<const uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()}; }
@@ -231,10 +179,6 @@ public:
   TransportType& transport() { return _transport; }
 
   const TransportType& transport() const { return _transport; }
-
-  ShaderType& shader() { return _shader; }
-
-  const ShaderType& shader() const { return _shader; }
 
   void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
   BrightnessType brightness() const override { return _brightness; }
@@ -401,10 +345,8 @@ private:
   size_t _pixelCount{0};
   TransportType _transport;
   ProtocolType _protocol;
-  ShaderType _shader;
   std::vector<ColorType> _rootPixels;
   PixelView<ColorType> _pixels;
-  std::vector<ColorType> _shaderScratch;
   std::vector<uint8_t> _protocolBuffer;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   std::vector<ColorType> _brightnessScratch;

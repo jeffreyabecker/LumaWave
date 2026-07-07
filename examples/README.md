@@ -19,12 +19,6 @@ Choose composite strip composition when you want ownership in one composed objec
 Choose aggregate strip composition when child strips are created elsewhere and only referenced.
 Choose `AggregateStrip` when the aggregate should own heap-allocated child strips.
 
-## Shader Examples
-
-- `shaders/cct-white-balance/cct-white-balance.ino`: RGBCW CCT white-balance shader example over SPI transport.
-- `shaders/gamma/gamma.ino`: Deterministic gamma correction example.
-- `shaders/chain-awb-gamma/chain-awb-gamma.ino`: Aggregate shader chain (`AutoWhiteBalanceShader` + `GammaShader`).
-
 ## Palette Examples
 
 Palette stops are expected in non-decreasing index order.

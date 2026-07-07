@@ -5,7 +5,6 @@
 
 #include "buses/ReferenceLightBus.h"
 #include "colors/Color.h"
-#include "colors/IShader.h"
 #include "transports/ILightDriver.h"
 
 namespace
@@ -14,146 +13,93 @@ using TestColor = lw::Rgb8Color;
 
 class CaptureLightDriver : public lw::transports::ILightDriver<TestColor>
 {
-  public:
-    ~CaptureLightDriver() override { ++destructorCount; }
+public:
+  ~CaptureLightDriver() override { ++destructorCount; }
 
-    void begin() override { began = true; }
+  void begin() override { began = true; }
 
-    bool isReadyToUpdate() const override { return ready; }
+  bool isReadyToUpdate() const override { return ready; }
 
-    void write(const TestColor& color) override
-    {
-        ++writeCount;
-        lastColor = color;
-    }
+  void write(const TestColor& color) override
+  {
+    ++writeCount;
+    lastColor = color;
+  }
 
-    static int destructorCount;
-    bool began{false};
-    bool ready{true};
-    size_t writeCount{0};
-    TestColor lastColor{};
+  static int destructorCount;
+  bool began{false};
+  bool ready{true};
+  size_t writeCount{0};
+  TestColor lastColor{};
 };
 
 int CaptureLightDriver::destructorCount = 0;
 
-class IncrementRedShader : public lw::IShader<TestColor>
-{
-  public:
-    ~IncrementRedShader() override { ++destructorCount; }
-
-    void apply(lw::span<TestColor> colors) override
-    {
-        for (auto& color : colors)
-        {
-            ++color['R'];
-        }
-    }
-
-    static int destructorCount;
-};
-
-int IncrementRedShader::destructorCount = 0;
-
 struct OwnedColor
 {
-    static int destructorCount;
+  static int destructorCount;
 
-    OwnedColor() = default;
+  OwnedColor() = default;
 
-    ~OwnedColor() { ++destructorCount; }
+  ~OwnedColor() { ++destructorCount; }
 };
 
 int OwnedColor::destructorCount = 0;
 
 class OwnedLightDriver : public lw::transports::ILightDriver<OwnedColor>
 {
-  public:
-    ~OwnedLightDriver() override { ++destructorCount; }
+public:
+  ~OwnedLightDriver() override { ++destructorCount; }
 
-    void begin() override {}
+  void begin() override {}
 
-    bool isReadyToUpdate() const override { return true; }
+  bool isReadyToUpdate() const override { return true; }
 
-    void write(const OwnedColor&) override {}
+  void write(const OwnedColor&) override {}
 
-    static int destructorCount;
+  static int destructorCount;
 };
 
 int OwnedLightDriver::destructorCount = 0;
 
-class OwnedShader : public lw::IShader<OwnedColor>
-{
-  public:
-    ~OwnedShader() override { ++destructorCount; }
-
-    void apply(lw::span<OwnedColor>) override {}
-
-    static int destructorCount;
-};
-
-int OwnedShader::destructorCount = 0;
-
 void resetDestructorCounters()
 {
-    CaptureLightDriver::destructorCount = 0;
-    IncrementRedShader::destructorCount = 0;
-    OwnedLightDriver::destructorCount = 0;
-    OwnedShader::destructorCount = 0;
-    OwnedColor::destructorCount = 0;
+  CaptureLightDriver::destructorCount = 0;
+  OwnedLightDriver::destructorCount = 0;
+  OwnedColor::destructorCount = 0;
 }
 
-void test_reference_light_bus_uses_shader_scratch_when_provided(void)
+void test_reference_light_bus_writes_root_pixel(void)
 {
-    resetDestructorCounters();
+  resetDestructorCounters();
 
-    auto driver = std::make_unique<CaptureLightDriver>();
-    auto shader = std::make_unique<IncrementRedShader>();
-    auto* driverPtr = driver.get();
+  auto driver = std::make_unique<CaptureLightDriver>();
+  auto* driverPtr = driver.get();
 
-    lw::busses::ReferenceLightBus<TestColor> bus(std::move(driver), std::move(shader));
-    bus.pixels()[0] = TestColor{3, 4, 5};
+  lw::busses::ReferenceLightBus<TestColor> bus(std::move(driver));
+  bus.pixels()[0] = TestColor{3, 4, 5};
 
-    bus.begin();
-    bus.show();
+  bus.begin();
+  bus.show();
 
-    TEST_ASSERT_TRUE(driverPtr->began);
-    TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(driverPtr->writeCount));
-    TEST_ASSERT_EQUAL_UINT8(4, driverPtr->lastColor['R']);
-    TEST_ASSERT_EQUAL_UINT8(3, bus.rootBuffer()->operator[]('R'));
-    TEST_ASSERT_EQUAL_UINT8(4, bus.shaderBuffer()->operator[]('R'));
-}
-
-void test_reference_light_bus_uses_root_buffer_when_shader_is_absent(void)
-{
-    resetDestructorCounters();
-
-    auto driver = std::make_unique<CaptureLightDriver>();
-    auto* driverPtr = driver.get();
-
-    lw::busses::ReferenceLightBus<TestColor> bus(std::move(driver));
-    bus.pixels()[0] = TestColor{10, 2, 3};
-
-    bus.show();
-
-    TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(driverPtr->writeCount));
-    TEST_ASSERT_EQUAL_UINT8(10, bus.rootBuffer()->operator[]('R'));
-    TEST_ASSERT_EQUAL_UINT8(10, driverPtr->lastColor['R']);
+  TEST_ASSERT_TRUE(driverPtr->began);
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(driverPtr->writeCount));
+  TEST_ASSERT_EQUAL_UINT8(3, driverPtr->lastColor['R']);
+  TEST_ASSERT_EQUAL_UINT8(3, bus.rootBuffer()->operator[]('R'));
 }
 
 void test_reference_light_bus_owns_all_resources(void)
 {
-    resetDestructorCounters();
+  resetDestructorCounters();
 
-    {
-        auto driver = std::make_unique<OwnedLightDriver>();
-        auto shader = std::make_unique<OwnedShader>();
+  {
+    auto driver = std::make_unique<OwnedLightDriver>();
 
-        lw::busses::ReferenceLightBus<OwnedColor> bus(std::move(driver), std::move(shader));
-    }
+    lw::busses::ReferenceLightBus<OwnedColor> bus(std::move(driver));
+  }
 
-    TEST_ASSERT_EQUAL_INT(1, OwnedLightDriver::destructorCount);
-    TEST_ASSERT_EQUAL_INT(1, OwnedShader::destructorCount);
-    TEST_ASSERT_EQUAL_INT(2, OwnedColor::destructorCount);
+  TEST_ASSERT_EQUAL_INT(1, OwnedLightDriver::destructorCount);
+  TEST_ASSERT_EQUAL_INT(2, OwnedColor::destructorCount);
 }
 } // namespace
 
@@ -167,12 +113,11 @@ void tearDown(void)
 
 int main(int argc, char** argv)
 {
-    (void)argc;
-    (void)argv;
+  (void)argc;
+  (void)argv;
 
-    UNITY_BEGIN();
-    RUN_TEST(test_reference_light_bus_uses_shader_scratch_when_provided);
-    RUN_TEST(test_reference_light_bus_uses_root_buffer_when_shader_is_absent);
-    RUN_TEST(test_reference_light_bus_owns_all_resources);
-    return UNITY_END();
+  UNITY_BEGIN();
+  RUN_TEST(test_reference_light_bus_writes_root_pixel);
+  RUN_TEST(test_reference_light_bus_owns_all_resources);
+  return UNITY_END();
 }

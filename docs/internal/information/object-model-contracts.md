@@ -7,7 +7,7 @@ This document defines the current object-model contracts enforced by the virtual
 - Keep protocol/transport compatibility explicit and compile-time enforced.
 - Keep bus runtime behavior focused on frame flow, not runtime type validation.
 - Keep protocol frame-buffer ownership outside protocol implementations.
-- Keep seam contracts (`IPixelBus`, `IProtocol`, `ITransport`, `IShader`) minimal and stable.
+- Keep seam contracts (`IPixelBus`, `IProtocol`, `ITransport`) minimal and stable.
 
 ---
 
@@ -72,14 +72,6 @@ Optional/default virtual behavior:
 Transmit lifetime invariant:
 
 - Bytes passed to `transmitBytes(...)` must remain valid until readiness is restored.
-
-### 1.4 `IShader<TColor>`
-
-`IShader<TColor>` contract is minimal:
-
-- `apply(span<TColor>)`
-
-No separate compile-time shader copyability concept is currently enforced at seam level.
 
 ---
 

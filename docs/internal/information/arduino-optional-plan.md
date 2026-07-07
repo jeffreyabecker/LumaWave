@@ -267,7 +267,7 @@ This order delivers the highest-value user-facing improvement first: non-Arduino
 ## Design Constraints To Preserve
 
 - Keep the public code path compatible with C++17.
-- Preserve the virtual-first seam model: `IPixelBus`, `IShader`, `IProtocol`, `ITransport`.
+- Preserve the virtual-first seam model: `IPixelBus`, `IProtocol`, `ITransport`.
 - Do not add compatibility overloads or shims merely to preserve previous accidental include behavior.
 - Keep transport settings types satisfying the required `public bool invert` contract.
 - Keep platform details at the transport/platform edge, not in the generic protocol or bus layers.

@@ -3,7 +3,6 @@
 #include <type_traits>
 
 #include "buses/PixelBus.h"
-#include "colors/GammaShader.h"
 #include "protocols/DotStarProtocol.h"
 #include "protocols/ProtocolAliases.h"
 #include "protocols/Ws2812xProtocol.h"
@@ -38,23 +37,10 @@ public:
 void test_pixel_bus_typed_protocol_transport(void)
 {
   using Protocol = lw::protocols::Apa102Protocol<lw::Rgb8Color>;
-  using BusType = lw::busses::PixelBus<Protocol, lw::transports::NilTransport, lw::NilShader<lw::Rgb8Color>>;
 
   lw::busses::PixelBus<Protocol, lw::transports::NilTransport> bus(16, lw::protocols::Apa102ProtocolSettings{}, lw::transports::NilTransportSettings{});
 
-  static_assert(std::is_same<BusType, decltype(bus)>::value, "PixelBus should preserve typed protocol/transport defaults");
   TEST_ASSERT_EQUAL_UINT32(16U, static_cast<uint32_t>(bus.pixelCount()));
-}
-
-void test_pixel_bus_typed_with_shader(void)
-{
-  using Protocol = lw::protocols::Apa102Protocol<lw::Rgb8Color>;
-  using Shader = lw::shaders::GammaShader<lw::Rgb8Color>;
-
-  lw::busses::PixelBus<Protocol, lw::transports::NilTransport, Shader> bus(8, lw::protocols::Apa102ProtocolSettings{}, lw::transports::NilTransportSettings{}, Shader{});
-
-  static_assert(std::is_same_v<Shader, std::remove_cv_t<std::remove_reference_t<decltype(bus.shader())>>>, "Shader type should be preserved in PixelBus");
-  TEST_ASSERT_EQUAL_UINT32(8U, static_cast<uint32_t>(bus.pixelCount()));
 }
 
 void test_pixel_bus_ws_alias_defaults_transport_rate(void)
@@ -108,7 +94,6 @@ int main(int, char**)
 {
   UNITY_BEGIN();
   RUN_TEST(test_pixel_bus_typed_protocol_transport);
-  RUN_TEST(test_pixel_bus_typed_with_shader);
   RUN_TEST(test_pixel_bus_ws_alias_defaults_transport_rate);
   RUN_TEST(test_pixel_bus_ws_alias_timing_override);
   RUN_TEST(test_direct_pixel_bus_with_alias_spec);

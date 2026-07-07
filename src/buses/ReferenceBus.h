@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <memory>
 
-#include "colors/IShader.h"
 #include "colors/ColorMath.h"
 #include "core/IPixelBus.h"
 #include <limits>
@@ -21,9 +20,9 @@ template <typename TColor> class ReferenceBus : public IPixelBus<TColor>
 public:
   using BrightnessType = typename IPixelBus<TColor>::BrightnessType;
 
-  ReferenceBus(PixelCount pixelCount, std::unique_ptr<protocols::IProtocol<TColor>> protocol, std::unique_ptr<transports::ITransport> transport, std::unique_ptr<IShader<TColor>> shader = nullptr)
+  ReferenceBus(PixelCount pixelCount, std::unique_ptr<protocols::IProtocol<TColor>> protocol, std::unique_ptr<transports::ITransport> transport)
       : _pixelCount(pixelCount), _rootBuffer(allocateColorBuffer(_pixelCount)), _protocol(std::move(protocol)), _protocolBuffer(allocateByteBuffer(protocolBufferSize(_protocol))), _transport(std::move(transport)),
-        _shader(std::move(shader)), _shaderBuffer(allocateColorBuffer(_pixelCount)), _pixels(makePixelChunk(_rootBuffer.get(), _pixelCount))
+        _brightnessScratch(allocateColorBuffer(_pixelCount)), _pixels(makePixelChunk(_rootBuffer.get(), _pixelCount))
   {
   }
 
@@ -58,67 +57,26 @@ public:
     }
 
     span<const TColor> protocolInput{};
-    span<TColor> mutableProtocolInput{};
-    auto shaderOwnership = shaders::BrightnessOwnership::None;
-    bool brightnessAppliedUpstream = false;
 
     if (_rootBuffer && _pixelCount > 0)
     {
-      if (_shader && _shaderBuffer)
-      {
-        std::copy_n(_rootBuffer.get(), _pixelCount, _shaderBuffer.get());
-        span<TColor> shaderSpan{_shaderBuffer.get(), _pixelCount};
-        _shader->apply(shaderSpan);
-        shaderOwnership = _shader->brightnessOwnership();
-        if (shaderOwnership == shaders::BrightnessOwnership::Owns)
-        {
-          _shader->applyBrightness(shaderSpan, _brightness);
-          brightnessAppliedUpstream = (_brightness != std::numeric_limits<BrightnessType>::max());
-        }
-        mutableProtocolInput = shaderSpan;
-      }
-      else if (_shader)
-      {
-        span<TColor> rootSpan{_rootBuffer.get(), _pixelCount};
-        _shader->apply(rootSpan);
-        shaderOwnership = _shader->brightnessOwnership();
-        if (shaderOwnership == shaders::BrightnessOwnership::Owns)
-        {
-          _shader->applyBrightness(rootSpan, _brightness);
-          brightnessAppliedUpstream = (_brightness != std::numeric_limits<BrightnessType>::max());
-        }
-        mutableProtocolInput = rootSpan;
-      }
-      else if ((_brightness != std::numeric_limits<BrightnessType>::max()) && _shaderBuffer)
-      {
-        std::copy_n(_rootBuffer.get(), _pixelCount, _shaderBuffer.get());
-        mutableProtocolInput = span<TColor>{_shaderBuffer.get(), _pixelCount};
-      }
-      else
-      {
-        protocolInput = span<const TColor>{_rootBuffer.get(), _pixelCount};
-      }
+      protocolInput = span<const TColor>{_rootBuffer.get(), _pixelCount};
     }
 
-    if ((shaderOwnership != shaders::BrightnessOwnership::Owns) && (_brightness != std::numeric_limits<BrightnessType>::max()) && !mutableProtocolInput.empty())
+    // Apply bus-level global brightness scaling before protocol encoding.
+    if ((_brightness != std::numeric_limits<BrightnessType>::max()) && !protocolInput.empty() && _brightnessScratch)
     {
-      if constexpr (lw::ColorType<TColor>)
+      const size_t count = protocolInput.size();
+      for (size_t i = 0; i < count; ++i)
       {
-        for (auto& color : mutableProtocolInput)
+        _brightnessScratch[i] = protocolInput[i];
+        auto& dst = _brightnessScratch[i];
+        for (auto channel : TColor::channelIndexes())
         {
-          for (auto channel : TColor::channelIndexes())
-          {
-            color[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(color[channel], _brightness));
-          }
+          dst[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(dst[channel], _brightness));
         }
-
-        brightnessAppliedUpstream = true;
       }
-    }
-
-    if (!mutableProtocolInput.empty())
-    {
-      protocolInput = mutableProtocolInput;
+      protocolInput = span<const TColor>{_brightnessScratch.get(), count};
     }
 
     span<uint8_t> protocolBytes{};
@@ -133,7 +91,7 @@ public:
     if (!protocolBytes.empty())
     {
       _transport->beginTransaction();
-      _transport->transmitBytes(protocolBytes, transports::TransportBrightness::from(_brightness, brightnessAppliedUpstream));
+      _transport->transmitBytes(protocolBytes, transports::TransportBrightness::from(_brightness, false));
       _transport->endTransaction();
     }
 
@@ -158,22 +116,11 @@ public:
 
   const PixelView<TColor>& pixels() const override { return _pixels; }
 
-  PixelCount pixelCount() const { return _pixelCount; }
-
-  void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
-  BrightnessType brightness() const override { return _brightness; }
+  size_t pixelCount() const { return _pixelCount; }
 
   TColor* rootBuffer() { return _rootBuffer.get(); }
 
   const TColor* rootBuffer() const { return _rootBuffer.get(); }
-
-  TColor* shaderBuffer() { return _shaderBuffer.get(); }
-
-  const TColor* shaderBuffer() const { return _shaderBuffer.get(); }
-
-  uint8_t* protocolBuffer() { return _protocolBuffer.get(); }
-
-  const uint8_t* protocolBuffer() const { return _protocolBuffer.get(); }
 
   protocols::IProtocol<TColor>* protocol() { return _protocol.get(); }
 
@@ -183,22 +130,19 @@ public:
 
   const transports::ITransport* transport() const { return _transport.get(); }
 
-  IShader<TColor>* shader() { return _shader.get(); }
-
-  const IShader<TColor>* shader() const { return _shader.get(); }
+  void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
+  BrightnessType brightness() const override { return _brightness; }
 
 private:
-  static std::unique_ptr<TColor[]> allocateColorBuffer(PixelCount pixelCount)
+  static std::unique_ptr<TColor[]> allocateColorBuffer(size_t count)
   {
-    if (pixelCount == 0)
+    if (count == 0)
     {
       return nullptr;
     }
 
-    return std::make_unique<TColor[]>(pixelCount);
+    return std::make_unique<TColor[]>(count);
   }
-
-  static size_t protocolBufferSize(const std::unique_ptr<protocols::IProtocol<TColor>>& protocol) { return protocol ? protocol->requiredBufferSizeBytes() : 0u; }
 
   static std::unique_ptr<uint8_t[]> allocateByteBuffer(size_t size)
   {
@@ -210,14 +154,24 @@ private:
     return std::make_unique<uint8_t[]>(size);
   }
 
-  static span<TColor> makePixelChunk(TColor* buffer, PixelCount pixelCount)
+  static size_t protocolBufferSize(const std::unique_ptr<protocols::IProtocol<TColor>>& protocol)
   {
-    if (buffer == nullptr || pixelCount == 0)
+    if (!protocol)
+    {
+      return 0;
+    }
+
+    return protocol->requiredBufferSizeBytes();
+  }
+
+  static span<TColor> makePixelChunk(TColor* buffer, size_t count)
+  {
+    if (buffer == nullptr || count == 0)
     {
       return span<TColor>{};
     }
 
-    return span<TColor>{buffer, pixelCount};
+    return span<TColor>{buffer, count};
   }
 
   PixelCount _pixelCount{0};
@@ -225,8 +179,7 @@ private:
   std::unique_ptr<protocols::IProtocol<TColor>> _protocol;
   std::unique_ptr<uint8_t[]> _protocolBuffer;
   std::unique_ptr<transports::ITransport> _transport;
-  std::unique_ptr<IShader<TColor>> _shader;
-  std::unique_ptr<TColor[]> _shaderBuffer;
+  std::unique_ptr<TColor[]> _brightnessScratch;
   PixelView<TColor> _pixels;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};

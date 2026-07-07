@@ -5,7 +5,7 @@
 - Repository: `NpbNext`.
 - Primary target: PlatformIO + Arduino core, with RP2040/Pico2W as the default workflow.
 - Language standard for active code paths: C++17 (`-std=gnu++17`) in primary and native-test environments.
-- Architecture is virtual-first and centered on explicit seams: `IPixelBus`, `IShader`, `IProtocol`, and `ITransport`.
+- Architecture is virtual-first and centered on explicit seams: `IPixelBus`, `IProtocol`, and `ITransport`.
 - Project stage is alpha: API compatibility is not preserved by default and public APIs are assumed unstable unless explicitly stated otherwise.
 - Do not introduce compatiblity shims or overloads to preserve old APIs; prefer direct API updates and test/example call site maintenance instead.
 - For API changes, update call sites in tests/examples and remove obsolete APIs rather than introducing compatibility wrappers or alias overloads.
