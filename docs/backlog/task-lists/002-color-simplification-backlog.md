@@ -40,7 +40,7 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 - Do not change the color math, palette, or blend infrastructure except where they reference removed types/traits.
 - Do not change transport or bus code's runtime behavior — only remove `NChannels` template parameters and channel-count branching.
 - Do not add compatibility shims, deprecated aliases, or `[[deprecated]]` attributes for removed types.
-- Do not change `LW_COLOR_MINIMUM_COMPONENT_SIZE` behavior — 8-bit vs 16-bit selection remains.
+- Do not change `LW_COLOR_COMPONENT_SIZE` behavior — 8-bit vs 16-bit selection remains.
 
 ## Task List
 
@@ -50,7 +50,7 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 - [x] **`P1b`** — Removed all `ChannelCount`-dependent branching: packed int conversions (no SFINAE), `defaultSerializeChannelOrder` (always RGBW), `tryParseToken` (only 8/16 digit cases), `defaultHexChannelTag` (fixed RGWB lookup), `canonicalChannelTags`, `compareCanonical`.
 - [x] **`P1c`** — Removed `InternalChannelCount<>`, `AliasInternalSize`, `DefaultInternalSize` constants.
 - [x] **`P1d`** — Removed all type aliases except `Rgbw8Color` and `Rgbw16Color`.
-- [x] **`P1e`** — Simplified `DefaultColorType` to `Rgbw8Color` or `Rgbw16Color` based on `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
+- [x] **`P1e`** — Simplified `DefaultColorType` to `Rgbw8Color` or `Rgbw16Color` based on `LW_COLOR_COMPONENT_SIZE`.
 - [x] **`P1f`** — Removed `widen()`/`narrow()`/`expand()`/`compress()`.
 - [x] **`P1g`** — Removed all `ColorChannelsExactly<N>`, `ColorChannelsAtLeast<N>`, `ColorChannelsAtMost<N>`, `ColorChannelsInRange` traits.
 - [x] **`P1h`** — Removed `RequireColorChannelsExactly`, `RequireColorChannelsInRange`; kept `RequireColorComponentBitDepth`.
@@ -91,8 +91,8 @@ Transports and buses still need their own channel count for hardware pin mapping
 
 ### Phase 6 — Build and configuration
 
-- [x] **`P6a`** — `Compat.h`: removed `LW_COLOR_MINIMUM_COMPONENT_COUNT` entirely. Kept only `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
-- [x] **`P6b`** — `docs/usage/compilation-flags.md`: removed `LW_COLOR_MINIMUM_COMPONENT_COUNT` documentation; updated `LW_COLOR_MINIMUM_COMPONENT_SIZE` notes to reflect always-4-channel.
+- [x] **`P6a`** — `Compat.h`: removed `LW_COLOR_MINIMUM_COMPONENT_COUNT` entirely. Kept only `LW_COLOR_COMPONENT_SIZE`.
+- [x] **`P6b`** — `docs/usage/compilation-flags.md`: removed `LW_COLOR_MINIMUM_COMPONENT_COUNT` documentation; updated `LW_COLOR_COMPONENT_SIZE` notes to reflect always-4-channel.
 
 ### Phase 7 — Tests
 

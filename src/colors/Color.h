@@ -12,9 +12,9 @@
 
 namespace lw::colors
 {
-static constexpr size_t ColorMinimumComponentSizeBits = static_cast<size_t>(LW_COLOR_MINIMUM_COMPONENT_SIZE);
+static constexpr size_t ColorMinimumComponentSizeBits = static_cast<size_t>(LW_COLOR_COMPONENT_SIZE);
 
-static_assert(ColorMinimumComponentSizeBits == 8 || ColorMinimumComponentSizeBits == 16, "LW_COLOR_MINIMUM_COMPONENT_SIZE must be 8 or 16.");
+static_assert(ColorMinimumComponentSizeBits == 8 || ColorMinimumComponentSizeBits == 16, "LW_COLOR_COMPONENT_SIZE must be 8 or 16.");
 
 template <typename TComponent = uint8_t> class RgbwColor
 {

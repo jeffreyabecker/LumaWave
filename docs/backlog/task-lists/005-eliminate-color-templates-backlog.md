@@ -15,7 +15,7 @@ Not started. Branch `refactor-color`.
 
 ## Motivation
 
-After the 002 backlog, the color object is always 4-channel RGBW. The only remaining template axis is `TComponent` (uint8_t vs uint16_t), controlled at compile-time by `LW_COLOR_MINIMUM_COMPONENT_SIZE`. This template threads through every layer of the architecture:
+After the 002 backlog, the color object is always 4-channel RGBW. The only remaining template axis is `TComponent` (uint8_t vs uint16_t), controlled at compile-time by `LW_COLOR_COMPONENT_SIZE`. This template threads through every layer of the architecture:
 
 | Layer | Current | Desired |
 |---|---|---|
@@ -26,11 +26,11 @@ After the 002 backlog, the color object is always 4-channel RGBW. The only remai
 | LightBus | `LightBus<TColor, TDriver>` | `LightBus<TDriver>` |
 | ILightDriver | `ILightDriver<TColor>` | `ILightDriver` |
 
-Since bit-depth is a global compile-time decision (`LW_COLOR_MINIMUM_COMPONENT_SIZE`), it should be a global `using` or `typedef`, not a template parameter threaded through every type.
+Since bit-depth is a global compile-time decision (`LW_COLOR_COMPONENT_SIZE`), it should be a global `using` or `typedef`, not a template parameter threaded through every type.
 
 ## Target Shape After This Backlog
 
-- `Color` — a single non-template class. `Color::ComponentType` is `uint8_t` or `uint16_t` based on `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
+- `Color` — a single non-template class. `Color::ComponentType` is `uint8_t` or `uint16_t` based on `LW_COLOR_COMPONENT_SIZE`.
 - `RgbwColor<>`, `Rgbw8Color`, `Rgbw16Color` — removed.
 - `IPixelBus` — no template parameter.
 - `IProtocol` — no template parameter.
@@ -45,13 +45,13 @@ Since bit-depth is a global compile-time decision (`LW_COLOR_MINIMUM_COMPONENT_S
 
 - Do not change the runtime behavior of color math, palette, or blend infrastructure.
 - Do not change wire format or protocol serialization logic.
-- Do not change `LW_COLOR_MINIMUM_COMPONENT_SIZE` behavior — 8-bit vs 16-bit selection remains the same.
+- Do not change `LW_COLOR_COMPONENT_SIZE` behavior — 8-bit vs 16-bit selection remains the same.
 
 ## Task List
 
 ### Phase 1 — Core `Color.h` surgery
 
-- [ ] **`P1a`** — Replace `RgbwColor<TComponent>` with single `Color` class. `ComponentType` becomes `std::conditional_t<(LW_COLOR_MINIMUM_COMPONENT_SIZE == 16), uint16_t, uint8_t>`. Remove template parameter.
+- [ ] **`P1a`** — Replace `RgbwColor<TComponent>` with single `Color` class. `ComponentType` becomes `std::conditional_t<(LW_COLOR_COMPONENT_SIZE == 16), uint16_t, uint8_t>`. Remove template parameter.
 - [ ] **`P1b`** — Remove `Rgbw8Color`, `Rgbw16Color`, `RgbwColor<>` aliases. `Color` is the only type.
 - [ ] **`P1c`** — Remove `DefaultColorType` alias — it was `Color` anyway.
 - [ ] **`P1d`** — Remove all remaining color type aliases from `namespace lw` (already minimal after 002).
