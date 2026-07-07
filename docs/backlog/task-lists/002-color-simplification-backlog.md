@@ -11,7 +11,7 @@ Status legend:
 
 ## Current Status
 
-Phases 1–4 complete. Branch `refactor-color`.
+Phases 1–6 complete. Branch `refactor-color`.
 
 ## Motivation
 
@@ -84,13 +84,13 @@ Transports and buses still need their own channel count for hardware pin mapping
 
 ### Phase 5 — Public surface
 
-- [ ] **`P5a`** — `LumaWave.h`: remove all color aliases except `Rgbw8Color`, `Rgbw16Color`. Remove `ChannelOrder::RGBCW/GRBCW/BGRCW`.
-- [ ] **`P5b`** — `LumaWave.h`: update/remove `Ws2805` alias; fix any aliases still referencing `RgbBasedColor` or 3-channel colors.
+- [x] **`P5a`** — `LumaWave.h`: removed all color aliases except `Rgbw8Color`, `Rgbw16Color`. Removed `ChannelOrder::RGBCW/GRBCW/BGRCW`.
+- [x] **`P5b`** — `LumaWave.h`: removed `Ws2805` alias with comment; all protocol aliases updated to `Rgbw8Color`/`Rgbw16Color`.
 
 ### Phase 6 — Build and configuration
 
-- [ ] **`P6a`** — `Compat.h`: remove `LW_COLOR_MINIMUM_COMPONENT_COUNT` entirely (channel count is always 4). Keep only `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
-- [ ] **`P6b`** — `docs/usage/compilation-flags.md`: remove `LW_COLOR_MINIMUM_COMPONENT_COUNT` documentation; keep only `LW_COLOR_MINIMUM_COMPONENT_SIZE` and `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
+- [x] **`P6a`** — `Compat.h`: removed `LW_COLOR_MINIMUM_COMPONENT_COUNT` entirely. Kept only `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
+- [x] **`P6b`** — `docs/usage/compilation-flags.md`: removed `LW_COLOR_MINIMUM_COMPONENT_COUNT` documentation; updated `LW_COLOR_MINIMUM_COMPONENT_SIZE` notes to reflect always-4-channel.
 
 ### Phase 7 — Tests
 
