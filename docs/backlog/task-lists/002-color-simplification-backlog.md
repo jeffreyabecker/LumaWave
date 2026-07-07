@@ -58,7 +58,7 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 
 - [ ] **`P2a`** — Replace `ColorChannelIndexIterator<NChannels>` with non-template `ColorChannelIndexIterator`. Channel order is always `R, G, B, W`. Remove `'C'`, `channelCount()`, `isSupportedChannelTag()`, `indexFromChannel()`.
 - [ ] **`P2b`** — Replace `ColorChannelIndexRange<NChannels>` with non-template version. `indexFromChannel()` always supports `R, G, B, W`.
-- [ ] **`P2c`** — `ChannelOrder.h`: remove `RGBCW`, `GRBCW`, `BGRCW` declarations; remove `normalizeChannelOrderForCount()` entirely (no branching needed); keep only `RGB`, `GRB`, `BGR`, `RGBW`, `GRBW`, `BGRW`, `WRGB`, `W`, `CW`.
+- [ ] **`P2c`** — `Color.h`: drop the `colors/ChannelOrder.h` include — replace `ChannelOrder::RGBW::value` with hardcoded `"RGBW"` in `serialize()`. `ChannelOrder.h`: remove `RGBCW`, `GRBCW`, `BGRCW` (no longer needed — Ws2805 is the only consumer and it's being removed). Remove `normalizeChannelOrderForCount()` entirely.
 - [ ] **`P2d`** — `ChannelSource.h`: replace with fixed 4-channel `ChannelSource` — remove template specializations.
 - [ ] **`P2e`** — `ChannelMap.h`: remove `>= 5` and `>= 4` branches — always 4 channels.
 
