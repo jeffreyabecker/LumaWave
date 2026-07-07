@@ -10,18 +10,18 @@
 #include <type_traits>
 #include <vector>
 
-#include "core/Compat.h"
+#include "colors/Color.h"`n #include "core/Compat.h"
 
 namespace lw
 {
 
-template <typename TColor> class PixelView
+class PixelView
 {
 public:
-  using ColorType = TColor;
-  using ColorRef = std::add_lvalue_reference_t<TColor>;
-  using ConstColorRef = std::add_lvalue_reference_t<const std::remove_reference_t<TColor>>;
-  using ChunkType = span<TColor>;
+  using ColorType = lw::colors::Color;
+  using ColorRef = std::add_lvalue_reference_t<lw::colors::Color>;
+  using ConstColorRef = std::add_lvalue_reference_t<const std::remove_reference_t<lw::colors::Color>>;
+  using ChunkType = span<lw::colors::Color>;
 
   class iterator;
   class const_iterator;
@@ -115,7 +115,7 @@ public:
 
   [[nodiscard]] uint32_t size() const { return _size; }
 
-  TColor operator[](uint32_t index) const { return constRefAt(index); }
+  lw::colors::Color operator[](uint32_t index) const { return constRefAt(index); }
 
   ColorRef operator[](uint32_t index) { return refAt(index); }
 
@@ -457,7 +457,7 @@ private:
 
   StorageMode _mode{StorageMode::Flat};
   std::array<ChunkType, 1> _flatChunkStorage{};
-  TColor* _flatData{nullptr};
+  lw::colors::Color* _flatData{nullptr};
   std::vector<ChunkType> _ownedChunks;
   ChunkType* _chunkData{nullptr};
   size_t _chunkCount{0};
@@ -470,10 +470,10 @@ public:
   {
   public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = TColor;
+    using value_type = lw::colors::Color;
     using difference_type = std::ptrdiff_t;
     using reference = ColorRef;
-    using pointer = std::add_pointer_t<TColor>;
+    using pointer = std::add_pointer_t<lw::colors::Color>;
 
     iterator() = default;
 
@@ -626,10 +626,10 @@ public:
   {
   public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = TColor;
+    using value_type = lw::colors::Color;
     using difference_type = std::ptrdiff_t;
     using reference = ConstColorRef;
-    using pointer = std::add_pointer_t<const std::remove_reference_t<TColor>>;
+    using pointer = std::add_pointer_t<const std::remove_reference_t<lw::colors::Color>>;
 
     const_iterator() = default;
 
@@ -779,7 +779,7 @@ public:
   };
 };
 
-template <typename TColor> inline void fillPixels(PixelView<TColor>& pixels, const TColor& solidColor)
+inline void fillPixels(PixelView& pixels, const lw::colors::Color& solidColor)
 {
   for (auto& pixel : pixels)
   {
@@ -787,12 +787,12 @@ template <typename TColor> inline void fillPixels(PixelView<TColor>& pixels, con
   }
 }
 
-template <typename TColor, typename TGenerator, typename = std::enable_if_t<std::is_invocable_r<TColor, TGenerator&, uint32_t>::value>> inline void fillPixelsIndexed(PixelView<TColor>& pixels, TGenerator&& generator)
+template <typename TGenerator, typename = std::enable_if_t<std::is_invocable_r<lw::colors::Color, TGenerator&, uint32_t>::value>> inline void fillPixelsIndexed(PixelView& pixels, TGenerator&& generator)
 {
   uint32_t index = 0;
   for (auto& pixel : pixels)
   {
-    pixel = static_cast<TColor>(generator(index));
+    pixel = static_cast<lw::colors::Color>(generator(index));
     ++index;
   }
 }

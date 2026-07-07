@@ -14,15 +14,15 @@
 namespace lw::busses
 {
 
-template <typename TColor = lw::colors::DefaultColorType, typename TDriver = transports::PlatformDefaultLightDriver<TColor>> class LightBus : public IPixelBus<TColor>
+template <typename TDriver = transports::PlatformDefaultLightDriver> class LightBus : public IPixelBus
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename IPixelBus<ColorType>::BrightnessType;
+  using ColorType = lw::colors::Color;
+  using BrightnessType = IPixelBus::BrightnessType;
   using DriverType = TDriver;
   using DriverSettingsType = typename DriverType::LightDriverSettingsType;
 
-  static_assert(transports::SettingsConstructibleLightDriverLike<DriverType>, "Driver type must derive from ILightDriver<ColorType>, declare LightDriverSettingsType, and be "
+  static_assert(transports::SettingsConstructibleLightDriverLike<DriverType>, "Driver type must derive from ILightDriver, declare LightDriverSettingsType, and be "
                                                                               "constructible from those settings.");
   static_assert(std::is_same_v<typename DriverType::ColorType, ColorType>, "Driver ColorType must match LightBus ColorType.");
 
@@ -48,13 +48,13 @@ public:
 
   bool isReadyToUpdate() const override { return _driver.isReadyToUpdate(); }
 
-  PixelView<ColorType>& pixels() override
+  PixelView& pixels() override
   {
     _dirty = true;
     return _pixels;
   }
 
-  const PixelView<ColorType>& pixels() const override { return _pixels; }
+  const PixelView& pixels() const override { return _pixels; }
 
   ColorType& pixel()
   {
@@ -92,7 +92,7 @@ private:
 
   DriverType _driver;
   std::array<ColorType, 1> _rootPixel{};
-  PixelView<ColorType> _pixels;
+  PixelView _pixels;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };

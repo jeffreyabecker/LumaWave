@@ -46,11 +46,11 @@ struct RpPwmLightDriverSettings : LightDriverSettingsBase
   }
 };
 
-template <typename TColor> class RpPwmLightDriver : public ILightDriver<TColor>
+ class RpPwmLightDriver : public ILightDriver
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using ColorType = lw::Color;
+  using BrightnessType = typename ILightDriver::BrightnessType;
   using LightDriverSettingsType = RpPwmLightDriverSettings;
 
   explicit RpPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}

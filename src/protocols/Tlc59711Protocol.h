@@ -64,13 +64,12 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 //
 // Latch: ~20 ?s guard after transmission.
 //
-template <typename TInterfaceColor = Rgbw8Color> class Tlc59711ProtocolT : public IProtocol<TInterfaceColor>, public IHaveGain
+class Tlc59711ProtocolT : public IProtocol, public IHaveGain
 {
 public:
-  using InterfaceColorType = TInterfaceColor;
-  using SettingsType = Tlc59711ProtocolSettings;
+    using SettingsType = Tlc59711ProtocolSettings;
 
-  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
                 "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
@@ -80,7 +79,7 @@ public:
   }
 
   Tlc59711ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
+      : IProtocol(pixelCount), _settings{std::move(settings)}, _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
   {
     _gainValue = 0xff;
     encodeHeader(_settings.config);
@@ -88,7 +87,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -160,7 +159,7 @@ private:
     _header[3] = static_cast<uint8_t>((bcG << 7) | bcR);
   }
 
-  void serialize(span<const InterfaceColorType> colors)
+  void serialize(span<const lw::colors::Color> colors)
   {
     // Walk chips in reverse order (last chip first on wire)
     size_t bufOffset = 0;
@@ -199,9 +198,9 @@ private:
     }
   }
 
-  static constexpr uint16_t toWireComponent16(typename InterfaceColorType::ComponentType value)
+  static constexpr uint16_t toWireComponent16(lw::colors::ColorComponent value)
   {
-    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>)
+    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint16_t>)
     {
       return value;
     }

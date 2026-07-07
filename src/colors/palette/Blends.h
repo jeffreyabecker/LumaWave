@@ -32,7 +32,7 @@ namespace detail
     return static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::colors::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
   }
 
-  template <typename TColor> size_t firstStopAtOrAfter(span<const PaletteStop<TColor>> stops, palette_stop_index_t sampleIndex)
+   size_t firstStopAtOrAfter(span<const PaletteStop> stops, palette_stop_index_t sampleIndex)
   {
     size_t left = 1;
     size_t right = static_cast<size_t>(stops.size());
@@ -53,7 +53,7 @@ namespace detail
     return left;
   }
 
-  template <typename TColor> size_t firstStopAtOrAfterFixed(span<const PaletteStop<TColor>> stops, palette_canonical_fixed_t sampleFixed)
+   size_t firstStopAtOrAfterFixed(span<const PaletteStop> stops, palette_canonical_fixed_t sampleFixed)
   {
     size_t left = 1;
     size_t right = static_cast<size_t>(stops.size());
@@ -88,7 +88,7 @@ namespace detail
     }
   }
 
-  template <typename TColor> TColor sampleWrappedSpan(span<const PaletteStop<TColor>> stops, detail::PaletteCanonicalCoordinate sampleCoordinate, size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
+   lw::Color sampleWrappedSpan(span<const PaletteStop> stops, detail::PaletteCanonicalCoordinate sampleCoordinate, size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
   {
     const auto& left = stops.back();
     const auto& right = stops.front();
@@ -105,28 +105,28 @@ namespace detail
 
     const palette_canonical_fixed_t offset = wrappedSampleIndex - leftIndex;
     const uint8_t progress = detail::canonicalProgress8(offset, spanWidth);
-    return applyBlendMode<TColor>(blendMode, left.color, right.color, progress, blendSampleIndex, quantizedLevels);
+    return applyBlendMode(blendMode, left.color, right.color, progress, blendSampleIndex, quantizedLevels);
   }
 } // namespace detail
 
-template <typename TColor, typename TIndexRange, typename TOutputRange,
-          typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
-size_t sampleNearest(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions<TColor> options);
+template < typename TIndexRange, typename TOutputRange,
+          typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+size_t sampleNearest(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options);
 
-template <typename TColor, typename TIndexRange, typename TOutputRange,
-          typename = std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
-size_t sampleInterpolated(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions<TColor> options);
+template < typename TIndexRange, typename TOutputRange,
+          typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+size_t sampleInterpolated(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options);
 
-template <typename TColor, typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, PaletteSampleOptions<TColor> options)
+template < typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, PaletteSampleOptions options)
 {
   *output = detail::applyBrightnessScale(options.outOfRangeColor, options.brightnessScale);
 }
 
-template <typename TColor> TColor sampleNearestAt(span<const PaletteStop<TColor>> stops, size_t rawSampleIndex, PaletteSampleOptions<TColor> options)
+ lw::Color sampleNearestAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (stops.empty())
   {
-    return TColor{};
+    return lw::Color{};
   }
 
   const detail::NormalizedSampleIndex normalized = detail::normalizeForDomain(options, rawSampleIndex);
@@ -156,11 +156,11 @@ template <typename TColor> TColor sampleNearestAt(span<const PaletteStop<TColor>
   return detail::applyBrightnessScale(stops[nearestStopIndex].color, options.brightnessScale);
 }
 
-template <typename TColor> TColor sampleInterpolatedAt(span<const PaletteStop<TColor>> stops, size_t rawSampleIndex, PaletteSampleOptions<TColor> options)
+ lw::Color sampleInterpolatedAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (stops.empty())
   {
-    return TColor{};
+    return lw::Color{};
   }
 
   const detail::NormalizedSampleIndex normalized = detail::normalizeForDomain(options, rawSampleIndex);
@@ -171,9 +171,9 @@ template <typename TColor> TColor sampleInterpolatedAt(span<const PaletteStop<TC
 
   const palette_logical_index_t sampleIndex = normalized.value;
   const palette_canonical_fixed_t sampleFixed = normalized.canonical.fixed;
-  TColor sampled{};
+  lw::Color sampled{};
 
-  const size_t stopIndex = detail::firstStopAtOrAfterFixed<TColor>(stops, sampleFixed);
+  const size_t stopIndex = detail::firstStopAtOrAfterFixed(stops, sampleFixed);
   if (stopIndex < static_cast<size_t>(stops.size()))
   {
     const auto& left = stops[stopIndex - 1];
@@ -194,33 +194,33 @@ template <typename TColor> TColor sampleInterpolatedAt(span<const PaletteStop<TC
     {
       const palette_canonical_fixed_t offset = sampleFixed - leftFixed;
       const uint8_t progress = detail::canonicalProgress8(offset, spanWidth);
-      sampled = applyBlendMode<TColor>(options.blendMode, left.color, right.color, progress, sampleIndex, options.quantizedLevels);
+      sampled = applyBlendMode(options.blendMode, left.color, right.color, progress, sampleIndex, options.quantizedLevels);
     }
   }
   else if (normalized.usesBoundarySampling)
   {
-    sampled = detail::upperBoundarySample<TColor>(options.wrapMode, stops);
+    sampled = detail::upperBoundarySample(options.wrapMode, stops);
   }
   else
   {
-    sampled = detail::sampleWrappedSpan<TColor>(stops, normalized.canonical, sampleIndex, options.blendMode, options.quantizedLevels);
+    sampled = detail::sampleWrappedSpan(stops, normalized.canonical, sampleIndex, options.blendMode, options.quantizedLevels);
   }
 
   return detail::applyBrightnessScale(sampled, options.brightnessScale);
 }
 
-template <typename TColor> TColor samplePaletteAt(span<const PaletteStop<TColor>> stops, size_t rawSampleIndex, PaletteSampleOptions<TColor> options)
+ lw::Color samplePaletteAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (options.blendMode == BlendMode::Nearest)
   {
-    return sampleNearestAt<TColor>(stops, rawSampleIndex, options);
+    return sampleNearestAt(stops, rawSampleIndex, options);
   }
 
-  return sampleInterpolatedAt<TColor>(stops, rawSampleIndex, options);
+  return sampleInterpolatedAt(stops, rawSampleIndex, options);
 }
 
-template <typename TColor, typename TIndexRange, typename TOutputRange, typename>
-size_t sampleNearest(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions<TColor> options)
+template < typename TIndexRange, typename TOutputRange, typename>
+size_t sampleNearest(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options)
 {
   const auto stops = palette.stops();
   auto index = paletteIndexes.begin();
@@ -231,15 +231,15 @@ size_t sampleNearest(const IPalette<TColor>& palette, TIndexRange&& paletteIndex
   size_t written = 0;
   for (; output != outputEnd && index != indexEnd; ++output, ++index)
   {
-    *output = sampleNearestAt<TColor>(stops, static_cast<size_t>(*index), options);
+    *output = sampleNearestAt(stops, static_cast<size_t>(*index), options);
     ++written;
   }
 
   return written;
 }
 
-template <typename TColor, typename TIndexRange, typename TOutputRange, typename>
-size_t sampleInterpolated(const IPalette<TColor>& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions<TColor> options)
+template < typename TIndexRange, typename TOutputRange, typename>
+size_t sampleInterpolated(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options)
 {
   const auto stops = palette.stops();
   auto index = paletteIndexes.begin();
@@ -250,7 +250,7 @@ size_t sampleInterpolated(const IPalette<TColor>& palette, TIndexRange&& palette
   size_t written = 0;
   for (; output != outputEnd && index != indexEnd; ++output, ++index)
   {
-    *output = sampleInterpolatedAt<TColor>(stops, static_cast<size_t>(*index), options);
+    *output = sampleInterpolatedAt(stops, static_cast<size_t>(*index), options);
     ++written;
   }
 

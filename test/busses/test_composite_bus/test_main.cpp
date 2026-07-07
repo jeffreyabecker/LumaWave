@@ -8,17 +8,17 @@
 
 namespace
 {
-using TestColor = lw::Rgbw8Color;
 
-class StubBus : public lw::IPixelBus<TestColor>
+
+class StubBus : public lw::IPixelBus
 {
   public:
-    using ColorType = TestColor;
-    using BrightnessType = typename lw::IPixelBus<TestColor>::BrightnessType;
+    using ColorType = lw::Color;
+    using BrightnessType = typename lw::IPixelBus::BrightnessType;
 
     explicit StubBus(size_t pixelCount, bool ready = true)
-        : _pixelsStorage(pixelCount), _chunks{lw::span<TestColor>{_pixelsStorage.data(), _pixelsStorage.size()}},
-          _pixels(lw::span<lw::span<TestColor>>{_chunks.data(), _chunks.size()}), _ready(ready)
+        : _pixelsStorage(pixelCount), _chunks{lw::span<lw::Color>{_pixelsStorage.data(), _pixelsStorage.size()}},
+          _pixels(lw::span<lw::span<lw::Color>>{_chunks.data(), _chunks.size()}), _ready(ready)
     {
     }
 
@@ -28,13 +28,13 @@ class StubBus : public lw::IPixelBus<TestColor>
 
     bool isReadyToUpdate() const override { return _ready; }
 
-    lw::PixelView<TestColor>& pixels() override
+    lw::PixelView& pixels() override
     {
         ++dirtyCalls;
         return _pixels;
     }
 
-    const lw::PixelView<TestColor>& pixels() const override { return _pixels; }
+    const lw::PixelView& pixels() const override { return _pixels; }
 
     void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
 
@@ -45,9 +45,9 @@ class StubBus : public lw::IPixelBus<TestColor>
     size_t dirtyCalls{0};
 
   private:
-    std::vector<TestColor> _pixelsStorage;
-    std::array<lw::span<TestColor>, 1> _chunks;
-    lw::PixelView<TestColor> _pixels;
+    std::vector<lw::Color> _pixelsStorage;
+    std::array<lw::span<lw::Color>, 1> _chunks;
+    lw::PixelView _pixels;
     BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
     bool _ready{true};
 };
@@ -62,9 +62,9 @@ void test_composite_bus_pixels_concatenate_child_views(void)
     auto& pixels = composite.pixels();
     TEST_ASSERT_EQUAL_UINT32(3U, static_cast<uint32_t>(pixels.size()));
 
-    pixels[0] = TestColor{1, 2, 3};
-    pixels[1] = TestColor{4, 5, 6};
-    pixels[2] = TestColor{7, 8, 9};
+    pixels[0] = lw::Color{1, 2, 3};
+    pixels[1] = lw::Color{4, 5, 6};
+    pixels[2] = lw::Color{7, 8, 9};
 
     auto& buses = composite.buses();
     auto& left = std::get<0>(buses).pixels();

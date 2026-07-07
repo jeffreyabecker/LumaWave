@@ -13,20 +13,20 @@ namespace lw::busses
 {
 
 #if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
-template <typename... TBuses> class CompositeBus : public IPixelBus<typename std::tuple_element<0, std::tuple<TBuses...>>::type::ColorType>
+template <typename... TBuses> class CompositeBus : public IPixelBus
 {
 public:
   static_assert(sizeof...(TBuses) > 0, "CompositeBus requires at least one bus type.");
 
   using ColorType = typename std::tuple_element<0, std::tuple<TBuses...>>::type::ColorType;
-  using BusBaseType = IPixelBus<ColorType>;
+  using BusBaseType = IPixelBus;
   using BrightnessType = typename BusBaseType::BrightnessType;
-  using ChunkType = typename PixelView<ColorType>::ChunkType;
+  using ChunkType = typename PixelView::ChunkType;
   using BusesTupleType = std::tuple<TBuses...>;
 
-  static_assert((std::is_convertible_v<TBuses*, BusBaseType*> && ...), "All CompositeBus members must derive from IPixelBus<ColorType>.");
+  static_assert((std::is_convertible_v<TBuses*, BusBaseType*> && ...), "All CompositeBus members must derive from IPixelBus.");
 
-  explicit CompositeBus(TBuses... buses) : _buses(std::move(buses)...), _busPointers(makeBusPointers(_buses)), _pixelChunks(collectChunks(_busPointers)), _pixels(span<ChunkType>{_pixelChunks.data(), _pixelChunks.size()}) {}
+  explicit CompositeBus(TBuses... buses) : _buses(std::move(buses)...), _busPointers(makeBusPointers(_buses)), _pixelChunks(collectChunks(_busPointers)), _pixels(span<PixelView::ChunkType>{_pixelChunks.data(), _pixelChunks.size()}) {}
 
   void begin() override
   {
@@ -63,9 +63,9 @@ public:
     return true;
   }
 
-  PixelView<ColorType>& pixels() override { return _pixels; }
+  PixelView& pixels() override { return _pixels; }
 
-  const PixelView<ColorType>& pixels() const override { return _pixels; }
+  const PixelView& pixels() const override { return _pixels; }
 
   BusesTupleType& buses() { return _buses; }
 
@@ -114,7 +114,7 @@ private:
         continue;
       }
 
-      const PixelView<ColorType>& view = bus->pixels();
+      const PixelView& view = bus->pixels();
       for (auto chunk : view.chunks())
       {
         chunks.push_back(chunk);
@@ -127,7 +127,7 @@ private:
   BusesTupleType _buses;
   std::array<BusBaseType*, sizeof...(TBuses)> _busPointers;
   std::vector<ChunkType> _pixelChunks;
-  PixelView<ColorType> _pixels;
+  PixelView _pixels;
 };
 
 #endif

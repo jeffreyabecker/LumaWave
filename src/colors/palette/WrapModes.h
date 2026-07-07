@@ -42,7 +42,7 @@ namespace detail
     return static_cast<palette_canonical_fixed_t>(stopIndex * PaletteCanonicalFractionScale);
   }
 
-  template <typename TColor> constexpr palette_logical_domain_count_t normalizedDomainSampleCount(PaletteSampleOptions<TColor> options)
+   constexpr palette_logical_domain_count_t normalizedDomainSampleCount(PaletteSampleOptions options)
   {
     return (options.scaledSampleCount == 0u) ? PaletteDomainSpan : options.scaledSampleCount;
   }
@@ -101,7 +101,7 @@ namespace detail
     return (position <= domainMaxIndex) ? position : (period - position);
   }
 
-  template <typename TColor> constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions<TColor> options, palette_logical_index_t sampleIndex)
+   constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions options, palette_logical_index_t sampleIndex)
   {
     const PaletteLogicalDomain logicalDomain{normalizedDomainSampleCount(options)};
     const palette_logical_domain_count_t domainSampleCount = logicalDomain.sampleCount;
@@ -149,14 +149,14 @@ namespace detail
     return NormalizedSampleIndex{normalizedValue, outOfRange, usesBoundarySampling, options.wrapMode, domainMaxIndex, logicalDomain, canonical};
   }
 
-  template <typename TColor> TColor upperBoundarySample(WrapMode wrapMode, span<const PaletteStop<TColor>> stops)
+   lw::Color upperBoundarySample(WrapMode wrapMode, span<const PaletteStop> stops)
   {
     switch (wrapMode)
     {
       case WrapMode::HoldFirst:
         return stops.front().color;
       case WrapMode::Blackout:
-        return TColor{};
+        return lw::Color{};
       case WrapMode::Clamp:
       case WrapMode::HoldLast:
       case WrapMode::Circular:

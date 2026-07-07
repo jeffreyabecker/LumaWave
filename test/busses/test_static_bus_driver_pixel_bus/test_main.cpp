@@ -12,25 +12,25 @@
 
 namespace
 {
-using TestColor = lw::Rgbw8Color;
+
 
 struct MockProtocolSettings : public lw::protocols::ProtocolSettings
 {
   uint8_t fillByte{0xA5};
 };
 
-class MockProtocol : public lw::protocols::IProtocol<TestColor>
+class MockProtocol : public lw::protocols::IProtocol
 {
 public:
   using SettingsType = MockProtocolSettings;
 
   static size_t requiredBufferSize(uint16_t pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) + 3U; }
 
-  MockProtocol(uint16_t pixelCount, SettingsType settings) : lw::protocols::IProtocol<TestColor>(pixelCount), _settings(std::move(settings)), _required(requiredBufferSize(pixelCount, _settings)) {}
+  MockProtocol(uint16_t pixelCount, SettingsType settings) : lw::protocols::IProtocol(pixelCount), _settings(std::move(settings)), _required(requiredBufferSize(pixelCount, _settings)) {}
 
   void begin() override { began = true; }
 
-  void update(lw::span<const TestColor> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
+  void update(lw::span<const lw::Color> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
   {
     lastSource = colors.data();
     captured.assign(colors.begin(), colors.end());
@@ -49,10 +49,10 @@ public:
   size_t requiredBufferSizeBytes() const override { return _required; }
 
   bool began{false};
-  const TestColor* lastSource{nullptr};
+  const lw::Color* lastSource{nullptr};
   const uint8_t* lastBuffer{nullptr};
   size_t lastBufferSize{0};
-  std::vector<TestColor> captured{};
+  std::vector<lw::Color> captured{};
 
 private:
   SettingsType _settings{};
@@ -109,9 +109,9 @@ void test_constructor_manages_internal_typed_buffers_and_runs_pipeline(void)
   lw::busses::PixelBus<MockProtocol, MockTransport> bus(3, protocolSettings, MockTransportSettings{});
 
   auto& root = bus.pixels();
-  root[0] = TestColor{1, 2, 3};
-  root[1] = TestColor{4, 5, 6};
-  root[2] = TestColor{7, 8, 9};
+  root[0] = lw::Color{1, 2, 3};
+  root[1] = lw::Color{4, 5, 6};
+  root[2] = lw::Color{7, 8, 9};
 
   bus.begin();
   bus.show();
@@ -149,8 +149,8 @@ void test_nil_shader_constructor_keeps_scratch_empty_and_uses_root_directly(void
   lw::busses::PixelBus<MockProtocol, MockTransport> bus(2, protocolSettings, MockTransportSettings{});
 
   auto& root = bus.pixels();
-  root[0] = TestColor{10, 11, 12};
-  root[1] = TestColor{20, 21, 22};
+  root[0] = lw::Color{10, 11, 12};
+  root[1] = lw::Color{20, 21, 22};
 
   bus.begin();
   bus.show();
@@ -179,8 +179,8 @@ void test_platform_default_transport_type_constructs_and_updates(void)
   lw::busses::PixelBus<MockProtocol> bus(2, protocolSettings, lw::busses::PlatformDefaultTransportSettings{});
 
   auto& root = bus.pixels();
-  root[0] = TestColor{3, 4, 5};
-  root[1] = TestColor{6, 7, 8};
+  root[0] = lw::Color{3, 4, 5};
+  root[1] = lw::Color{6, 7, 8};
 
   bus.begin();
   bus.show();
@@ -202,7 +202,7 @@ void test_platform_default_transport_template_default_constructs(void)
   lw::busses::PixelBus<MockProtocol> bus(1, protocolSettings, lw::busses::PlatformDefaultTransportSettings{});
 
   auto& root = bus.pixels();
-  root[0] = TestColor{9, 1, 2};
+  root[0] = lw::Color{9, 1, 2};
 
   bus.begin();
   bus.show();
@@ -216,10 +216,10 @@ void test_pixel_bus_scales_before_protocol_and_marks_transport_context(void)
   protocolSettings.fillByte = 0x55;
 
   lw::busses::PixelBus<MockProtocol, MockTransport> bus(1, protocolSettings, MockTransportSettings{});
-  bus.setBrightness(static_cast<TestColor::ComponentType>(64));
+  bus.setBrightness(static_cast<lw::Color::ComponentType>(64));
 
   auto& root = bus.pixels();
-  root[0] = TestColor{120, 20, 10};
+  root[0] = lw::Color{120, 20, 10};
 
   bus.show();
 

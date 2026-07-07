@@ -4,31 +4,17 @@
 #include <limits>
 #include <type_traits>
 
+#include "colors/Color.h"
 #include "core/Compat.h"
 
 namespace lw::transports
 {
 
-namespace detail
-{
-
-  template <typename TColor, typename = void> struct LightDriverBrightnessTraits
-  {
-    using Type = uint16_t;
-  };
-
-  template <typename TColor> struct LightDriverBrightnessTraits<TColor, std::void_t<typename TColor::ComponentType>>
-  {
-    using Type = typename TColor::ComponentType;
-  };
-
-} // namespace detail
-
-template <typename TColor> class ILightDriver
+class ILightDriver
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename detail::LightDriverBrightnessTraits<TColor>::Type;
+  using ColorType = lw::colors::Color;
+  using BrightnessType = lw::colors::ColorComponent;
 
   virtual ~ILightDriver() = default;
 
@@ -51,8 +37,7 @@ template <typename TDriver, typename = void> struct LightDriverLikeImpl : std::f
 };
 
 template <typename TDriver>
-struct LightDriverLikeImpl<TDriver, std::void_t<typename TDriver::ColorType, typename TDriver::LightDriverSettingsType>>
-    : std::integral_constant<bool, std::is_convertible_v<TDriver*, ILightDriver<typename TDriver::ColorType>*>>
+struct LightDriverLikeImpl<TDriver, std::void_t<typename TDriver::ColorType, typename TDriver::LightDriverSettingsType>> : std::integral_constant<bool, std::is_convertible_v<TDriver*, ILightDriver*>>
 {
 };
 

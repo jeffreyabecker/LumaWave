@@ -15,24 +15,24 @@
 
 namespace
 {
-using TestColor = lw::Rgbw8Color;
+
 
 struct ProtocolSpySettings : public lw::protocols::ProtocolSettings
 {
   int* initializeCount = nullptr;
   int* updateCount = nullptr;
   bool* always = nullptr;
-  std::vector<TestColor>* lastFrame = nullptr;
+  std::vector<lw::Color>* lastFrame = nullptr;
 };
 
-class ProtocolSpy : public lw::protocols::IProtocol<TestColor>
+class ProtocolSpy : public lw::protocols::IProtocol
 {
 public:
   using SettingsType = ProtocolSpySettings;
 
   static constexpr size_t requiredBufferSize(uint16_t, const SettingsType&) { return 0; }
 
-  ProtocolSpy(uint16_t pixelCount, SettingsType settings) : lw::protocols::IProtocol<TestColor>(pixelCount), _settings(std::move(settings)) {}
+  ProtocolSpy(uint16_t pixelCount, SettingsType settings) : lw::protocols::IProtocol(pixelCount), _settings(std::move(settings)) {}
 
   lw::protocols::ProtocolSettings& settings() override { return _settings; }
 
@@ -44,7 +44,7 @@ public:
     }
   }
 
-  void update(lw::span<const TestColor> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
+  void update(lw::span<const lw::Color> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
   {
     if (_settings.updateCount != nullptr)
     {
@@ -87,7 +87,7 @@ void test_debug_protocol_forwards_to_inner_protocol_without_output(void)
   int initializeCount = 0;
   int updateCount = 0;
   bool always = false;
-  std::vector<TestColor> lastFrame{};
+  std::vector<lw::Color> lastFrame{};
 
   lw::protocols::DebugProtocolSettingsT<ProtocolSpy> settings{};
   settings.output = nullptr;
@@ -99,10 +99,10 @@ void test_debug_protocol_forwards_to_inner_protocol_without_output(void)
 
   lw::protocols::DebugProtocol<ProtocolSpy> protocol(2, std::move(settings));
 
-  std::vector<TestColor> colors{TestColor{0x01, 0x02, 0x03, 0x04}, TestColor{0xAA, 0xBB, 0xCC, 0xDD}};
+  std::vector<lw::Color> colors{lw::Color{0x01, 0x02, 0x03, 0x04}, lw::Color{0xAA, 0xBB, 0xCC, 0xDD}};
 
   protocol.begin();
-  protocol.update(lw::span<const TestColor>{colors.data(), colors.size()});
+  protocol.update(lw::span<const lw::Color>{colors.data(), colors.size()});
 
   TEST_ASSERT_EQUAL_INT(1, initializeCount);
   TEST_ASSERT_EQUAL_INT(1, updateCount);
@@ -114,7 +114,7 @@ void test_debug_protocol_always_update_delegates_to_inner_protocol(void)
   int initializeCount = 0;
   int updateCount = 0;
   bool always = true;
-  std::vector<TestColor> lastFrame{};
+  std::vector<lw::Color> lastFrame{};
 
   lw::protocols::DebugProtocolSettingsT<ProtocolSpy> settings{};
   settings.output = nullptr;

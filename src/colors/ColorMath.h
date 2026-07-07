@@ -9,9 +9,9 @@
 
 namespace lw::colors::detail
 {
-template <typename TColor> struct ScalarColorMathBackend
+ struct ScalarColorMathBackend
 {
-  using ComponentType = typename TColor::ComponentType;
+  using ComponentType = lw::colors::ColorComponent;
 
   static constexpr uint8_t smoothstep8(uint8_t progress)
   {
@@ -231,7 +231,7 @@ template <typename TColor> struct ScalarColorMathBackend
     b = hslHueComponent8(p, q, static_cast<int16_t>(hue) - 85);
   }
 
-  static constexpr void darken(TColor& color, ComponentType delta)
+  static constexpr void darken(lw::Color& color, ComponentType delta)
   {
     for (char channel : {'R', 'G', 'B', 'W'})
     {
@@ -247,27 +247,27 @@ template <typename TColor> struct ScalarColorMathBackend
     }
   }
 
-  static constexpr void lighten(TColor& color, ComponentType delta)
+  static constexpr void lighten(lw::Color& color, ComponentType delta)
   {
     for (char channel : {'R', 'G', 'B', 'W'})
     {
       auto& component = color[channel];
-      if (component < static_cast<ComponentType>(TColor::MaxComponent - delta))
+      if (component < static_cast<ComponentType>(lw::Color::MaxComponent - delta))
       {
         component = static_cast<ComponentType>(component + delta);
       }
       else
       {
-        component = TColor::MaxComponent;
+        component = lw::Color::MaxComponent;
       }
     }
   }
 
-  static constexpr TColor linearBlendProgress8(const TColor& left, const TColor& right, uint8_t progress)
+  static constexpr lw::Color linearBlendProgress8(const lw::Color& left, const lw::Color& right, uint8_t progress)
   {
     using UnsignedWide = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
 
-    TColor blended{};
+    lw::Color blended{};
     for (char channel : {'R', 'G', 'B', 'W'})
     {
       const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
@@ -281,7 +281,7 @@ template <typename TColor> struct ScalarColorMathBackend
     return blended;
   }
 
-  static constexpr TColor linearBlendProgress16(const TColor& left, const TColor& right, uint16_t progress)
+  static constexpr lw::Color linearBlendProgress16(const lw::Color& left, const lw::Color& right, uint16_t progress)
   {
     using UnsignedWide = uint64_t;
 
@@ -295,7 +295,7 @@ template <typename TColor> struct ScalarColorMathBackend
       return right;
     }
 
-    TColor blended;
+    lw::Color blended;
     for (char channel : {'R', 'G', 'B', 'W'})
     {
       const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
@@ -376,86 +376,86 @@ constexpr TTarget interpolateComponent(TValue left, TValue right, TProgress prog
   return scaleComponent<TTarget>(static_cast<TValue>(numerator / maxProgressWide));
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr uint8_t smoothstep8(uint8_t progress)
+constexpr uint8_t smoothstep8(uint8_t progress)
 {
-  return detail::ScalarColorMathBackend<TColor>::smoothstep8(progress);
+  return detail::ScalarColorMathBackend::smoothstep8(progress);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr uint8_t cubicEaseInOut8(uint8_t progress)
+constexpr uint8_t cubicEaseInOut8(uint8_t progress)
 {
-  return detail::ScalarColorMathBackend<TColor>::cubicEaseInOut8(progress);
+  return detail::ScalarColorMathBackend::cubicEaseInOut8(progress);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr uint8_t cosineLike8(uint8_t progress)
+constexpr uint8_t cosineLike8(uint8_t progress)
 {
-  return detail::ScalarColorMathBackend<TColor>::cosineLike8(progress);
+  return detail::ScalarColorMathBackend::cosineLike8(progress);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr uint32_t integerSqrt(uint32_t value)
+constexpr uint32_t integerSqrt(uint32_t value)
 {
-  return detail::ScalarColorMathBackend<TColor>::integerSqrt(value);
+  return detail::ScalarColorMathBackend::integerSqrt(value);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor hslToRgb(typename TColor::ComponentType h, typename TColor::ComponentType s, typename TColor::ComponentType l)
+constexpr lw::Color hslToRgb(lw::colors::ColorComponent h, lw::colors::ColorComponent s, lw::colors::ColorComponent l)
 {
   uint8_t r = 0u;
   uint8_t g = 0u;
   uint8_t b = 0u;
-  detail::ScalarColorMathBackend<TColor>::hslToRgb8(detail::ScalarColorMathBackend<TColor>::scaleComponentToByte(h), detail::ScalarColorMathBackend<TColor>::scaleComponentToByte(s),
-                                                    detail::ScalarColorMathBackend<TColor>::scaleComponentToByte(l), r, g, b);
+  detail::ScalarColorMathBackend::hslToRgb8(detail::ScalarColorMathBackend::scaleComponentToByte(h), detail::ScalarColorMathBackend::scaleComponentToByte(s),
+                                                    detail::ScalarColorMathBackend::scaleComponentToByte(l), r, g, b);
 
-  TColor rgb{};
-  rgb['R'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(r);
-  rgb['G'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(g);
-  rgb['B'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(b);
-  rgb['W'] = static_cast<typename TColor::ComponentType>(0);
+  lw::Color rgb{};
+  rgb['R'] = detail::ScalarColorMathBackend::scaleByteToComponent(r);
+  rgb['G'] = detail::ScalarColorMathBackend::scaleByteToComponent(g);
+  rgb['B'] = detail::ScalarColorMathBackend::scaleByteToComponent(b);
+  rgb['W'] = static_cast<lw::colors::ColorComponent>(0);
 
   return rgb;
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor hsbToRgb(typename TColor::ComponentType h, typename TColor::ComponentType s, typename TColor::ComponentType b)
+constexpr lw::Color hsbToRgb(lw::colors::ColorComponent h, lw::colors::ColorComponent s, lw::colors::ColorComponent b)
 {
   uint8_t r = 0u;
   uint8_t g = 0u;
   uint8_t blue = 0u;
-  detail::ScalarColorMathBackend<TColor>::hsbToRgb8(detail::ScalarColorMathBackend<TColor>::scaleComponentToByte(h), detail::ScalarColorMathBackend<TColor>::scaleComponentToByte(s),
-                                                    detail::ScalarColorMathBackend<TColor>::scaleComponentToByte(b), r, g, blue);
+  detail::ScalarColorMathBackend::hsbToRgb8(detail::ScalarColorMathBackend::scaleComponentToByte(h), detail::ScalarColorMathBackend::scaleComponentToByte(s),
+                                                    detail::ScalarColorMathBackend::scaleComponentToByte(b), r, g, blue);
 
-  TColor rgb{};
-  rgb['R'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(r);
-  rgb['G'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(g);
-  rgb['B'] = detail::ScalarColorMathBackend<TColor>::scaleByteToComponent(blue);
-  rgb['W'] = static_cast<typename TColor::ComponentType>(0);
+  lw::Color rgb{};
+  rgb['R'] = detail::ScalarColorMathBackend::scaleByteToComponent(r);
+  rgb['G'] = detail::ScalarColorMathBackend::scaleByteToComponent(g);
+  rgb['B'] = detail::ScalarColorMathBackend::scaleByteToComponent(blue);
+  rgb['W'] = static_cast<lw::colors::ColorComponent>(0);
 
   return rgb;
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr void darken(TColor& color, typename TColor::ComponentType delta)
+constexpr void darken(lw::Color& color, lw::colors::ColorComponent delta)
 {
-  detail::ScalarColorMathBackend<TColor>::darken(color, delta);
+  detail::ScalarColorMathBackend::darken(color, delta);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr void lighten(TColor& color, typename TColor::ComponentType delta)
+constexpr void lighten(lw::Color& color, lw::colors::ColorComponent delta)
 {
-  detail::ScalarColorMathBackend<TColor>::lighten(color, delta);
+  detail::ScalarColorMathBackend::lighten(color, delta);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor linearBlendProgress8(const TColor& left, const TColor& right, uint8_t progress)
+constexpr lw::Color linearBlendProgress8(const lw::Color& left, const lw::Color& right, uint8_t progress)
 {
-  return detail::ScalarColorMathBackend<TColor>::linearBlendProgress8(left, right, progress);
+  return detail::ScalarColorMathBackend::linearBlendProgress8(left, right, progress);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor linearBlendProgress16(const TColor& left, const TColor& right, uint16_t progress)
+constexpr lw::Color linearBlendProgress16(const lw::Color& left, const lw::Color& right, uint16_t progress)
 {
-  return detail::ScalarColorMathBackend<TColor>::linearBlendProgress16(left, right, progress);
+  return detail::ScalarColorMathBackend::linearBlendProgress16(left, right, progress);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor linearBlendProgress(const TColor& left, const TColor& right, uint8_t progress)
+constexpr lw::Color linearBlendProgress(const lw::Color& left, const lw::Color& right, uint8_t progress)
 {
   return colors::linearBlendProgress8(left, right, progress);
 }
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> constexpr TColor linearBlendProgress(const TColor& left, const TColor& right, uint16_t progress)
+constexpr lw::Color linearBlendProgress(const lw::Color& left, const lw::Color& right, uint16_t progress)
 {
   return colors::linearBlendProgress16(left, right, progress);
 }

@@ -86,12 +86,12 @@ namespace detail::palettegen
     return static_cast<TComponent>(value & static_cast<uint32_t>(std::numeric_limits<TComponent>::max()));
   }
 
-  template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> TColor randomColor(uint32_t& state)
+  lw::Color randomColor(uint32_t& state)
   {
-    TColor color{};
+    lw::Color color{};
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      color[channel] = randomComponent<typename TColor::ComponentType>(state);
+      color[channel] = randomComponent<lw::colors::Color::ComponentType>(state);
     }
 
     return color;
@@ -204,17 +204,17 @@ namespace detail::palettegen
   }
 } // namespace detail::palettegen
 
-template <typename TColor> class RainbowPaletteGenerator : public IPalette<TColor>
+ class RainbowPaletteGenerator : public IPalette
 {
 public:
-  using ComponentType = typename TColor::ComponentType;
-  using SettingsView = typename IPalette<TColor>::SettingsView;
-  using StopsView = span<const PaletteStop<TColor>>;
+  using ComponentType = lw::colors::Color::ComponentType;
+  using SettingsView = typename IPalette::SettingsView;
+  using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
   static constexpr size_t DefaultStopCount = 16u;
   inline static constexpr auto AllowedSettings = detail::palettegen::RainbowAllowedSettings;
 
-  RainbowPaletteGenerator() : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _saturation(TColor::MaxComponent), _brightness(TColor::MaxComponent), _hueOffset(0)
+  RainbowPaletteGenerator() : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _saturation(lw::Color::MaxComponent), _brightness(lw::Color::MaxComponent), _hueOffset(0)
   {
     detail::palettegen::assignDistributedStopIndexes(_stops);
     rebuild();
@@ -298,9 +298,9 @@ public:
     }
   }
 
-  void syncTo(IPalette<TColor>* that) override
+  void syncTo(IPalette* that) override
   {
-    RainbowPaletteGenerator<TColor>* target = detail::syncTarget<RainbowPaletteGenerator<TColor>, TColor>(that);
+    RainbowPaletteGenerator* target = detail::syncTarget<RainbowPaletteGenerator>(that);
     if (target == nullptr)
     {
       return;
@@ -318,28 +318,28 @@ private:
     const size_t stopCount = _stops.size();
     for (size_t i = 0; i < stopCount; ++i)
     {
-      const uint64_t span = static_cast<uint64_t>(TColor::MaxComponent) + 1ull;
+      const uint64_t span = static_cast<uint64_t>(lw::Color::MaxComponent) + 1ull;
       const ComponentType hue = static_cast<ComponentType>(_hueOffset + static_cast<ComponentType>((static_cast<uint64_t>(i) * span) / stopCount));
-      _stops[i].color = lw::colors::hsbToRgb<TColor>(hue, _saturation, _brightness);
+      _stops[i].color = lw::colors::hsbToRgb(hue, _saturation, _brightness);
     }
   }
 
-  std::vector<PaletteStop<TColor>> _stops{};
-  ComponentType _saturation{TColor::MaxComponent};
-  ComponentType _brightness{TColor::MaxComponent};
+  std::vector<PaletteStop> _stops{};
+  ComponentType _saturation{lw::Color::MaxComponent};
+  ComponentType _brightness{lw::Color::MaxComponent};
   ComponentType _hueOffset{0};
 };
 
-template <typename TColor> class TemporalRainbowPaletteGenerator : public IPalette<TColor>
+ class TemporalRainbowPaletteGenerator : public IPalette
 {
 public:
-  using SettingsView = typename IPalette<TColor>::SettingsView;
-  using ComponentType = typename TColor::ComponentType;
-  using StopsView = span<const PaletteStop<TColor>>;
+  using SettingsView = typename IPalette::SettingsView;
+  using ComponentType = lw::colors::Color::ComponentType;
+  using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::TemporalRainbowPaletteGenerator;
   inline static constexpr auto AllowedSettings = detail::palettegen::TemporalRainbowAllowedSettings;
 
-  explicit TemporalRainbowPaletteGenerator() : IPalette<TColor>(TypeCode), _rainbowGenerator()
+  explicit TemporalRainbowPaletteGenerator() : IPalette(TypeCode), _rainbowGenerator()
   {
     _stops[0].index = 0;
     _stops[1].index = lw::colors::palettes::detail::PaletteDomainMaxIndex;
@@ -421,9 +421,9 @@ public:
     }
   }
 
-  void syncTo(IPalette<TColor>* that) override
+  void syncTo(IPalette* that) override
   {
-    TemporalRainbowPaletteGenerator<TColor>* target = detail::syncTarget<TemporalRainbowPaletteGenerator<TColor>, TColor>(that);
+    TemporalRainbowPaletteGenerator* target = detail::syncTarget<TemporalRainbowPaletteGenerator>(that);
     if (target == nullptr)
     {
       return;
@@ -437,25 +437,25 @@ public:
 private:
   void rebuild()
   {
-    PaletteSampleOptions<TColor> sampleOpts;
+    PaletteSampleOptions sampleOpts;
     sampleOpts.wrapMode = WrapMode::Circular;
     sampleOpts.blendMode = BlendMode::Linear;
     sampleOpts.quantizedLevels = 0;
-    const TColor liveColor = samplePaletteAt<TColor>(_rainbowGenerator.stops(), _stepIndex, sampleOpts);
+    const lw::Color liveColor = samplePaletteAt(_rainbowGenerator.stops(), _stepIndex, sampleOpts);
     _stops[0].color = liveColor;
     _stops[1].color = liveColor;
   }
 
-  std::array<PaletteStop<TColor>, 2> _stops{};
-  RainbowPaletteGenerator<TColor> _rainbowGenerator;
+  std::array<PaletteStop, 2> _stops{};
+  RainbowPaletteGenerator _rainbowGenerator;
   size_t _stepIndex = 0;
 };
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class RandomSmoothPaletteGenerator : public IPalette<TColor>
+class RandomSmoothPaletteGenerator : public IPalette
 {
 public:
-  using SettingsView = typename IPalette<TColor>::SettingsView;
-  using StopsView = span<const PaletteStop<TColor>>;
+  using SettingsView = typename IPalette::SettingsView;
+  using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomSmoothPaletteGenerator;
   static constexpr size_t DefaultStopCount = 8u;
   static constexpr uint32_t DefaultSeed = 0xC0FFEE11u;
@@ -463,7 +463,7 @@ public:
   inline static constexpr auto AllowedSettings = detail::palettegen::RandomSmoothAllowedSettings;
 
   RandomSmoothPaletteGenerator()
-      : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _sourceColors(detail::palettegen::normalizeStopCount(DefaultStopCount)),
+      : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _sourceColors(detail::palettegen::normalizeStopCount(DefaultStopCount)),
         _targetColors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed), _rngState(DefaultSeed), _progressStep(DefaultProgressStep)
   {
     resetGeneratedColors();
@@ -498,7 +498,7 @@ public:
       for (size_t i = 0; i < _stops.size(); ++i)
       {
         _sourceColors[i] = _targetColors[i];
-        _targetColors[i] = detail::palettegen::randomColor<TColor>(_rngState);
+        _targetColors[i] = detail::palettegen::randomColor(_rngState);
       }
     }
 
@@ -543,9 +543,9 @@ public:
     }
   }
 
-  void syncTo(IPalette<TColor>* that) override
+  void syncTo(IPalette* that) override
   {
-    RandomSmoothPaletteGenerator<TColor>* target = detail::syncTarget<RandomSmoothPaletteGenerator<TColor>, TColor>(that);
+    RandomSmoothPaletteGenerator* target = detail::syncTarget<RandomSmoothPaletteGenerator>(that);
     if (target == nullptr)
     {
       return;
@@ -569,8 +569,8 @@ private:
     uint32_t rngState = _seed;
     for (size_t i = 0; i < _stops.size(); ++i)
     {
-      _sourceColors[i] = detail::palettegen::randomColor<TColor>(rngState);
-      _targetColors[i] = detail::palettegen::randomColor<TColor>(rngState);
+      _sourceColors[i] = detail::palettegen::randomColor(rngState);
+      _targetColors[i] = detail::palettegen::randomColor(rngState);
     }
 
     _rngState = rngState;
@@ -585,20 +585,20 @@ private:
     }
   }
 
-  std::vector<PaletteStop<TColor>> _stops{};
-  std::vector<TColor> _sourceColors{};
-  std::vector<TColor> _targetColors{};
+  std::vector<PaletteStop> _stops{};
+  std::vector<lw::Color> _sourceColors{};
+  std::vector<lw::Color> _targetColors{};
   uint32_t _seed{DefaultSeed};
   uint32_t _rngState{0xC0FFEE11u};
   uint8_t _progress{0};
   uint8_t _progressStep{12};
 };
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class RandomCyclePaletteGenerator : public IPalette<TColor>
+class RandomCyclePaletteGenerator : public IPalette
 {
 public:
-  using SettingsView = typename IPalette<TColor>::SettingsView;
-  using StopsView = span<const PaletteStop<TColor>>;
+  using SettingsView = typename IPalette::SettingsView;
+  using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RandomCyclePaletteGenerator;
   static constexpr size_t DefaultStopCount = 8u;
   static constexpr uint32_t DefaultSeed = 0x13579BDFu;
@@ -606,7 +606,7 @@ public:
   inline static constexpr auto AllowedSettings = detail::palettegen::RandomCycleAllowedSettings;
 
   RandomCyclePaletteGenerator()
-      : IPalette<TColor>(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _colors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed), _rngState(DefaultSeed),
+      : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _colors(detail::palettegen::normalizeStopCount(DefaultStopCount)), _seed(DefaultSeed), _rngState(DefaultSeed),
         _cycleStep(DefaultCycleStep)
   {
     resetGeneratedColors();
@@ -681,9 +681,9 @@ public:
     }
   }
 
-  void syncTo(IPalette<TColor>* that) override
+  void syncTo(IPalette* that) override
   {
-    RandomCyclePaletteGenerator<TColor>* target = detail::syncTarget<RandomCyclePaletteGenerator<TColor>, TColor>(that);
+    RandomCyclePaletteGenerator* target = detail::syncTarget<RandomCyclePaletteGenerator>(that);
     if (target == nullptr)
     {
       return;
@@ -706,7 +706,7 @@ private:
     uint32_t rngState = _seed;
     for (size_t i = 0; i < _stops.size(); ++i)
     {
-      _colors[i] = detail::palettegen::randomColor<TColor>(rngState);
+      _colors[i] = detail::palettegen::randomColor(rngState);
     }
 
     _rngState = rngState;
@@ -720,7 +720,7 @@ private:
       _colors[i] = _colors[i + 1];
     }
 
-    _colors.back() = detail::palettegen::randomColor<TColor>(_rngState);
+    _colors.back() = detail::palettegen::randomColor(_rngState);
   }
 
   void rebuild()
@@ -733,8 +733,8 @@ private:
     }
   }
 
-  std::vector<PaletteStop<TColor>> _stops{};
-  std::vector<TColor> _colors{};
+  std::vector<PaletteStop> _stops{};
+  std::vector<lw::Color> _colors{};
   uint32_t _seed{DefaultSeed};
   uint32_t _rngState{0x13579BDFu};
   uint8_t _phase{0};

@@ -25,9 +25,8 @@ public:
   std::vector<uint8_t> bytes{};
 };
 
-using TestColor = lw::Rgbw8Color;
 using TestSettings = lw::transports::PrintLightDriverSettingsT<MockWritable>;
-using TestDriver = lw::transports::PrintLightDriverT<TestColor, MockWritable>;
+using TestDriver = lw::transports::PrintLightDriverT<MockWritable>;
 
 void test_print_light_driver_writes_binary_by_default(void)
 {
@@ -36,7 +35,7 @@ void test_print_light_driver_writes_binary_by_default(void)
   settings.output = &sink;
 
   TestDriver driver(settings);
-  driver.write(TestColor{0x11, 0x22, 0x33});
+  driver.write(lw::Color{0x11, 0x22, 0x33});
 
   TEST_ASSERT_EQUAL_UINT32(4U, static_cast<uint32_t>(sink.bytes.size()));
   TEST_ASSERT_EQUAL_HEX8(0x11, sink.bytes[0]);
@@ -53,7 +52,7 @@ void test_print_light_driver_writes_ascii_when_enabled(void)
   settings.asciiOutput = true;
 
   TestDriver driver(settings);
-  driver.write(TestColor{0x0A, 0x14, 0xFF});
+  driver.write(lw::Color{0x0A, 0x14, 0xFF});
 
   static constexpr char Expected[] = "0A14FF00";
   TEST_ASSERT_EQUAL_UINT32(sizeof(Expected) - 1U, static_cast<uint32_t>(sink.bytes.size()));
@@ -70,7 +69,7 @@ void test_print_light_driver_debug_prefix_includes_identifier(void)
 
   TestDriver driver(settings);
   driver.begin();
-  driver.write(TestColor{0x01, 0x02, 0x03});
+  driver.write(lw::Color{0x01, 0x02, 0x03});
 
   static constexpr char ExpectedPrefix[] = "[LIGHT:Desk] begin\r\n[LIGHT:Desk] write bri=255\r\n";
   TEST_ASSERT_TRUE(sink.bytes.size() >= (sizeof(ExpectedPrefix) - 1U));

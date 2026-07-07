@@ -30,10 +30,10 @@ public:
   virtual uint8_t getGain() { return _gainValue; }
 };
 
-template <typename TColor> class IProtocol
+class IProtocol
 {
 public:
-  using ColorType = TColor;
+  using ColorType = lw::colors::Color;
   using SettingsType = void;
   static constexpr bool RequiresExternalBuffer = true;
   explicit IProtocol(PixelCount pixelCount = 0) : _pixelCount{pixelCount} {}
@@ -43,7 +43,7 @@ public:
   PixelCount pixelCount() const { return _pixelCount; }
 
   virtual void begin() = 0;
-  virtual void update(span<const TColor> colors, span<uint8_t> buffer = span<uint8_t>{}) = 0;
+  virtual void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) = 0;
   virtual ProtocolSettings& settings() = 0;
   virtual size_t requiredBufferSizeBytes() const { return 0; }
   virtual bool alwaysUpdate() const = 0;

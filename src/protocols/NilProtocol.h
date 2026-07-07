@@ -12,28 +12,25 @@ struct NilProtocolSettings : public ProtocolSettings
 {
 };
 
-template <typename TColor> class NilProtocol : public IProtocol<TColor>
+class NilProtocol : public IProtocol
 {
-  public:
-    using SettingsType = NilProtocolSettings;
+public:
+  using SettingsType = NilProtocolSettings;
 
-    static constexpr size_t requiredBufferSize(uint16_t, const SettingsType&) { return 0; }
+  static constexpr size_t requiredBufferSize(uint16_t, const SettingsType&) { return 0; }
 
-    explicit NilProtocol(PixelCount pixelCount, SettingsType settings = {})
-        : IProtocol<TColor>(pixelCount), _settings{std::move(settings)}
-    {
-    }
+  explicit NilProtocol(PixelCount pixelCount, SettingsType settings = {}) : IProtocol(pixelCount), _settings{std::move(settings)} {}
 
-    void begin() override {}
+  void begin() override {}
 
-    void update(span<const TColor>, span<uint8_t> buffer = span<uint8_t>{}) override {}
+  void update(span<const lw::colors::Color>, span<uint8_t> buffer = span<uint8_t>{}) override {}
 
-    ProtocolSettings& settings() override { return _settings; }
+  ProtocolSettings& settings() override { return _settings; }
 
-    bool alwaysUpdate() const override { return false; }
+  bool alwaysUpdate() const override { return false; }
 
-  private:
-    SettingsType _settings;
+private:
+  SettingsType _settings;
 };
 
 } // namespace lw::protocols

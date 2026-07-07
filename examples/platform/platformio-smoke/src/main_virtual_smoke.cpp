@@ -3,7 +3,7 @@
 
 void setup()
 {
-  lw::Rgbw8Color color{};
+  lw::Color color{};
   (void)color;
 }
 

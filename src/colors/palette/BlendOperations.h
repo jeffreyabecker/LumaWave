@@ -10,14 +10,14 @@
 
 namespace lw::colors::palettes
 {
-template <typename TColor> TColor applyQuantizedBlend(const TColor& left, const TColor& right, uint8_t progress, uint8_t levels)
+ lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uint8_t progress, uint8_t levels)
 {
-  using Component = typename TColor::ComponentType;
+  using Component = lw::colors::Color::ComponentType;
   const uint32_t clampedLevels = (levels < 2u) ? 2u : static_cast<uint32_t>(levels);
   constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
   const uint32_t step = maxValue / (clampedLevels - 1u);
 
-  TColor out = lw::colors::linearBlendProgress8(left, right, progress);
+  lw::Color out = lw::colors::linearBlendProgress8(left, right, progress);
   for (char channel : {'R', 'G', 'B', 'W'})
   {
     const uint32_t value = static_cast<uint32_t>(out[channel]);
@@ -32,7 +32,7 @@ template <typename TColor> TColor applyQuantizedBlend(const TColor& left, const 
 
   return out;
 }
-template <typename TColor> TColor applyBlendMode(BlendMode blendMode, const TColor& left, const TColor& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
+ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::Color& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
 {
   switch (blendMode)
   {
@@ -41,15 +41,15 @@ template <typename TColor> TColor applyBlendMode(BlendMode blendMode, const TCol
     case BlendMode::HoldMidpoint:
       return (progress < 128) ? left : right;
     case BlendMode::Smoothstep:
-      return lw::colors::linearBlendProgress8(left, right, lw::colors::smoothstep8<TColor>(progress));
+      return lw::colors::linearBlendProgress8(left, right, lw::colors::smoothstep8(progress));
     case BlendMode::Cubic:
-      return lw::colors::linearBlendProgress8(left, right, lw::colors::cubicEaseInOut8<TColor>(progress));
+      return lw::colors::linearBlendProgress8(left, right, lw::colors::cubicEaseInOut8(progress));
     case BlendMode::Cosine:
-      return lw::colors::linearBlendProgress8(left, right, lw::colors::cosineLike8<TColor>(progress));
+      return lw::colors::linearBlendProgress8(left, right, lw::colors::cosineLike8(progress));
     case BlendMode::GammaLinear:
     {
-      using Component = typename TColor::ComponentType;
-      TColor out{};
+      using Component = lw::colors::Color::ComponentType;
+      lw::Color out{};
 
       for (char channel : {'R', 'G', 'B', 'W'})
       {
@@ -59,20 +59,20 @@ template <typename TColor> TColor applyBlendMode(BlendMode blendMode, const TCol
         const uint32_t rightLinear = rightValue * rightValue;
 
         const uint32_t linear = leftLinear + ((rightLinear - leftLinear) * progress) / lw::colors::palettes::detail::PaletteCanonicalFractionScale;
-        const uint32_t gamma = lw::colors::integerSqrt<TColor>(linear);
+        const uint32_t gamma = lw::colors::integerSqrt(linear);
         out[channel] = static_cast<Component>(gamma);
       }
 
       return out;
     }
     case BlendMode::Quantized:
-      return applyQuantizedBlend<TColor>(left, right, progress, quantizedLevels);
+      return applyQuantizedBlend(left, right, progress, quantizedLevels);
     case BlendMode::DitheredLinear:
     {
-      using Component = typename TColor::ComponentType;
+      using Component = lw::colors::Color::ComponentType;
       constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
 
-      TColor out = lw::colors::linearBlendProgress8(left, right, progress);
+      lw::Color out = lw::colors::linearBlendProgress8(left, right, progress);
       uint8_t channelOrdinal = 0;
       for (char channel : {'R', 'G', 'B', 'W'})
       {

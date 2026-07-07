@@ -73,10 +73,10 @@ using palette_logical_domain_count_t = size_t;
 using palette_stop_index_t = size_t;
 using palette_canonical_fixed_t = uint32_t;
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteSampleOptions
+struct PaletteSampleOptions
 {
-  typename TColor::ComponentType brightnessScale{std::numeric_limits<typename TColor::ComponentType>::max()};
-  TColor outOfRangeColor{};
+  lw::colors::Color::ComponentType brightnessScale{std::numeric_limits<lw::colors::Color::ComponentType>::max()};
+  lw::Color outOfRangeColor{};
   WrapMode wrapMode{WrapMode::Clamp};
   BlendMode blendMode{BlendMode::Linear};
   TieBreakPolicy tieBreakPolicy{TieBreakPolicy::Stable};
@@ -84,19 +84,19 @@ template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struc
   palette_logical_domain_count_t scaledSampleCount{0};
 };
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> struct PaletteStop
+struct PaletteStop
 {
-  using ColorType = TColor;
+  using ColorType = lw::Color;
 
   static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint32_t rgb)
   {
     return fromRgb8(index, static_cast<uint8_t>((rgb >> 16U) & 0xFFU), static_cast<uint8_t>((rgb >> 8U) & 0xFFU), static_cast<uint8_t>(rgb & 0xFFU));
   }
 
-  static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, TColor{r, g, b}}; }
+  static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, lw::Color{r, g, b}}; }
 
   palette_stop_index_t index{0};
-  TColor color{};
+  lw::Color color{};
 };
 
 enum class PaletteSettingValueType : uint8_t
@@ -113,7 +113,7 @@ struct PaletteSettingDescriptor
   PaletteSettingValueType valueType;
 };
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class IPalette
+class IPalette
 {
 protected:
   explicit constexpr IPalette(uint32_t typeCode) : _typeCode(typeCode) {}
@@ -121,26 +121,26 @@ protected:
   uint32_t _typeCode;
 
 public:
-  using ColorType = TColor;
+  using ColorType = lw::Color;
   using SettingsEntry = std::pair<const char*, const char*>;
   using SettingsDescriptor = PaletteSettingDescriptor;
   using SettingsView = span<const SettingsEntry>;
   using SettingsDescriptorView = span<const SettingsDescriptor>;
-  using StopsView = span<const PaletteStop<TColor>>;
+  using StopsView = span<const PaletteStop>;
 
   virtual ~IPalette() = default;
 
   constexpr uint32_t typeCode() const { return _typeCode; }
 
   virtual StopsView stops() const = 0;
-  virtual void syncTo(IPalette<TColor>* that) { (void)that; }
+  virtual void syncTo(IPalette* that) { (void)that; }
   virtual void updateSettings(SettingsView settings) { (void)settings; }
   virtual void update(uint32_t step = 0) = 0;
 };
 
 namespace detail
 {
-  template <typename TDerived, typename TColor> TDerived* syncTarget(IPalette<TColor>* that)
+  template <typename TDerived> TDerived* syncTarget(IPalette* that)
   {
     if (that == nullptr || that->typeCode() != TDerived::TypeCode)
     {
@@ -151,18 +151,18 @@ namespace detail
   }
 } // namespace detail
 
-template <typename TColor, typename = std::enable_if_t<ColorType<TColor>>> class Palette : public IPalette<TColor>
+class Palette : public IPalette
 {
 public:
-  using StopsView = typename IPalette<TColor>::StopsView;
-  using StorageType = std::vector<PaletteStop<TColor>>;
+  using StopsView = typename IPalette::StopsView;
+  using StorageType = std::vector<PaletteStop>;
 
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::Palette;
   inline static constexpr std::array<PaletteSettingDescriptor, 0> AllowedSettings{};
 
-  Palette() : IPalette<TColor>(TypeCode) {}
+  Palette() : IPalette(TypeCode) {}
 
-  explicit Palette(StorageType stops) : IPalette<TColor>(TypeCode), _stops(std::move(stops))
+  explicit Palette(StorageType stops) : IPalette(TypeCode), _stops(std::move(stops))
   {
     if (!detail::isValidPaletteStops(_stops))
     {
@@ -170,7 +170,7 @@ public:
     }
   }
 
-  explicit Palette(StopsView stops) : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
+  explicit Palette(StopsView stops) : IPalette(TypeCode), _stops(stops.begin(), stops.end())
   {
     if (!detail::isValidPaletteStops(_stops))
     {
@@ -178,7 +178,7 @@ public:
     }
   }
 
-  template <size_t N> explicit Palette(const std::array<PaletteStop<TColor>, N>& stops) : IPalette<TColor>(TypeCode), _stops(stops.begin(), stops.end())
+  template <size_t N> explicit Palette(const std::array<PaletteStop, N>& stops) : IPalette(TypeCode), _stops(stops.begin(), stops.end())
   {
     if (!detail::isValidPaletteStops(_stops))
     {
@@ -186,7 +186,7 @@ public:
     }
   }
 
-  Palette(std::initializer_list<PaletteStop<TColor>> stops) : IPalette<TColor>(TypeCode), _stops(stops)
+  Palette(std::initializer_list<PaletteStop> stops) : IPalette(TypeCode), _stops(stops)
   {
     if (!detail::isValidPaletteStops(_stops))
     {
@@ -194,7 +194,7 @@ public:
     }
   }
 
-  static std::unique_ptr<IPalette<TColor>> parseDynamic(span<const char> stops)
+  static std::unique_ptr<IPalette> parseDynamic(span<const char> stops)
   {
     StorageType parsedStops;
     if (!tryParseStops(stops, parsedStops))
@@ -202,12 +202,12 @@ public:
       return nullptr;
     }
 
-    return std::make_unique<Palette<TColor>>(std::move(parsedStops));
+    return std::make_unique<Palette>(std::move(parsedStops));
   }
 
-  static std::unique_ptr<IPalette<TColor>> parseDynamic(span<char> stops) { return parseDynamic(span<const char>(stops.data(), stops.size())); }
+  static std::unique_ptr<IPalette> parseDynamic(span<char> stops) { return parseDynamic(span<const char>(stops.data(), stops.size())); }
 
-  static std::unique_ptr<IPalette<TColor>> parseDynamic(const char* stops) { return parseDynamic(cStringSpan(stops)); }
+  static std::unique_ptr<IPalette> parseDynamic(const char* stops) { return parseDynamic(cStringSpan(stops)); }
 
   static Palette parse(span<const char> stops)
   {
@@ -228,9 +228,9 @@ public:
 
   void update(uint32_t = 0) override {}
 
-  void syncTo(IPalette<TColor>* that) override
+  void syncTo(IPalette* that) override
   {
-    Palette<TColor>* target = detail::syncTarget<Palette<TColor>, TColor>(that);
+    Palette* target = detail::syncTarget<Palette>(that);
     if (target == nullptr)
     {
       return;
@@ -254,13 +254,13 @@ private:
 
     size_t ignoredConsumed = 0;
     size_t ignoredIndex = 0;
-    TColor ignoredColor{};
+    lw::Color ignoredColor{};
     const bool hasExplicitIndexes = tryParseStop(remaining, ignoredConsumed, ignoredIndex, ignoredColor);
 
     while (!remaining.empty())
     {
       size_t index = 0;
-      TColor color{};
+      lw::Color color{};
       size_t consumed = 0;
 
       if (hasExplicitIndexes)
@@ -270,7 +270,7 @@ private:
           return false;
         }
 
-        parsedStops.push_back(PaletteStop<TColor>{index, color});
+        parsedStops.push_back(PaletteStop{index, color});
       }
       else
       {
@@ -279,7 +279,7 @@ private:
           return false;
         }
 
-        parsedStops.push_back(PaletteStop<TColor>{0u, color});
+        parsedStops.push_back(PaletteStop{0u, color});
       }
 
       remaining = trimLeadingWhitespace(remaining.subspan(consumed));
@@ -324,7 +324,7 @@ private:
     if (parsedStops.size() == 1u)
     {
       parsedStops[0].index = 0u;
-      parsedStops.push_back(PaletteStop<TColor>{PaletteDomainMaxIndex, parsedStops[0].color});
+      parsedStops.push_back(PaletteStop{PaletteDomainMaxIndex, parsedStops[0].color});
       return;
     }
 
@@ -360,7 +360,7 @@ private:
     {
       using lw::colors::palettes::detail::PaletteDomainMaxIndex;
       parsedStops[0].index = 0u;
-      parsedStops.push_back(PaletteStop<TColor>{PaletteDomainMaxIndex, parsedStops[0].color});
+      parsedStops.push_back(PaletteStop{PaletteDomainMaxIndex, parsedStops[0].color});
       return;
     }
 
@@ -372,7 +372,7 @@ private:
     }
   }
 
-  static bool tryParseStop(span<const char> text, size_t& consumed, palette_stop_index_t& index, TColor& color)
+  static bool tryParseStop(span<const char> text, size_t& consumed, palette_stop_index_t& index, lw::Color& color)
   {
     const span<const char> trimmed = trimLeadingWhitespace(text);
     const size_t leadingWhitespace = text.size() - trimmed.size();
@@ -421,7 +421,7 @@ private:
     return true;
   }
 
-  static bool tryParseColor(span<const char> text, size_t& consumed, TColor& color)
+  static bool tryParseColor(span<const char> text, size_t& consumed, lw::Color& color)
   {
     const span<const char> trimmed = trimLeadingWhitespace(text);
     const size_t leadingWhitespace = text.size() - trimmed.size();
@@ -437,7 +437,7 @@ private:
       return false;
     }
 
-    if (!TColor::tryParse(trimmed.first(tokenLength), color))
+    if (!lw::Color::tryParse(trimmed.first(tokenLength), color))
     {
       return false;
     }

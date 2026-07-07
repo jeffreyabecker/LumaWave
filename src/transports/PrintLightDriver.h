@@ -45,11 +45,11 @@ template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::
   }
 };
 
-template <typename TColor, typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public ILightDriver<TColor>
+template < typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public ILightDriver
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using ColorType = lw::Color;
+  using BrightnessType = typename ILightDriver::BrightnessType;
   using LightDriverSettingsType = PrintLightDriverSettingsT<TWritable>;
 
   explicit PrintLightDriverT(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }
@@ -217,7 +217,7 @@ private:
 
 #if LW_HAS_ARDUINO
 using PrintLightDriverSettings = PrintLightDriverSettingsT<Print>;
-template <typename TColor> using PrintLightDriver = PrintLightDriverT<TColor, Print>;
+ using PrintLightDriver = PrintLightDriverT<lw::Color, Print>;
 #endif
 
 } // namespace lw::transports

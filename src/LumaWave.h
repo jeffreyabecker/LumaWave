@@ -9,11 +9,11 @@
 #ifndef LW_USE_EXPLICIT_NAMESPACES
 
 using pixel_count_t = lw::PixelCount;
-using Rgbw8Color = lw::Rgbw8Color;
-using Rgbw16Color = lw::Rgbw16Color;
-using Color = lw::colors::DefaultColorType;
+// REMOVED: lw::Color;
+// REMOVED: lw::Color;
+using Color = lw::colors::Color;
 
-template <typename TColor> using PixelView = lw::PixelView<TColor>;
+using PixelView = lw::PixelView;
 
 using lw::fillPixels;
 using lw::fillPixelsIndexed;
@@ -22,26 +22,26 @@ using lw::fillPixelsIndexed;
 template <typename TProtocol, typename TTransport = lw::busses::PlatformDefaultTransport> using Strip = lw::busses::PixelBus<TProtocol, TTransport>;
 #endif
 
-template <typename TColor = lw::colors::DefaultColorType, typename TDriver = lw::transports::PlatformDefaultLightDriver<TColor>> using Light = lw::busses::LightBus<TColor, TDriver>;
+template <typename TDriver = lw::transports::PlatformDefaultLightDriver> using Light = lw::busses::LightBus<TDriver>;
 
-template <typename TColor = lw::colors::DefaultColorType> using ReferenceLight = lw::busses::ReferenceLightBus<TColor>;
+template <typename TColor = lw::colors::Color> using ReferenceLight = lw::busses::ReferenceLightBus;
 
 #if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
 template <typename... TBuses> using CompositeStrip = lw::busses::CompositeBus<TBuses...>;
 #endif
 
-template <typename TColor = lw::colors::DefaultColorType> using ReferenceAggregateStrip = lw::busses::ReferenceAggregateBus<TColor>;
+using ReferenceAggregateStrip = lw::busses::ReferenceAggregateBus;
 
-template <typename TColor = lw::colors::DefaultColorType> using AggregateStrip = lw::busses::AggregateBus<TColor>;
+using AggregateStrip = lw::busses::AggregateBus;
 
-template <typename TColor = lw::colors::DefaultColorType> using Palette = lw::colors::palettes::Palette<TColor>;
-template <typename TColor = lw::colors::DefaultColorType> using IPalette = lw::colors::palettes::IPalette<TColor>;
+using Palette = lw::colors::palettes::Palette;
+using IPalette = lw::colors::palettes::IPalette;
 
 using lw::colors::palettes::paletteSamples;
 using lw::colors::palettes::paletteTransitionSamples;
 using lw::colors::palettes::samplePalette;
 
-template <typename TColor = lw::colors::DefaultColorType> using IStrip = lw::IPixelBus<TColor>;
+using IStrip = lw::IPixelBus;
 using TopologySettings = lw::TopologySettings;
 using Topology = lw::Topology;
 using GridMapping = lw::GridMapping;
@@ -62,16 +62,16 @@ using WRGB = lw::colors::ChannelOrder::WRGB;
 namespace Generator
 {
 
-template <typename TColor = lw::colors::DefaultColorType> using StaticStops = lw::colors::palettes::Palette<TColor>;
-template <typename TColor = lw::colors::DefaultColorType> using DynamicStops = lw::colors::palettes::Palette<TColor>;
+using StaticStops = lw::colors::palettes::Palette;
+using DynamicStops = lw::colors::palettes::Palette;
 
-template <typename TColor = lw::colors::DefaultColorType> using Rainbow = lw::colors::palettes::RainbowPaletteGenerator<TColor>;
+using Rainbow = lw::colors::palettes::RainbowPaletteGenerator;
 
-template <typename TColor = lw::colors::DefaultColorType> using TemporalRainbow = lw::colors::palettes::TemporalRainbowPaletteGenerator<TColor>;
+using TemporalRainbow = lw::colors::palettes::TemporalRainbowPaletteGenerator;
 
-template <typename TColor = lw::colors::DefaultColorType> using RandomSmooth = lw::colors::palettes::RandomSmoothPaletteGenerator<TColor>;
+using RandomSmooth = lw::colors::palettes::RandomSmoothPaletteGenerator;
 
-template <typename TColor = lw::colors::DefaultColorType> using RandomCycle = lw::colors::palettes::RandomCyclePaletteGenerator<TColor>;
+using RandomCycle = lw::colors::palettes::RandomCyclePaletteGenerator;
 
 } // namespace Generator
 
@@ -114,64 +114,62 @@ inline constexpr lw::colors::palettes::WrapMode Blackout = lw::colors::palettes:
 namespace Protocols
 {
 
-using APA102 = lw::protocols::DotStar<lw::Rgbw8Color, lw::ChannelOrder::BGR>;
+using APA102 = lw::protocols::DotStar< lw::ChannelOrder::BGR>;
 
 using HD107S = APA102;
 
-using HD108 = lw::protocols::Hd108<lw::Rgbw16Color, lw::ChannelOrder::BGR>;
+using HD108 = lw::protocols::Hd108< lw::ChannelOrder::BGR>;
 
-using Lpd6803 = lw::protocols::Lpd6803ProtocolT<lw::Rgbw8Color>;
-using Sm16716 = lw::protocols::Sm16716ProtocolT<lw::Rgbw8Color>;
+using Lpd6803 = lw::protocols::Lpd6803ProtocolT;
+using Sm16716 = lw::protocols::Sm16716ProtocolT;
 
-template <typename TInterfaceColor = lw::Rgbw8Color> using Ws2801x = lw::protocols::Ws2801ProtocolT<TInterfaceColor>;
+using Ws2801x = lw::protocols::Ws2801ProtocolT;
 
-using Ws2801 = Ws2801x<>;
+using Ws2801 = Ws2801x;
 
-template <typename TInterfaceColor = lw::colors::DefaultColorType>
+using Ws2812x = lw::protocols::Ws2812x<lw::ChannelOrder::GRB, &lw::transports::timing::Generic800, false>;
 
-using Ws2812x = lw::protocols::Ws2812x<TInterfaceColor, lw::ChannelOrder::GRB, &lw::transports::timing::Generic800, false>;
-
-using Ws2812 = Ws2812x<>;
+using Ws2812 = Ws2812x;
 
 using Apa107 = Ws2812;
 using Hc2912 = Ws2812;
 
-using Ws2811 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Ws2811, false>;
+using Ws2811 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Ws2811, false>;
 
-using Ws2813 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Ws2813, false>;
+using Ws2813 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Ws2813, false>;
 
-using Ws2813Rgbw = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::GRBW, &lw::transports::timing::Ws2813, false>;
+using Ws2813Rgbw = lw::protocols::Ws2812x< lw::ChannelOrder::GRBW, &lw::transports::timing::Ws2813, false>;
 
 // Ws2805 removed (RGBCW 5-channel chip, no longer supported)
 
-using Sk6812 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::GRB, &lw::transports::timing::Sk6812, false>;
-using Sk6812White = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Sk6812, false>;
+using Sk6812 = lw::protocols::Ws2812x< lw::ChannelOrder::GRB, &lw::transports::timing::Sk6812, false>;
+using Sk6812White = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Sk6812, false>;
 using Sk6813 = Sk6812;
 
-using Lc8812 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::GRB, &lw::transports::timing::Lc8812, false>;
+using Lc8812 = lw::protocols::Ws2812x< lw::ChannelOrder::GRB, &lw::transports::timing::Lc8812, false>;
 
-using Tm1829 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Tm1829, true>;
+using Tm1829 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Tm1829, true>;
 
-using Tm1814 = lw::protocols::Tm1814<lw::colors::DefaultColorType>;
+using Tm1814 = lw::protocols::Tm1814;
 
-using Tm1914 = lw::protocols::Tm1914<lw::colors::DefaultColorType>;
+using Tm1914 = lw::protocols::Tm1914;
 
-using Ws2814 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGBW, &lw::transports::timing::Ws2814, false>;
-using Ws2814A = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::WRGB, &lw::transports::timing::Ws2814, false>;
+using Ws2814 = lw::protocols::Ws2812x< lw::ChannelOrder::RGBW, &lw::transports::timing::Ws2814, false>;
+using Ws2814A = lw::protocols::Ws2812x< lw::ChannelOrder::WRGB, &lw::transports::timing::Ws2814, false>;
 
 using Ws2815 = Ws2812;
 
-using Ws2816 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::GRB, &lw::transports::timing::Ws2816, false>;
+using Ws2816 = lw::protocols::Ws2812x< lw::ChannelOrder::GRB, &lw::transports::timing::Ws2816, false>;
 
-using Ws2818 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Generic800, false>;
+using Ws2818 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Generic800, false>;
 
-using Apa106 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Apa106, false>;
+using Apa106 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Apa106, false>;
 
-using Tx1812 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Tx1812, false>;
+using Tx1812 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Tx1812, false>;
 
-using Gs1903 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Gs1903, false>;
+using Gs1903 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Gs1903, false>;
 
-using Tm1803 = lw::protocols::Ws2812x<lw::colors::DefaultColorType, lw::ChannelOrder::RGB, &lw::transports::timing::Generic400, false>;
+using Tm1803 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Generic400, false>;
 using Tm1804 = Tm1803;
 using Tm1809 = Tm1803;
 
@@ -180,7 +178,7 @@ using Tm1809 = Tm1803;
 namespace Driver
 {
 
-template <typename TColor = lw::colors::DefaultColorType> using PlatformDefault = lw::transports::PlatformDefaultLightDriver<TColor>;
+template <typename TColor = lw::colors::Color> using PlatformDefault = lw::transports::PlatformDefaultLightDriver;
 
 } // namespace Driver
 

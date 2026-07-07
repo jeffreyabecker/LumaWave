@@ -52,11 +52,11 @@ struct Esp32SigmaDeltaLightDriverSettings : LightDriverSettingsBase
   }
 };
 
-template <typename TColor> class Esp32SigmaDeltaLightDriver : public ILightDriver<TColor>
+ class Esp32SigmaDeltaLightDriver : public ILightDriver
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using ColorType = lw::Color;
+  using BrightnessType = typename ILightDriver::BrightnessType;
   using LightDriverSettingsType = Esp32SigmaDeltaLightDriverSettings;
 
   explicit Esp32SigmaDeltaLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}

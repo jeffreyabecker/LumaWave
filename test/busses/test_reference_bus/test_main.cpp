@@ -12,18 +12,18 @@
 
 namespace
 {
-using TestColor = lw::Rgbw8Color;
+using TestColor = lw::Color;
 
-class CaptureProtocol : public lw::protocols::IProtocol<TestColor>
+class CaptureProtocol : public lw::protocols::IProtocol
 {
 public:
-  explicit CaptureProtocol(uint16_t pixelCount) : lw::protocols::IProtocol<TestColor>(pixelCount) {}
+  explicit CaptureProtocol(uint16_t pixelCount) : lw::protocols::IProtocol(pixelCount) {}
 
   ~CaptureProtocol() override { ++destructorCount; }
 
   void begin() override { began = true; }
 
-  void update(lw::span<const TestColor> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
+  void update(lw::span<const lw::Color> colors, lw::span<uint8_t> buffer = lw::span<uint8_t>{}) override
   {
     lastSource = colors.data();
     captured.assign(colors.begin(), colors.end());
@@ -74,28 +74,28 @@ public:
 
 int CaptureTransport::destructorCount = 0;
 
-struct OwnedColor : lw::Rgbw8Color
+struct OwnedColor : lw::Color
 {
   static int destructorCount;
 
   OwnedColor() = default;
-  using lw::Rgbw8Color::Rgbw8Color;
+  using lw::Color::Color;
 
   ~OwnedColor() { ++destructorCount; }
 };
 
 int OwnedColor::destructorCount = 0;
 
-class NoopProtocolOwnedColor : public lw::protocols::IProtocol<OwnedColor>
+class NoopProtocolOwnedColor : public lw::protocols::IProtocol
 {
 public:
-  explicit NoopProtocolOwnedColor(uint16_t pixelCount) : lw::protocols::IProtocol<OwnedColor>(pixelCount) {}
+  explicit NoopProtocolOwnedColor(uint16_t pixelCount) : lw::protocols::IProtocol(pixelCount) {}
 
   ~NoopProtocolOwnedColor() override { ++destructorCount; }
 
   void begin() override {}
 
-  void update(lw::span<const OwnedColor>, lw::span<uint8_t> = lw::span<uint8_t>{}) override {}
+  void update(lw::span<const lw::Color>, lw::span<uint8_t> = lw::span<uint8_t>{}) override {}
 
   lw::protocols::ProtocolSettings& settings() override { return _settings; }
 
@@ -140,9 +140,9 @@ void test_reference_bus_uses_root_buffer_directly(void)
   auto transport = std::make_unique<CaptureTransport>();
   auto* protocolPtr = protocol.get();
 
-  lw::busses::ReferenceBus<TestColor> bus(2, std::move(protocol), std::move(transport));
-  bus.pixels()[0] = TestColor{10, 2, 3};
-  bus.pixels()[1] = TestColor{20, 5, 6};
+  lw::busses::ReferenceBus bus(2, std::move(protocol), std::move(transport));
+  bus.pixels()[0] = lw::Color{10, 2, 3};
+  bus.pixels()[1] = lw::Color{20, 5, 6};
 
   bus.show();
 
@@ -159,7 +159,7 @@ void test_reference_bus_owns_all_resources(void)
     auto protocol = std::make_unique<NoopProtocolOwnedColor>(1);
     auto transport = std::make_unique<NoopTransportOwnedColor>();
 
-    lw::busses::ReferenceBus<OwnedColor> bus(1, std::move(protocol), std::move(transport));
+    lw::busses::ReferenceBus bus(1, std::move(protocol), std::move(transport));
   }
 
   TEST_ASSERT_EQUAL_INT(1, NoopProtocolOwnedColor::destructorCount);

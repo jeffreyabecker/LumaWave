@@ -44,11 +44,11 @@ struct AnalogPwmLightDriverSettings : LightDriverSettingsBase
   }
 };
 
-template <typename TColor> class AnalogPwmLightDriver : public ILightDriver<TColor>
+ class AnalogPwmLightDriver : public ILightDriver
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using ColorType = lw::Color;
+  using BrightnessType = typename ILightDriver::BrightnessType;
   using LightDriverSettingsType = AnalogPwmLightDriverSettings;
 
   explicit AnalogPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}

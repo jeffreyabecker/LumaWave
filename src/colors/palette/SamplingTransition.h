@@ -13,12 +13,12 @@ namespace lw::colors::palettes
 {
 namespace samplingtransition
 {
-template <typename TColor, typename TOutputIt, typename = std::enable_if_t<ColorType<TColor>>> class BlendAssignProxy
+template < typename TOutputIt, typename = void> class BlendAssignProxy
 {
   public:
     BlendAssignProxy(TOutputIt output, uint8_t blendProgress) : _output(output), _blendProgress(blendProgress) {}
 
-    BlendAssignProxy& operator=(const TColor& sampled)
+    BlendAssignProxy& operator=(const lw::Color& sampled)
     {
         *_output = lw::colors::linearBlendProgress8(*_output, sampled, _blendProgress);
         return *this;
@@ -29,13 +29,13 @@ template <typename TColor, typename TOutputIt, typename = std::enable_if_t<Color
     uint8_t _blendProgress;
 };
 
-template <typename TColor, typename TOutputIt, typename = std::enable_if_t<ColorType<TColor>>> class BlendOutputIterator
+template < typename TOutputIt, typename = void> class BlendOutputIterator
 {
   public:
     using iterator_category = std::input_iterator_tag;
-    using value_type = TColor;
+    using value_type = lw::Color;
     using difference_type = std::ptrdiff_t;
-    using reference = BlendAssignProxy<TColor, TOutputIt>;
+    using reference = BlendAssignProxy<lw::Color, TOutputIt>;
     using pointer = void;
 
     BlendOutputIterator(TOutputIt output, uint8_t blendProgress) : _output(output), _blendProgress(blendProgress) {}
@@ -70,13 +70,13 @@ template <typename TColor, typename TOutputIt, typename = std::enable_if_t<Color
     uint8_t _blendProgress;
 };
 
-template <typename TColor, typename TOutputRange,
+template < typename TOutputRange,
           typename =
-              std::enable_if_t<ColorType<TColor> && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+              std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
 class BlendOutputRange
 {
   public:
-    using Iterator = BlendOutputIterator<TColor, decltype(std::declval<TOutputRange&>().begin())>;
+    using Iterator = BlendOutputIterator<lw::Color, decltype(std::declval<TOutputRange&>().begin())>;
 
     BlendOutputRange(TOutputRange& outputColors, uint8_t blendProgress)
         : _outputColors(outputColors), _blendProgress(blendProgress)

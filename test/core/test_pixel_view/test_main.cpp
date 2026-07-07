@@ -9,11 +9,11 @@
 
 namespace
 {
-using Color = lw::Rgbw8Color;
+using Color = lw::Color;
 
 void test_default_constructed_view_is_empty(void)
 {
-  lw::PixelView<Color> view;
+  lw::PixelView view;
 
   TEST_ASSERT_EQUAL_UINT32(0U, view.size());
   TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(view.chunks().size()));
@@ -29,7 +29,7 @@ void test_slice_returns_expected_subsection(void)
   chunks.emplace_back(pixels.data(), 2);
   chunks.emplace_back(pixels.data() + 2, 4);
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
   auto sliced = view.slice(1, 5);
 
   TEST_ASSERT_EQUAL_UINT32(4u, sliced.size());
@@ -43,7 +43,7 @@ void test_flat_constructor_exposes_single_chunk(void)
 {
   std::array<Color, 3> pixels = {Color{1, 0, 0}, Color{2, 0, 0}, Color{3, 0, 0}};
 
-  lw::PixelView<Color> view{lw::span<Color>{pixels.data(), pixels.size()}};
+  lw::PixelView view{lw::span<Color>{pixels.data(), pixels.size()}};
 
   TEST_ASSERT_EQUAL_UINT32(3u, view.size());
   TEST_ASSERT_EQUAL_UINT32(1u, static_cast<uint32_t>(view.chunks().size()));
@@ -58,7 +58,7 @@ void test_slice_write_through_updates_underlying_storage(void)
   chunks.emplace_back(pixels.data(), 1);
   chunks.emplace_back(pixels.data() + 1, 3);
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
   auto sliced = view.slice(1, 3);
 
   sliced[1]['R'] = 99;
@@ -73,7 +73,7 @@ void test_slice_clamps_to_bounds_and_handles_reverse_range(void)
   std::vector<lw::span<Color>> chunks;
   chunks.emplace_back(pixels.data(), pixels.size());
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
 
   auto clamped = view.slice(2, 100);
   TEST_ASSERT_EQUAL_UINT32(1u, clamped.size());
@@ -91,7 +91,7 @@ void test_fill_pixels_solid_color_updates_all_chunks(void)
   chunks.emplace_back(pixels.data(), 2);
   chunks.emplace_back(pixels.data() + 2, 3);
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
   lw::fillPixels(view, Color{9, 8, 7});
 
   for (size_t i = 0; i < pixels.size(); ++i)
@@ -111,7 +111,7 @@ void test_fill_pixels_indexed_uses_global_index(void)
   chunks.emplace_back(pixels.data() + 1, 2);
   chunks.emplace_back(pixels.data() + 3, 3);
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
   lw::fillPixelsIndexed(view, [](uint32_t index) { return Color(static_cast<uint8_t>(index), static_cast<uint8_t>(index + 1U), static_cast<uint8_t>(index + 2U)); });
 
   for (size_t i = 0; i < pixels.size(); ++i)
@@ -132,7 +132,7 @@ void test_iterators_walk_across_chunk_boundaries_in_order(void)
   chunks.emplace_back(pixels.data() + 1, 2);
   chunks.emplace_back(pixels.data() + 3, 2);
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
 
   uint8_t expected = 1;
   for (auto it = view.begin(); it != view.end(); ++it)
@@ -153,7 +153,7 @@ void test_iterators_preserve_random_access_operations(void)
   chunks.emplace_back(pixels.data() + 2, 1);
   chunks.emplace_back(pixels.data() + 3, 2);
 
-  lw::PixelView<Color> view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
+  lw::PixelView view{lw::span<lw::span<Color>>(chunks.data(), chunks.size())};
 
   auto it = view.begin();
   it += 3;
@@ -164,7 +164,7 @@ void test_iterators_preserve_random_access_operations(void)
   TEST_ASSERT_EQUAL_UINT8(3u, (*it)['R']);
   TEST_ASSERT_EQUAL_INT32(5, static_cast<int32_t>(view.end() - view.begin()));
 
-  const lw::PixelView<Color>& constView = view;
+  const lw::PixelView& constView = view;
   auto constIt = constView.cend();
   --constIt;
   TEST_ASSERT_EQUAL_UINT8(5u, (*constIt)['R']);
@@ -180,11 +180,11 @@ void test_concatenate_accepts_span_of_view_references(void)
   std::vector<lw::span<Color>> rightChunks;
   rightChunks.emplace_back(right.data(), right.size());
 
-  lw::PixelView<Color> leftView{lw::span<lw::span<Color>>(leftChunks.data(), leftChunks.size())};
-  lw::PixelView<Color> rightView{lw::span<lw::span<Color>>(rightChunks.data(), rightChunks.size())};
+  lw::PixelView leftView{lw::span<lw::span<Color>>(leftChunks.data(), leftChunks.size())};
+  lw::PixelView rightView{lw::span<lw::span<Color>>(rightChunks.data(), rightChunks.size())};
 
-  std::array<std::reference_wrapper<lw::PixelView<Color>>, 2> views{leftView, rightView};
-  auto concatenated = lw::PixelView<Color>::concatenate(lw::span<const std::reference_wrapper<lw::PixelView<Color>>>(views.data(), views.size()));
+  std::array<std::reference_wrapper<lw::PixelView>, 2> views{leftView, rightView};
+  auto concatenated = lw::PixelView::concatenate(lw::span<const std::reference_wrapper<lw::PixelView>>(views.data(), views.size()));
 
   TEST_ASSERT_EQUAL_UINT32(5U, concatenated.size());
   concatenated[4]['R'] = 99;
@@ -202,11 +202,11 @@ void test_concatenate_accepts_span_of_const_view_references(void)
   std::vector<lw::span<Color>> rightChunks;
   rightChunks.emplace_back(right.data(), right.size());
 
-  const lw::PixelView<Color> leftView{lw::span<lw::span<Color>>(leftChunks.data(), leftChunks.size())};
-  const lw::PixelView<Color> rightView{lw::span<lw::span<Color>>(rightChunks.data(), rightChunks.size())};
+  const lw::PixelView leftView{lw::span<lw::span<Color>>(leftChunks.data(), leftChunks.size())};
+  const lw::PixelView rightView{lw::span<lw::span<Color>>(rightChunks.data(), rightChunks.size())};
 
-  std::array<std::reference_wrapper<const lw::PixelView<Color>>, 2> views{leftView, rightView};
-  const auto concatenated = lw::PixelView<Color>::concatenate(lw::span<const std::reference_wrapper<const lw::PixelView<Color>>>(views.data(), views.size()));
+  std::array<std::reference_wrapper<const lw::PixelView>, 2> views{leftView, rightView};
+  const auto concatenated = lw::PixelView::concatenate(lw::span<const std::reference_wrapper<const lw::PixelView>>(views.data(), views.size()));
 
   TEST_ASSERT_EQUAL_UINT32(2U, concatenated.size());
   TEST_ASSERT_EQUAL_UINT8(7U, concatenated[0]['R']);
@@ -216,8 +216,8 @@ void test_concatenate_accepts_span_of_const_view_references(void)
 void test_copy_rebinds_internal_storage_for_flat_and_owned_chunked_views(void)
 {
   std::array<Color, 2> flatPixels = {Color{1, 0, 0}, Color{2, 0, 0}};
-  lw::PixelView<Color> flatView{lw::span<Color>{flatPixels.data(), flatPixels.size()}};
-  lw::PixelView<Color> flatCopy = flatView;
+  lw::PixelView flatView{lw::span<Color>{flatPixels.data(), flatPixels.size()}};
+  lw::PixelView flatCopy = flatView;
 
   flatCopy[1]['R'] = 9;
   TEST_ASSERT_EQUAL_UINT8(9u, flatPixels[1]['R']);
@@ -229,10 +229,10 @@ void test_copy_rebinds_internal_storage_for_flat_and_owned_chunked_views(void)
   std::vector<lw::span<Color>> rightChunks;
   rightChunks.emplace_back(right.data(), right.size());
 
-  lw::PixelView<Color> leftView{lw::span<lw::span<Color>>{leftChunks.data(), leftChunks.size()}};
-  lw::PixelView<Color> rightView{lw::span<lw::span<Color>>{rightChunks.data(), rightChunks.size()}};
-  lw::PixelView<Color> concatenated = lw::PixelView<Color>::concatenate(leftView, rightView);
-  lw::PixelView<Color> concatenatedCopy = concatenated;
+  lw::PixelView leftView{lw::span<lw::span<Color>>{leftChunks.data(), leftChunks.size()}};
+  lw::PixelView rightView{lw::span<lw::span<Color>>{rightChunks.data(), rightChunks.size()}};
+  lw::PixelView concatenated = lw::PixelView::concatenate(leftView, rightView);
+  lw::PixelView concatenatedCopy = concatenated;
 
   concatenatedCopy[1]['R'] = 7;
   TEST_ASSERT_EQUAL_UINT8(7u, right[0]['R']);

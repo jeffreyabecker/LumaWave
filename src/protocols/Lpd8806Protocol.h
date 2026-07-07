@@ -25,13 +25,12 @@ struct Lpd8806ProtocolSettings : public ProtocolSettings
 //   Pixel data: 3 bytes per pixel
 //   End:   ceil(N / 32) bytes of 0xFF
 //
-template <typename TInterfaceColor = Rgbw8Color> class Lpd8806ProtocolT : public IProtocol<TInterfaceColor>
+class Lpd8806ProtocolT : public IProtocol
 {
 public:
-  using InterfaceColorType = TInterfaceColor;
-  using SettingsType = Lpd8806ProtocolSettings;
+    using SettingsType = Lpd8806ProtocolSettings;
 
-  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
                 "Lpd8806Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
@@ -41,13 +40,13 @@ public:
   }
 
   Lpd8806ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _frameSize{(pixelCount + 31u) / 32u}
+      : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _frameSize{(pixelCount + 31u) / 32u}
   {
   }
 
   void begin() override {}
 
-  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -81,9 +80,9 @@ public:
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::GRB::length;
 
-  static constexpr uint8_t toWireComponent8(typename InterfaceColorType::ComponentType value)
+  static constexpr uint8_t toWireComponent8(lw::colors::ColorComponent value)
   {
-    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
+    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint8_t>)
     {
       return value;
     }

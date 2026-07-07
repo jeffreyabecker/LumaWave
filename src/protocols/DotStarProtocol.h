@@ -14,7 +14,7 @@ struct Apa102ProtocolSettings : public ProtocolSettings
 {
   const char* channelOrder = ChannelOrder::BGR::value;
 
-  template <typename TColor> static Apa102ProtocolSettings normalizeForColor(Apa102ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::BGR::value)
+  static Apa102ProtocolSettings normalizeForColor(Apa102ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::BGR::value)
   {
     settings.channelOrder = lw::detail::normalizeChannelOrder(settings.channelOrder, defaultChannelOrder);
     return settings;
@@ -25,21 +25,18 @@ struct Hd108ProtocolSettings : public ProtocolSettings
 {
   const char* channelOrder = ChannelOrder::BGR::value;
 
-  template <typename TColor> static Hd108ProtocolSettings normalizeForColor(Hd108ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::BGR::value)
+  static Hd108ProtocolSettings normalizeForColor(Hd108ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::BGR::value)
   {
     settings.channelOrder = lw::detail::normalizeChannelOrder(settings.channelOrder, defaultChannelOrder);
     return settings;
   }
 };
 
-template <typename TInterfaceColor = Rgbw8Color> class Apa102Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
+class Apa102Protocol : public IProtocol, public IHaveGain
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
-  using InterfaceColorType = TInterfaceColor;
-
-  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
-                "Apa102Protocol interface color supports uint8_t or uint16_t components.");
+  using InterfaceColorType = lw::colors::Color;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -47,11 +44,11 @@ public:
     return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameFixedSize + extraEndBytes;
   }
 
-  Apa102Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
+  Apa102Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
 
   void begin() override {}
 
-  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -94,37 +91,26 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint8_t toStripComponent(typename InterfaceColorType::ComponentType value)
-  {
-    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
-    {
-      return value;
-    }
-
-    return static_cast<uint8_t>(value >> 8);
-  }
+  static constexpr uint8_t toStripComponent(lw::colors::ColorComponent value) { return static_cast<uint8_t>(value); }
 
   SettingsType _settings;
   size_t _requiredBufferSize{0};
   span<uint8_t> _byteBuffer{};
 };
 
-template <typename TInterfaceColor = Rgbw16Color> class Hd108Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
+class Hd108Protocol : public IProtocol, public IHaveGain
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
-  using InterfaceColorType = TInterfaceColor;
-
-  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
-                "Hd108Protocol interface color supports uint8_t or uint16_t components.");
+  using InterfaceColorType = lw::colors::Color;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
-  Hd108Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
+  Hd108Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
 
   void begin() override {}
 
-  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -170,15 +156,7 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint16_t toStripComponent(typename InterfaceColorType::ComponentType value)
-  {
-    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>)
-    {
-      return value;
-    }
-
-    return static_cast<uint16_t>((static_cast<uint16_t>(value) << 8) | static_cast<uint16_t>(value));
-  }
+  static constexpr uint16_t toStripComponent(lw::colors::ColorComponent value) { return static_cast<uint16_t>(value); }
 
   SettingsType _settings;
   size_t _requiredBufferSize{0};

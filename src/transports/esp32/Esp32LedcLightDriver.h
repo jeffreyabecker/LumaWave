@@ -68,11 +68,11 @@ struct Esp32LedcLightDriverSettings : LightDriverSettingsBase
   }
 };
 
-template <typename TColor> class Esp32LedcLightDriver : public ILightDriver<TColor>
+ class Esp32LedcLightDriver : public ILightDriver
 {
 public:
-  using ColorType = TColor;
-  using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+  using ColorType = lw::Color;
+  using BrightnessType = typename ILightDriver::BrightnessType;
   using LightDriverSettingsType = Esp32LedcLightDriverSettings;
 
   explicit Esp32LedcLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)), _maxDuty(computeMaxDuty(_settings.resolutionBits)) {}

@@ -9,7 +9,7 @@ namespace lw::transports::esp8266
 
 using Esp8266LedcLightDriverSettings = lw::transports::AnalogPwmLightDriverSettings;
 
-template <typename TColor> using Esp8266LedcLightDriver = lw::transports::AnalogPwmLightDriver<TColor>;
+ using Esp8266LedcLightDriver = lw::transports::AnalogPwmLightDriver<lw::Color>;
 
 } // namespace lw::transports::esp8266
 

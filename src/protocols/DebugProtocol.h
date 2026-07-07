@@ -21,7 +21,7 @@ using DefaultDebugWritable = Print;
 using DefaultDebugWritable = lw::detail::NullWritable;
 #endif
 
-template <typename TWrappedProtocol = NilProtocol<Rgbw8Color>, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>> struct DebugProtocolSettingsT : public ProtocolSettings
+template <typename TWrappedProtocol = NilProtocol, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>> struct DebugProtocolSettingsT : public ProtocolSettings
 {
   using WrappedSettingsType = typename TWrappedProtocol::SettingsType;
 
@@ -30,15 +30,15 @@ template <typename TWrappedProtocol = NilProtocol<Rgbw8Color>, typename TWritabl
   bool invert = false;
 };
 
-template <typename TWrappedProtocol = NilProtocol<Rgbw8Color>, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>>
-class DebugProtocol : public ProtocolDecoratorBase<DebugProtocol<TWrappedProtocol, TWritable>, TWrappedProtocol, typename TWrappedProtocol::ColorType, DebugProtocolSettingsT<TWrappedProtocol, TWritable>>
+template <typename TWrappedProtocol = NilProtocol, typename TWritable = DefaultDebugWritable, typename = std::enable_if_t<Writable<TWritable>>>
+class DebugProtocol : public ProtocolDecoratorBase<DebugProtocol<TWrappedProtocol, TWritable>, TWrappedProtocol, DebugProtocolSettingsT<TWrappedProtocol, TWritable>>
 {
 public:
   using ColorType = typename TWrappedProtocol::ColorType;
-  using BaseType = ProtocolDecoratorBase<DebugProtocol<TWrappedProtocol, TWritable>, TWrappedProtocol, ColorType, DebugProtocolSettingsT<TWrappedProtocol, TWritable>>;
+  using BaseType = ProtocolDecoratorBase<DebugProtocol<TWrappedProtocol, TWritable>, TWrappedProtocol, DebugProtocolSettingsT<TWrappedProtocol, TWritable>>;
   using SettingsType = DebugProtocolSettingsT<TWrappedProtocol, TWritable>;
 
-  static_assert(std::is_base_of_v<IProtocol<ColorType>, TWrappedProtocol>, "DebugProtocol<TWrappedProtocol> requires TWrappedProtocol to derive from IProtocol<ColorType>.");
+  static_assert(std::is_base_of_v<IProtocol, TWrappedProtocol>, "DebugProtocol<TWrappedProtocol> requires TWrappedProtocol to derive from IProtocol.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings) { return TWrappedProtocol::requiredBufferSize(pixelCount, settings.wrapped); }
 

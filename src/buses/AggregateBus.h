@@ -12,10 +12,10 @@ namespace lw::busses
 namespace detail
 {
 
-template <typename TColor, typename TBuses>
-std::vector<typename PixelView<TColor>::ChunkType> collectAggregateChunks(const TBuses& buses)
+template < typename TBuses>
+std::vector<typename PixelView::ChunkType> collectAggregateChunks(const TBuses& buses)
 {
-    using ChunkType = typename PixelView<TColor>::ChunkType;
+    using ChunkType = typename PixelView::ChunkType;
 
     std::vector<ChunkType> chunks;
 
@@ -26,7 +26,7 @@ std::vector<typename PixelView<TColor>::ChunkType> collectAggregateChunks(const 
             continue;
         }
 
-        const PixelView<TColor>& view = bus->pixels();
+        const PixelView& view = bus->pixels();
 
         for (auto chunk : view.chunks())
         {
@@ -39,15 +39,15 @@ std::vector<typename PixelView<TColor>::ChunkType> collectAggregateChunks(const 
 
 } // namespace detail
 
-template <typename TColor> class ReferenceAggregateBus : public IPixelBus<TColor>
+ class ReferenceAggregateBus : public IPixelBus
 {
   public:
-    using BusType = IPixelBus<TColor>;
+    using BusType = IPixelBus;
         using BrightnessType = typename BusType::BrightnessType;
-    using ChunkType = typename PixelView<TColor>::ChunkType;
+    using ChunkType = typename PixelView::ChunkType;
 
     explicit ReferenceAggregateBus(span<BusType*> buses)
-        : _buses(buses.begin(), buses.end()), _pixelChunks(detail::collectAggregateChunks<TColor>(_buses)),
+        : _buses(buses.begin(), buses.end()), _pixelChunks(detail::collectAggregateChunks(_buses)),
           _pixels(span<ChunkType>{_pixelChunks.data(), _pixelChunks.size()})
     {
     }
@@ -87,9 +87,9 @@ template <typename TColor> class ReferenceAggregateBus : public IPixelBus<TColor
         return true;
     }
 
-    PixelView<TColor>& pixels() override { return _pixels; }
+    PixelView& pixels() override { return _pixels; }
 
-    const PixelView<TColor>& pixels() const override { return _pixels; }
+    const PixelView& pixels() const override { return _pixels; }
 
     void setBrightness(BrightnessType brightness) override
     {
@@ -118,18 +118,18 @@ template <typename TColor> class ReferenceAggregateBus : public IPixelBus<TColor
   private:
     std::vector<BusType*> _buses;
     std::vector<ChunkType> _pixelChunks;
-    PixelView<TColor> _pixels;
+    PixelView _pixels;
 };
 
-template <typename TColor> class AggregateBus : public IPixelBus<TColor>
+ class AggregateBus : public IPixelBus
 {
   public:
-    using BusType = IPixelBus<TColor>;
+    using BusType = IPixelBus;
         using BrightnessType = typename BusType::BrightnessType;
-    using ChunkType = typename PixelView<TColor>::ChunkType;
+    using ChunkType = typename PixelView::ChunkType;
 
     explicit AggregateBus(std::vector<std::unique_ptr<BusType>> buses)
-        : _buses(std::move(buses)), _pixelChunks(detail::collectAggregateChunks<TColor>(_buses)),
+        : _buses(std::move(buses)), _pixelChunks(detail::collectAggregateChunks(_buses)),
           _pixels(span<ChunkType>{_pixelChunks.data(), _pixelChunks.size()})
     {
     }
@@ -169,9 +169,9 @@ template <typename TColor> class AggregateBus : public IPixelBus<TColor>
         return true;
     }
 
-    PixelView<TColor>& pixels() override { return _pixels; }
+    PixelView& pixels() override { return _pixels; }
 
-    const PixelView<TColor>& pixels() const override { return _pixels; }
+    const PixelView& pixels() const override { return _pixels; }
 
     void setBrightness(BrightnessType brightness) override
     {
@@ -200,7 +200,7 @@ template <typename TColor> class AggregateBus : public IPixelBus<TColor>
   private:
     std::vector<std::unique_ptr<BusType>> _buses;
     std::vector<ChunkType> _pixelChunks;
-    PixelView<TColor> _pixels;
+    PixelView _pixels;
 };
 
 } // namespace lw::busses

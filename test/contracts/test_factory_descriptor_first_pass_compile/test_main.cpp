@@ -36,7 +36,7 @@ public:
 
 void test_pixel_bus_typed_protocol_transport(void)
 {
-  using Protocol = lw::protocols::Apa102Protocol<lw::Rgbw8Color>;
+  using Protocol = lw::protocols::Apa102Protocol;
 
   lw::busses::PixelBus<Protocol, lw::transports::NilTransport> bus(16, lw::protocols::Apa102ProtocolSettings{}, lw::transports::NilTransportSettings{});
 
@@ -76,7 +76,7 @@ void test_direct_pixel_bus_with_alias_spec(void)
 
 void test_alias_type_is_direct_protocol(void)
 {
-  static_assert(std::is_same<typename lw::protocols::Ws2812x<lw::Rgbw8Color>::ProtocolType, lw::protocols::Ws2812xProtocol<lw::Rgbw8Color>>::value, "Ws2812x alias ProtocolType should resolve to direct protocol type");
+  static_assert(std::is_same<typename lw::protocols::Ws2812x<>::ProtocolType, lw::protocols::Ws2812xProtocol>::value, "Ws2812x alias ProtocolType should resolve to direct protocol type");
   TEST_ASSERT_TRUE(true);
 }
 } // namespace

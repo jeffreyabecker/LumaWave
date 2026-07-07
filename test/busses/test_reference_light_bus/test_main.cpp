@@ -9,9 +9,8 @@
 
 namespace
 {
-using TestColor = lw::Rgbw8Color;
 
-class CaptureLightDriver : public lw::transports::ILightDriver<TestColor>
+class CaptureLightDriver : public lw::transports::ILightDriver
 {
 public:
   ~CaptureLightDriver() override { ++destructorCount; }
@@ -20,7 +19,7 @@ public:
 
   bool isReadyToUpdate() const override { return ready; }
 
-  void write(const TestColor& color) override
+  void write(const lw::Color& color) override
   {
     ++writeCount;
     lastColor = color;
@@ -30,12 +29,12 @@ public:
   bool began{false};
   bool ready{true};
   size_t writeCount{0};
-  TestColor lastColor{};
+  lw::Color lastColor{};
 };
 
 int CaptureLightDriver::destructorCount = 0;
 
-struct OwnedColor
+struct OwnedColor : lw::Color
 {
   static int destructorCount;
 
@@ -46,7 +45,7 @@ struct OwnedColor
 
 int OwnedColor::destructorCount = 0;
 
-class OwnedLightDriver : public lw::transports::ILightDriver<OwnedColor>
+class OwnedLightDriver : public lw::transports::ILightDriver
 {
 public:
   ~OwnedLightDriver() override { ++destructorCount; }
@@ -55,7 +54,7 @@ public:
 
   bool isReadyToUpdate() const override { return true; }
 
-  void write(const OwnedColor&) override {}
+  void write(const lw::Color&) override {}
 
   static int destructorCount;
 };
@@ -76,8 +75,8 @@ void test_reference_light_bus_writes_root_pixel(void)
   auto driver = std::make_unique<CaptureLightDriver>();
   auto* driverPtr = driver.get();
 
-  lw::busses::ReferenceLightBus<TestColor> bus(std::move(driver));
-  bus.pixels()[0] = TestColor{3, 4, 5};
+  lw::busses::ReferenceLightBus bus(std::move(driver));
+  bus.pixels()[0] = lw::Color{3, 4, 5};
 
   bus.begin();
   bus.show();
@@ -95,7 +94,7 @@ void test_reference_light_bus_owns_all_resources(void)
   {
     auto driver = std::make_unique<OwnedLightDriver>();
 
-    lw::busses::ReferenceLightBus<OwnedColor> bus(std::move(driver));
+    lw::busses::ReferenceLightBus bus(std::move(driver));
   }
 
   TEST_ASSERT_EQUAL_INT(1, OwnedLightDriver::destructorCount);

@@ -9,9 +9,9 @@
 
 namespace
 {
-using TestColor = lw::Rgbw8Color;
 
-class MockLightDriver : public lw::transports::ILightDriver<TestColor>
+
+class MockLightDriver : public lw::transports::ILightDriver
 {
 public:
   struct LightDriverSettingsType : lw::transports::LightDriverSettingsBase
@@ -21,8 +21,8 @@ public:
     static LightDriverSettingsType normalize(LightDriverSettingsType settings) { return settings; }
   };
 
-  using ColorType = TestColor;
-  using BrightnessType = typename lw::transports::ILightDriver<TestColor>::BrightnessType;
+  using ColorType = lw::Color;
+  using BrightnessType = typename lw::transports::ILightDriver::BrightnessType;
 
   explicit MockLightDriver(LightDriverSettingsType settings) : ready(settings.initiallyReady) {}
 
@@ -30,9 +30,9 @@ public:
 
   bool isReadyToUpdate() const override { return ready; }
 
-  void write(const TestColor& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+  void write(const lw::Color& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
 
-  void write(const TestColor& color, BrightnessType brightness) override
+  void write(const lw::Color& color, BrightnessType brightness) override
   {
     ++writeCount;
     lastColor = color;
@@ -42,15 +42,15 @@ public:
   bool began{false};
   bool ready{true};
   size_t writeCount{0};
-  TestColor lastColor{};
+  lw::Color lastColor{};
   BrightnessType lastBrightness{std::numeric_limits<BrightnessType>::max()};
 };
 
 void test_light_bus_writes_root_pixel_on_show(void)
 {
-  lw::busses::LightBus<TestColor, MockLightDriver> bus(MockLightDriver::LightDriverSettingsType{});
+  lw::busses::LightBus< MockLightDriver> bus(MockLightDriver::LightDriverSettingsType{});
 
-  bus.pixel() = TestColor{3, 4, 5};
+  bus.pixel() = lw::Color{3, 4, 5};
   bus.show();
 
   TEST_ASSERT_TRUE(bus.driver().began);
@@ -60,9 +60,9 @@ void test_light_bus_writes_root_pixel_on_show(void)
 
 void test_light_bus_uses_dirty_guard(void)
 {
-  lw::busses::LightBus<TestColor, MockLightDriver> bus(MockLightDriver::LightDriverSettingsType{});
+  lw::busses::LightBus< MockLightDriver> bus(MockLightDriver::LightDriverSettingsType{});
 
-  bus.pixel() = TestColor{9, 1, 2};
+  bus.pixel() = lw::Color{9, 1, 2};
   bus.show();
   bus.show();
 
@@ -74,8 +74,8 @@ void test_light_bus_checks_driver_readiness(void)
 {
   auto settings = MockLightDriver::LightDriverSettingsType{};
   settings.initiallyReady = false;
-  lw::busses::LightBus<TestColor, MockLightDriver> bus(settings);
-  bus.pixel() = TestColor{7, 8, 9};
+  lw::busses::LightBus< MockLightDriver> bus(settings);
+  bus.pixel() = lw::Color{7, 8, 9};
 
   TEST_ASSERT_FALSE(bus.isReadyToUpdate());
   bus.show();
@@ -89,10 +89,10 @@ void test_light_bus_checks_driver_readiness(void)
 
 void test_light_bus_passes_brightness_to_driver_write(void)
 {
-  lw::busses::LightBus<TestColor, MockLightDriver> bus(MockLightDriver::LightDriverSettingsType{});
+  lw::busses::LightBus< MockLightDriver> bus(MockLightDriver::LightDriverSettingsType{});
 
-  bus.setBrightness(static_cast<TestColor::ComponentType>(64));
-  bus.pixel() = TestColor{120, 10, 11};
+  bus.setBrightness(static_cast<lw::Color::ComponentType>(64));
+  bus.pixel() = lw::Color{120, 10, 11};
   bus.show();
 
   TEST_ASSERT_EQUAL_UINT8(120, bus.driver().lastColor['R']);

@@ -10,11 +10,11 @@ struct NilLightDriverSettings : LightDriverSettingsBase
     static NilLightDriverSettings normalize(NilLightDriverSettings settings) { return settings; }
 };
 
-template <typename TColor> class NilLightDriver : public ILightDriver<TColor>
+ class NilLightDriver : public ILightDriver
 {
   public:
-    using ColorType = TColor;
-    using BrightnessType = typename ILightDriver<TColor>::BrightnessType;
+    using ColorType = lw::Color;
+    using BrightnessType = typename ILightDriver::BrightnessType;
     using LightDriverSettingsType = NilLightDriverSettings;
 
     explicit NilLightDriver(LightDriverSettingsType = {}) {}

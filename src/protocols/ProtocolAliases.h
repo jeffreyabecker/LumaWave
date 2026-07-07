@@ -39,12 +39,11 @@ namespace detail
 
 } // namespace detail
 
-template <typename TInterfaceColor = lw::Rgbw8Color, typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct DotStar
+template <typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct DotStar
 {
-  using InterfaceColorType = TInterfaceColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using ProtocolType = lw::protocols::Apa102Protocol<TInterfaceColor>;
+  using ProtocolType = lw::protocols::Apa102Protocol;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
@@ -55,15 +54,14 @@ template <typename TInterfaceColor = lw::Rgbw8Color, typename TDefaultChannelOrd
     return normalizeSettings(std::move(settings));
   }
 
-  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::template normalizeForColor<ColorType>(std::move(settings), TDefaultChannelOrder::value); }
+  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::normalizeForColor(std::move(settings), TDefaultChannelOrder::value); }
 };
 
-template <typename TInterfaceColor = lw::Rgbw16Color, typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct Hd108
+template <typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct Hd108
 {
-  using InterfaceColorType = TInterfaceColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using ProtocolType = lw::protocols::Hd108Protocol<TInterfaceColor>;
+  using ProtocolType = lw::protocols::Hd108Protocol;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
@@ -74,21 +72,21 @@ template <typename TInterfaceColor = lw::Rgbw16Color, typename TDefaultChannelOr
     return normalizeSettings(std::move(settings));
   }
 
-  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::template normalizeForColor<ColorType>(std::move(settings), TDefaultChannelOrder::value); }
+  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::normalizeForColor(std::move(settings), TDefaultChannelOrder::value); }
 };
 
-template <typename TColor = lw::Rgbw8Color> struct None
+struct None
 {
-  using ColorType = TColor;
-  using ProtocolType = lw::protocols::NilProtocol<TColor>;
+  using ProtocolType = lw::protocols::NilProtocol;
   using SettingsType = typename ProtocolType::SettingsType;
+  using ColorType = typename ProtocolType::ColorType;
 
   static SettingsType defaultSettings() { return SettingsType{}; }
 
   static SettingsType normalizeSettings(SettingsType settings) { return settings; }
 };
 
-template <typename TWrappedProtocolSpec = None<lw::Rgbw8Color>> struct Debug
+template <typename TWrappedProtocolSpec = None> struct Debug
 {
   using WrappedProtocolType = typename detail::ResolveProtocolType<TWrappedProtocolSpec>::Type;
   using ProtocolType = lw::protocols::DebugProtocol<WrappedProtocolType>;
@@ -122,11 +120,11 @@ private:
   }
 };
 
-template <typename TInterfaceColor = lw::Rgbw8Color> struct Tm1814
+struct Tm1814
 {
-  using ColorType = TInterfaceColor;
-  using ProtocolType = lw::protocols::Tm1814ProtocolT<TInterfaceColor>;
+  using ProtocolType = lw::protocols::Tm1814ProtocolT;
   using SettingsType = typename ProtocolType::SettingsType;
+  using ColorType = typename ProtocolType::ColorType;
 
   static SettingsType defaultSettings()
   {
@@ -134,14 +132,14 @@ template <typename TInterfaceColor = lw::Rgbw8Color> struct Tm1814
     return normalizeSettings(std::move(settings));
   }
 
-  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::template normalizeForColor<ColorType>(std::move(settings), "WRGB"); }
+  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::normalizeForColor(std::move(settings), "WRGB"); }
 };
 
-template <typename TInterfaceColor = lw::Rgbw8Color> struct Tm1914
+struct Tm1914
 {
-  using ColorType = TInterfaceColor;
-  using ProtocolType = lw::protocols::Tm1914ProtocolT<TInterfaceColor>;
+  using ProtocolType = lw::protocols::Tm1914ProtocolT;
   using SettingsType = typename ProtocolType::SettingsType;
+  using ColorType = typename ProtocolType::ColorType;
 
   static SettingsType defaultSettings()
   {
@@ -149,16 +147,14 @@ template <typename TInterfaceColor = lw::Rgbw8Color> struct Tm1914
     return normalizeSettings(std::move(settings));
   }
 
-  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::template normalizeForColor<ColorType>(std::move(settings), lw::ChannelOrder::GRB::value); }
+  static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::normalizeForColor(std::move(settings), lw::ChannelOrder::GRB::value); }
 };
 
-template <typename TInterfaceColor = lw::Color, typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transports::OneWireTiming* TDefaultTiming = &lw::transports::timing::Generic800, bool TIdleHigh = false>
-struct Ws2812x
+template <typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transports::OneWireTiming* TDefaultTiming = &lw::transports::timing::Generic800, bool TIdleHigh = false> struct Ws2812x
 {
-  using InterfaceColorType = TInterfaceColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using ProtocolType = lw::protocols::Ws2812xProtocol<InterfaceColorType>;
+  using ProtocolType = lw::protocols::Ws2812xProtocol;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
@@ -175,7 +171,7 @@ struct Ws2812x
   static SettingsType normalizeSettings(SettingsType settings)
   {
     settings.idleHigh = static_cast<bool>(TIdleHigh);
-    return SettingsType::template normalizeForColor<ColorType>(std::move(settings), TDefaultChannelOrder::value);
+    return SettingsType::normalizeForColor(std::move(settings), TDefaultChannelOrder::value);
   }
 };
 

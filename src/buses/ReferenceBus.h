@@ -15,12 +15,12 @@
 namespace lw::busses
 {
 
-template <typename TColor> class ReferenceBus : public IPixelBus<TColor>
+ class ReferenceBus : public IPixelBus
 {
 public:
-  using BrightnessType = typename IPixelBus<TColor>::BrightnessType;
+  using BrightnessType = typename IPixelBus::BrightnessType;
 
-  ReferenceBus(PixelCount pixelCount, std::unique_ptr<protocols::IProtocol<TColor>> protocol, std::unique_ptr<transports::ITransport> transport)
+  ReferenceBus(PixelCount pixelCount, std::unique_ptr<protocols::IProtocol> protocol, std::unique_ptr<transports::ITransport> transport)
       : _pixelCount(pixelCount), _rootBuffer(allocateColorBuffer(_pixelCount)), _protocol(std::move(protocol)), _protocolBuffer(allocateByteBuffer(protocolBufferSize(_protocol))), _transport(std::move(transport)),
         _brightnessScratch(allocateColorBuffer(_pixelCount)), _pixels(makePixelChunk(_rootBuffer.get(), _pixelCount))
   {
@@ -56,11 +56,11 @@ public:
       return;
     }
 
-    span<const TColor> protocolInput{};
+    span<const lw::Color> protocolInput{};
 
     if (_rootBuffer && _pixelCount > 0)
     {
-      protocolInput = span<const TColor>{_rootBuffer.get(), _pixelCount};
+      protocolInput = span<const lw::Color>{_rootBuffer.get(), _pixelCount};
     }
 
     // Apply bus-level global brightness scaling before protocol encoding.
@@ -73,10 +73,10 @@ public:
         auto& dst = _brightnessScratch[i];
         for (char channel : {'R', 'G', 'B', 'W'})
         {
-          dst[channel] = static_cast<typename TColor::ComponentType>(lw::colors::applyBrightness(dst[channel], _brightness));
+          dst[channel] = static_cast<typename lw::Color::ComponentType>(lw::colors::applyBrightness(dst[channel], _brightness));
         }
       }
-      protocolInput = span<const TColor>{_brightnessScratch.get(), count};
+      protocolInput = span<const lw::Color>{_brightnessScratch.get(), count};
     }
 
     span<uint8_t> protocolBytes{};
@@ -108,23 +108,23 @@ public:
     return _transport->isReadyToUpdate();
   }
 
-  PixelView<TColor>& pixels() override
+  PixelView& pixels() override
   {
     _dirty = true;
     return _pixels;
   }
 
-  const PixelView<TColor>& pixels() const override { return _pixels; }
+  const PixelView& pixels() const override { return _pixels; }
 
   size_t pixelCount() const { return _pixelCount; }
 
-  TColor* rootBuffer() { return _rootBuffer.get(); }
+  lw::Color* rootBuffer() { return _rootBuffer.get(); }
 
-  const TColor* rootBuffer() const { return _rootBuffer.get(); }
+  const lw::Color* rootBuffer() const { return _rootBuffer.get(); }
 
-  protocols::IProtocol<TColor>* protocol() { return _protocol.get(); }
+  protocols::IProtocol* protocol() { return _protocol.get(); }
 
-  const protocols::IProtocol<TColor>* protocol() const { return _protocol.get(); }
+  const protocols::IProtocol* protocol() const { return _protocol.get(); }
 
   transports::ITransport* transport() { return _transport.get(); }
 
@@ -134,14 +134,14 @@ public:
   BrightnessType brightness() const override { return _brightness; }
 
 private:
-  static std::unique_ptr<TColor[]> allocateColorBuffer(size_t count)
+  static std::unique_ptr<lw::Color[]> allocateColorBuffer(size_t count)
   {
     if (count == 0)
     {
       return nullptr;
     }
 
-    return std::make_unique<TColor[]>(count);
+    return std::make_unique<lw::Color[]>(count);
   }
 
   static std::unique_ptr<uint8_t[]> allocateByteBuffer(size_t size)
@@ -154,7 +154,7 @@ private:
     return std::make_unique<uint8_t[]>(size);
   }
 
-  static size_t protocolBufferSize(const std::unique_ptr<protocols::IProtocol<TColor>>& protocol)
+  static size_t protocolBufferSize(const std::unique_ptr<protocols::IProtocol>& protocol)
   {
     if (!protocol)
     {
@@ -164,23 +164,23 @@ private:
     return protocol->requiredBufferSizeBytes();
   }
 
-  static span<TColor> makePixelChunk(TColor* buffer, size_t count)
+  static span<lw::Color> makePixelChunk(lw::Color* buffer, size_t count)
   {
     if (buffer == nullptr || count == 0)
     {
-      return span<TColor>{};
+      return span<lw::Color>{};
     }
 
-    return span<TColor>{buffer, count};
+    return span<lw::Color>{buffer, count};
   }
 
   PixelCount _pixelCount{0};
-  std::unique_ptr<TColor[]> _rootBuffer;
-  std::unique_ptr<protocols::IProtocol<TColor>> _protocol;
+  std::unique_ptr<lw::Color[]> _rootBuffer;
+  std::unique_ptr<protocols::IProtocol> _protocol;
   std::unique_ptr<uint8_t[]> _protocolBuffer;
   std::unique_ptr<transports::ITransport> _transport;
-  std::unique_ptr<TColor[]> _brightnessScratch;
-  PixelView<TColor> _pixels;
+  std::unique_ptr<lw::Color[]> _brightnessScratch;
+  PixelView _pixels;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };

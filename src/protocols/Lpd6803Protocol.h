@@ -30,25 +30,24 @@ struct Lpd6803ProtocolSettings : public ProtocolSettings
 //   Pixel data: 2 bytes per pixel
 //   End:   ceil(N / 8) bytes of 0x00  (1 bit per pixel)
 //
-template <typename TInterfaceColor = Rgbw8Color> class Lpd6803ProtocolT : public IProtocol<TInterfaceColor>
+class Lpd6803ProtocolT : public IProtocol
 {
 public:
-  using InterfaceColorType = TInterfaceColor;
-  using SettingsType = Lpd6803ProtocolSettings;
+    using SettingsType = Lpd6803ProtocolSettings;
 
-  static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
                 "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + ((static_cast<size_t>(pixelCount) + 7u) / 8u); }
 
   Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
+      : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
   {
   }
 
   void begin() override {}
 
-  void update(span<const InterfaceColorType> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -88,9 +87,9 @@ private:
   static constexpr size_t BytesPerPixel = 2;
   static constexpr size_t StartFrameSize = 4;
 
-  static constexpr uint8_t toWireComponent8(typename InterfaceColorType::ComponentType value)
+  static constexpr uint8_t toWireComponent8(lw::colors::ColorComponent value)
   {
-    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
+    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint8_t>)
     {
       return value;
     }

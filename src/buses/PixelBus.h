@@ -53,7 +53,7 @@ using PlatformDefaultTransportSettings = typename PlatformDefaultTransport::Tran
 
 #if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
 
-template <typename TProtocol, typename TTransport = PlatformDefaultTransport> class PixelBus : public IPixelBus<typename detail::ResolveProtocolType<TProtocol>::Type::ColorType>
+template <typename TProtocol, typename TTransport = PlatformDefaultTransport> class PixelBus : public IPixelBus
 {
 public:
   using ProtocolSpecType = TProtocol;
@@ -61,17 +61,17 @@ public:
   using ProtocolType = typename detail::ResolveProtocolType<ProtocolSpecType>::Type;
   using TransportType = TTransport;
   using ColorType = typename ProtocolType::ColorType;
-  using BrightnessType = typename ColorType::ComponentType;
+  using BrightnessType = lw::colors::ColorComponent;
   using ProtocolSettingsType = typename ProtocolType::SettingsType;
   using TransportSettingsType = typename TransportType::TransportSettingsType;
 
   static_assert(!std::is_same_v<ProtocolSettingsType, void>, "Protocol settings type must not be void.");
-  static_assert(std::is_convertible_v<ProtocolType*, protocols::IProtocol<ColorType>*>, "Protocol type must derive from IProtocol<ColorType>.");
+  static_assert(std::is_convertible_v<ProtocolType*, protocols::IProtocol*>, "Protocol type must derive from IProtocol.");
   static_assert(std::is_convertible_v<TransportType*, transports::ITransport*>, "Transport type must derive from ITransport.");
 
   PixelBus(size_t pixelCount, ProtocolSettingsType protocolSettings, TransportSettingsType transportSettings)
       : _pixelCount(normalizePixelCount(pixelCount)), _transport(normalizeTransportSettings(std::move(transportSettings), _pixelCount, protocolSettings)),
-        _protocol(makeProtocol(_pixelCount, _transport, normalizeProtocolSettings(std::move(protocolSettings)))), _rootPixels(_pixelCount), _pixels(span<ColorType>{_rootPixels.data(), _rootPixels.size()}),
+        _protocol(makeProtocol(_pixelCount, _transport, normalizeProtocolSettings(std::move(protocolSettings)))), _rootPixels(_pixelCount), _pixels(span<lw::colors::Color>{_rootPixels.data(), _rootPixels.size()}),
         _protocolBuffer(_protocol.requiredBufferSizeBytes(), static_cast<uint8_t>(0))
   {
   }
@@ -104,11 +104,11 @@ public:
       return;
     }
 
-    span<const ColorType> protocolInput{};
+    span<const lw::colors::Color> protocolInput{};
 
     if (!_rootPixels.empty())
     {
-      protocolInput = span<const ColorType>{_rootPixels.data(), _rootPixels.size()};
+      protocolInput = span<const lw::colors::Color>{_rootPixels.data(), _rootPixels.size()};
     }
 
     span<uint8_t> protocolBytes{};
@@ -123,21 +123,21 @@ public:
       const size_t count = static_cast<size_t>(protocolInput.size());
       if (_brightnessScratch.size() != count)
       {
-        _brightnessScratch.assign(count, ColorType{});
+        _brightnessScratch.assign(count, lw::colors::Color{});
       }
 
       for (size_t i = 0; i < count; ++i)
       {
-        const ColorType& src = protocolInput[i];
-        ColorType& dst = _brightnessScratch[i];
+        const lw::colors::Color& src = protocolInput[i];
+        lw::colors::Color& dst = _brightnessScratch[i];
         for (char channel : {'R', 'G', 'B', 'W'})
         {
           const auto comp = src[channel];
-          dst[channel] = static_cast<typename ColorType::ComponentType>(lw::colors::applyBrightness(comp, _brightness));
+          dst[channel] = static_cast<typename lw::colors::ColorComponent>(lw::colors::applyBrightness(comp, _brightness));
         }
       }
 
-      protocolInput = span<const ColorType>{_brightnessScratch.data(), _brightnessScratch.size()};
+      protocolInput = span<const lw::colors::Color>{_brightnessScratch.data(), _brightnessScratch.size()};
     }
 
     _protocol.update(protocolInput, protocolBytes);
@@ -154,19 +154,19 @@ public:
 
   bool isReadyToUpdate() const override { return _transport.isReadyToUpdate(); }
 
-  PixelView<ColorType>& pixels() override
+  PixelView& pixels() override
   {
     _dirty = true;
     return _pixels;
   }
 
-  const PixelView<ColorType>& pixels() const override { return _pixels; }
+  const PixelView& pixels() const override { return _pixels; }
 
   size_t pixelCount() const { return _pixelCount; }
 
-  span<ColorType> rootPixels() { return span<ColorType>{_rootPixels.data(), _rootPixels.size()}; }
+  span<lw::colors::Color> rootPixels() { return span<lw::colors::Color>{_rootPixels.data(), _rootPixels.size()}; }
 
-  span<const ColorType> rootPixels() const { return span<const ColorType>{_rootPixels.data(), _rootPixels.size()}; }
+  span<const lw::colors::Color> rootPixels() const { return span<const lw::colors::Color>{_rootPixels.data(), _rootPixels.size()}; }
 
   span<uint8_t> protocolBuffer() { return span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()}; }
 
@@ -213,7 +213,7 @@ private:
   {
   };
 
-  template <typename TSettings> struct ProtocolSettingsHasNormalizeForColor<TSettings, std::void_t<decltype(TSettings::template normalizeForColor<ColorType>(std::declval<TSettings>()))>> : std::true_type
+  template <typename TSettings> struct ProtocolSettingsHasNormalizeForColor<TSettings, std::void_t<decltype(TSettings::normalizeForColor(std::declval<TSettings>()))>> : std::true_type
   {
   };
 
@@ -270,7 +270,7 @@ private:
 
     if constexpr (ProtocolSettingsHasNormalizeForColor<ProtocolSettingsType>::value)
     {
-      return ProtocolSettingsType::template normalizeForColor<ColorType>(std::move(settings));
+      return ProtocolSettingsType::normalizeForColor(std::move(settings));
     }
 
     return settings;
@@ -345,11 +345,11 @@ private:
   size_t _pixelCount{0};
   TransportType _transport;
   ProtocolType _protocol;
-  std::vector<ColorType> _rootPixels;
-  PixelView<ColorType> _pixels;
+  std::vector<lw::colors::Color> _rootPixels;
+  PixelView _pixels;
   std::vector<uint8_t> _protocolBuffer;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
-  std::vector<ColorType> _brightnessScratch;
+  std::vector<lw::colors::Color> _brightnessScratch;
   bool _dirty{true};
 };
 

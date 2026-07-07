@@ -11,13 +11,13 @@
 namespace lw::busses
 {
 
-template <typename TColor> class ReferenceLightBus : public IPixelBus<TColor>
+ class ReferenceLightBus : public IPixelBus
 {
 public:
-  using BrightnessType = typename IPixelBus<TColor>::BrightnessType;
+  using BrightnessType = typename IPixelBus::BrightnessType;
 
-  ReferenceLightBus(std::unique_ptr<transports::ILightDriver<TColor>> driver)
-      : _rootBuffer(std::make_unique<TColor>()), _driver(std::move(driver)), _pixels(makePixelChunk(_rootBuffer.get()))
+  ReferenceLightBus(std::unique_ptr<transports::ILightDriver> driver)
+      : _rootBuffer(std::make_unique<lw::Color>()), _driver(std::move(driver)), _pixels(makePixelChunk(_rootBuffer.get()))
   {
   }
 
@@ -60,39 +60,39 @@ public:
     return _driver->isReadyToUpdate();
   }
 
-  PixelView<TColor>& pixels() override
+  PixelView& pixels() override
   {
     _dirty = true;
     return _pixels;
   }
 
-  const PixelView<TColor>& pixels() const override { return _pixels; }
+  const PixelView& pixels() const override { return _pixels; }
 
-  TColor* rootBuffer() { return _rootBuffer.get(); }
+  lw::Color* rootBuffer() { return _rootBuffer.get(); }
 
-  const TColor* rootBuffer() const { return _rootBuffer.get(); }
+  const lw::Color* rootBuffer() const { return _rootBuffer.get(); }
 
-  transports::ILightDriver<TColor>* driver() { return _driver.get(); }
+  transports::ILightDriver* driver() { return _driver.get(); }
 
-  const transports::ILightDriver<TColor>* driver() const { return _driver.get(); }
+  const transports::ILightDriver* driver() const { return _driver.get(); }
 
   void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
   BrightnessType brightness() const override { return _brightness; }
 
 private:
-  static span<TColor> makePixelChunk(TColor* buffer)
+  static span<lw::Color> makePixelChunk(lw::Color* buffer)
   {
     if (buffer == nullptr)
     {
-      return span<TColor>{};
+      return span<lw::Color>{};
     }
 
-    return span<TColor>{buffer, 1u};
+    return span<lw::Color>{buffer, 1u};
   }
 
-  std::unique_ptr<TColor> _rootBuffer;
-  std::unique_ptr<transports::ILightDriver<TColor>> _driver;
-  PixelView<TColor> _pixels;
+  std::unique_ptr<lw::Color> _rootBuffer;
+  std::unique_ptr<transports::ILightDriver> _driver;
+  PixelView _pixels;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };
