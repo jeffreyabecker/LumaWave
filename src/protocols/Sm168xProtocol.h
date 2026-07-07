@@ -16,7 +16,7 @@ struct Sm168xProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-template <typename TInterfaceColor = Rgbw8Color, size_t NStripChannels = 3> class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color> class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using InterfaceColorType = TInterfaceColor;
@@ -25,9 +25,13 @@ public:
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Sm168xProtocol requires uint8_t or uint16_t interface components.");
 
-  static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (static_cast<size_t>(pixelCount) * StripChannelCount) + SettingsSize; }
+  static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings) { return (static_cast<size_t>(pixelCount) * resolveChannelCount(settings.channelOrder)) + SettingsSize; }
 
-  Sm168xProtocol(PixelCount pixelCount, SettingsType settings) : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
+  Sm168xProtocol(PixelCount pixelCount, SettingsType settings)
+      : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _channelCount{resolveChannelCount(_settings.channelOrder)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
+  {
+    _gainValue = 0xff;
+  }
 
   void begin() override {}
 
@@ -51,14 +55,17 @@ public:
   size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
-  static constexpr size_t resolveSettingsSize(size_t channelCount)
-  {
-    (void)channelCount;
-    return 2;
-  }
+  static constexpr size_t SettingsSize = 2;
 
-  static constexpr size_t StripChannelCount = NStripChannels;
-  static constexpr size_t SettingsSize = resolveSettingsSize(StripChannelCount);
+  static constexpr size_t resolveChannelCount(const char* channelOrder)
+  {
+    if (channelOrder == nullptr || channelOrder[0] == '\0')
+    {
+      return ChannelOrder::RGB::length;
+    }
+
+    return std::min(std::char_traits<char>::length(channelOrder), InterfaceColorType::ChannelCount);
+  }
 
   static constexpr uint8_t maxGain() { return 0x0f; }
 
@@ -103,12 +110,12 @@ private:
     const size_t payloadSize = _frameBuffer.size() - SettingsSize;
     std::fill(_frameBuffer.begin(), _frameBuffer.begin() + payloadSize, 0);
 
-    const size_t maxPixels = (StripChannelCount == 0) ? 0 : (payloadSize / StripChannelCount);
+    const size_t maxPixels = (_channelCount == 0) ? 0 : (payloadSize / _channelCount);
     const size_t pixelLimit = std::min(std::min(colors.size(), maxPixels), static_cast<size_t>(this->pixelCount()));
     for (size_t index = 0; index < pixelLimit; ++index)
     {
       const auto& color = colors[index];
-      for (size_t channel = 0; channel < StripChannelCount; ++channel)
+      for (size_t channel = 0; channel < _channelCount; ++channel)
       {
         _frameBuffer[offset++] = toWireComponent8(color[_settings.channelOrder[channel]]);
       }
@@ -119,32 +126,29 @@ private:
   {
     uint8_t ic[5] = {0, 0, 0, 0, 0};
     const uint8_t gain = maskedGain();
-    for (size_t channel = 0; channel < StripChannelCount; ++channel)
+    for (size_t channel = 0; channel < _channelCount; ++channel)
     {
       ic[channel] = gain;
     }
 
     uint8_t* encoded = _frameBuffer.data() + (_frameBuffer.size() - SettingsSize);
 
-    if constexpr (StripChannelCount == 3)
+    if (_channelCount == 3)
     {
       encoded[0] = ic[0];
       encoded[1] = static_cast<uint8_t>((ic[1] << 4) | ic[2]);
     }
-    else if constexpr (StripChannelCount == 4)
+    else
     {
       encoded[0] = static_cast<uint8_t>((ic[0] << 4) | ic[1]);
       encoded[1] = static_cast<uint8_t>((ic[2] << 4) | ic[3]);
-    }
-    else
-    {
-      // 5-channel encoding removed
     }
   }
 
   uint8_t maskedGain() const { return normalizeGainValue(_gainValue, maxGain()); }
 
   SettingsType _settings;
+  size_t _channelCount{0};
   size_t _requiredBufferSize{0};
   span<uint8_t> _frameBuffer{};
 };

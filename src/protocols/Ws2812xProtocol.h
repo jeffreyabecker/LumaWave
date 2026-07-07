@@ -49,19 +49,17 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
   }
 };
 
-template <typename TInterfaceColor, size_t NStripChannels = 3> class Ws2812xProtocol : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor> class Ws2812xProtocol : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
   using SettingsType = Ws2812xProtocolSettings;
 
-  static constexpr size_t StripChannelCount = NStripChannels;
-
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings)
   {
     const char* channelOrder = resolveChannelOrder(settings.channelOrder);
     const size_t channelCount = resolveChannelCount(channelOrder);
-    const size_t rawBytes = bytesNeeded(pixelCount, channelCount);
+    const size_t rawBytes = pixelCount * channelCount;
     const size_t payloadBytes = transports::OneWireEncoding::expandedPayloadSizeBytes(rawBytes, settings.timing.bitPattern());
     const size_t prefixResetBytes = transports::OneWireEncoding::computeResetBytes(settings.timing, 0, settings.prefixResetMultiplier);
     const size_t suffixResetBytes = transports::OneWireEncoding::computeResetBytes(settings.timing, 0, settings.suffixResetMultiplier);
@@ -75,11 +73,10 @@ public:
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
-  static_assert(StripChannelCount >= 3 && StripChannelCount <= 4, "Ws2812xProtocol strip expects 3 or 4 channels.");
 
   Ws2812xProtocol(PixelCount pixelCount, SettingsType settings)
       : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)},
-        _rawSizeData{bytesNeeded(pixelCount, _channelCount)}, _sizeData{requiredBufferSize(pixelCount, _settings)}
+        _rawSizeData{pixelCount * _channelCount}, _sizeData{requiredBufferSize(pixelCount, _settings)}
   {
   }
 
@@ -169,10 +166,8 @@ private:
       return ChannelOrder::GRB::length;
     }
 
-    return std::min(requestedCount, std::min(InterfaceColorType::ChannelCount, StripChannelCount));
+    return std::min(requestedCount, InterfaceColorType::ChannelCount);
   }
-
-  static constexpr size_t bytesNeeded(size_t pixelCount, size_t channelCount) { return pixelCount * channelCount; }
 
   static constexpr void appendWireComponent(span<uint8_t> pixels, size_t& offset, typename InterfaceColorType::ComponentType value)
   {

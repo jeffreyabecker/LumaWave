@@ -152,14 +152,13 @@ template <typename TInterfaceColor = lw::Rgbw8Color> struct Tm1914
   static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::template normalizeForColor<ColorType>(std::move(settings), lw::ChannelOrder::GRB::value); }
 };
 
-template <typename TInterfaceColor = lw::Color, typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transports::OneWireTiming* TDefaultTiming = &lw::transports::timing::Generic800,
-          size_t NStripChannels = 3, bool TIdleHigh = false>
+template <typename TInterfaceColor = lw::Color, typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transports::OneWireTiming* TDefaultTiming = &lw::transports::timing::Generic800, bool TIdleHigh = false>
 struct Ws2812x
 {
   using InterfaceColorType = TInterfaceColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using ProtocolType = lw::protocols::Ws2812xProtocol<InterfaceColorType, NStripChannels>;
+  using ProtocolType = lw::protocols::Ws2812xProtocol<InterfaceColorType>;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
