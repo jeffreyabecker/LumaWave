@@ -10,68 +10,24 @@
 
 #include "core/Compat.h"
 #include "colors/ChannelOrder.h"
-#include "colors/ColorChannelIndexIterator.h"
 
 namespace lw::colors
 {
-static constexpr size_t ColorMinimumComponentCount = static_cast<size_t>(LW_COLOR_MINIMUM_COMPONENT_COUNT);
 static constexpr size_t ColorMinimumComponentSizeBits = static_cast<size_t>(LW_COLOR_MINIMUM_COMPONENT_SIZE);
 
-static_assert(ColorMinimumComponentCount >= 3 && ColorMinimumComponentCount <= 5, "LW_COLOR_MINIMUM_COMPONENT_COUNT must be in the range [3, 5].");
 static_assert(ColorMinimumComponentSizeBits == 8 || ColorMinimumComponentSizeBits == 16, "LW_COLOR_MINIMUM_COMPONENT_SIZE must be 8 or 16.");
 
-template <size_t ChannelCount> static constexpr size_t InternalChannelCount = (ChannelCount < ColorMinimumComponentCount) ? ColorMinimumComponentCount : ChannelCount;
-
-template <typename TComponent> struct InternalStorageComponent
-{
-  using type = std::conditional_t<(ColorMinimumComponentSizeBits > (sizeof(TComponent) * 8)), uint16_t, TComponent>;
-};
-
-template <size_t ChannelCount, typename TComponent> static constexpr size_t DefaultInternalSize = InternalChannelCount<ChannelCount> * sizeof(typename InternalStorageComponent<TComponent>::type);
-
-template <size_t ChannelCount, typename TComponent> static constexpr size_t AliasInternalSize = DefaultInternalSize<ChannelCount, TComponent>;
-
-template <size_t NChannels, typename TComponent = uint8_t, size_t InternalSize = NChannels * sizeof(typename InternalStorageComponent<TComponent>::type)> class RgbBasedColor
+template <typename TComponent = uint8_t> class RgbwColor
 {
 public:
   using ComponentType = TComponent;
-  using InternalComponentType = typename InternalStorageComponent<TComponent>::type;
 
-  class ComponentReference
-  {
-  public:
-    explicit constexpr ComponentReference(InternalComponentType& value) : _value(value) {}
-
-    constexpr ComponentReference& operator=(TComponent value)
-    {
-      _value = static_cast<InternalComponentType>(value);
-      return *this;
-    }
-
-    constexpr ComponentReference& operator=(const ComponentReference& other)
-    {
-      _value = other._value;
-      return *this;
-    }
-
-    constexpr operator TComponent() const { return static_cast<TComponent>(_value); }
-
-  private:
-    InternalComponentType& _value;
-  };
-
-  static_assert((InternalSize % sizeof(InternalComponentType)) == 0, "RgbBasedColor InternalSize must be a multiple of component size.");
-  static_assert(InternalSize >= (NChannels * sizeof(InternalComponentType)), "RgbBasedColor InternalSize must be >= channel storage size.");
-
-  static constexpr size_t ChannelCount = NChannels;
+  static constexpr size_t ChannelCount = 4;
   static constexpr TComponent MaxComponent = std::numeric_limits<TComponent>::max();
 
-  using ChannelIndexIterator = ColorChannelIndexIterator<NChannels>;
-  using ChannelIndexRange = ColorChannelIndexRange<NChannels>;
+  constexpr RgbwColor() = default;
 
-  constexpr RgbBasedColor() = default;
-
-  template <typename... Args, typename = std::enable_if_t<(sizeof...(Args) <= NChannels) && (std::is_convertible_v<Args, TComponent> && ...)>> constexpr RgbBasedColor(Args... args) : Channels{}
+  template <typename... Args, typename = std::enable_if_t<(sizeof...(Args) <= 4) && (std::is_convertible_v<Args, TComponent> && ...)>> constexpr RgbwColor(Args... args) : Channels{}
   {
     constexpr size_t ArgCount = sizeof...(Args);
     const std::array<TComponent, ArgCount> values{static_cast<TComponent>(args)...};
@@ -82,103 +38,73 @@ public:
     }
   }
 
-  constexpr TComponent operator[](char channel) const { return static_cast<TComponent>(Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]); }
+  constexpr TComponent operator[](char channel) const { return Channels[channelIndex(channel)]; }
 
-  template <typename T = InternalComponentType> std::enable_if_t<std::is_same_v<T, TComponent>, TComponent&> operator[](char channel) { return Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]; }
+  TComponent& operator[](char channel) { return Channels[channelIndex(channel)]; }
 
-  template <typename T = InternalComponentType> std::enable_if_t<!std::is_same_v<T, TComponent>, ComponentReference> operator[](char channel)
-  {
-    return ComponentReference(Channels[ColorChannelIndexRange<NChannels>::indexFromChannel(channel)]);
-  }
+  constexpr TComponent channelAtIndex(size_t index) const { return Channels[index]; }
 
-  static constexpr ChannelIndexRange channelIndexes() { return makeColorChannelIndexRange<NChannels>(); }
+  TComponent& channelAtIndex(size_t index) { return Channels[index]; }
 
-  static constexpr size_t channelIndexFromTag(char channel) { return ColorChannelIndexRange<NChannels>::indexFromChannel(channel); }
+  constexpr bool operator==(const RgbwColor& other) const { return Channels == other.Channels; }
 
-  constexpr TComponent channelAtIndex(size_t index) const { return static_cast<TComponent>(Channels[index]); }
+  constexpr bool operator!=(const RgbwColor& other) const { return !(*this == other); }
 
-  template <typename T = InternalComponentType> std::enable_if_t<std::is_same_v<T, TComponent>, TComponent&> channelAtIndex(size_t index) { return Channels[index]; }
+  constexpr bool operator<(const RgbwColor& other) const { return compareCanonical(other) < 0; }
 
-  template <typename T = InternalComponentType> std::enable_if_t<!std::is_same_v<T, TComponent>, ComponentReference> channelAtIndex(size_t index) { return ComponentReference(Channels[index]); }
+  constexpr bool operator<=(const RgbwColor& other) const { return compareCanonical(other) <= 0; }
 
-  constexpr bool operator==(const RgbBasedColor& other) const { return Channels == other.Channels; }
+  constexpr bool operator>(const RgbwColor& other) const { return compareCanonical(other) > 0; }
 
-  constexpr bool operator!=(const RgbBasedColor& other) const { return !(*this == other); }
+  constexpr bool operator>=(const RgbwColor& other) const { return compareCanonical(other) >= 0; }
 
-  constexpr bool operator<(const RgbBasedColor& other) const { return compareCanonical(other) < 0; }
-
-  constexpr bool operator<=(const RgbBasedColor& other) const { return compareCanonical(other) <= 0; }
-
-  constexpr bool operator>(const RgbBasedColor& other) const { return compareCanonical(other) > 0; }
-
-  constexpr bool operator>=(const RgbBasedColor& other) const { return compareCanonical(other) >= 0; }
-
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint8_t>>> constexpr RgbBasedColor& operator=(uint32_t packed)
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint8_t>>> constexpr RgbwColor& operator=(uint32_t packed)
   {
     (*this)['R'] = static_cast<TComponent>((packed >> (2u * 8u)) & 0xFFu);
     (*this)['G'] = static_cast<TComponent>((packed >> (1u * 8u)) & 0xFFu);
     (*this)['B'] = static_cast<TComponent>((packed >> (0u * 8u)) & 0xFFu);
-
-    if constexpr (NChannels >= 4)
-    {
-      (*this)['W'] = static_cast<TComponent>((packed >> (3u * 8u)) & 0xFFu);
-    }
-
+    (*this)['W'] = static_cast<TComponent>((packed >> (3u * 8u)) & 0xFFu);
     return *this;
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr RgbBasedColor& operator=(uint64_t packed)
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint16_t>>> constexpr RgbwColor& operator=(uint64_t packed)
   {
     (*this)['R'] = static_cast<TComponent>((packed >> (2u * 16u)) & 0xFFFFull);
     (*this)['G'] = static_cast<TComponent>((packed >> (1u * 16u)) & 0xFFFFull);
     (*this)['B'] = static_cast<TComponent>((packed >> (0u * 16u)) & 0xFFFFull);
-
-    if constexpr (NChannels >= 4)
-    {
-      (*this)['W'] = static_cast<TComponent>((packed >> (3u * 16u)) & 0xFFFFull);
-    }
-
+    (*this)['W'] = static_cast<TComponent>((packed >> (3u * 16u)) & 0xFFFFull);
     return *this;
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr RgbBasedColor& operator=(int64_t packed)
-  {
-    return operator=(static_cast<uint64_t>(packed));
-  }
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint16_t>>> constexpr RgbwColor& operator=(int64_t packed) { return operator=(static_cast<uint64_t>(packed)); }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint8_t>>> constexpr operator uint32_t() const
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint8_t>>> constexpr operator uint32_t() const
   {
     const uint32_t r = static_cast<uint32_t>((*this)['R']);
     const uint32_t g = static_cast<uint32_t>((*this)['G']);
     const uint32_t b = static_cast<uint32_t>((*this)['B']);
-    const uint32_t w = (NChannels >= 4) ? static_cast<uint32_t>((*this)['W']) : 0u;
+    const uint32_t w = static_cast<uint32_t>((*this)['W']);
 
     return (w << (3u * 8u)) | (r << (2u * 8u)) | (g << (1u * 8u)) | (b << (0u * 8u));
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint8_t>>> constexpr operator int32_t() const
-  {
-    return static_cast<int32_t>(static_cast<uint32_t>(*this));
-  }
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint8_t>>> constexpr operator int32_t() const { return static_cast<int32_t>(static_cast<uint32_t>(*this)); }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr operator uint64_t() const
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint16_t>>> constexpr operator uint64_t() const
   {
     const uint64_t r = static_cast<uint64_t>((*this)['R']);
     const uint64_t g = static_cast<uint64_t>((*this)['G']);
     const uint64_t b = static_cast<uint64_t>((*this)['B']);
-    const uint64_t w = (NChannels >= 4) ? static_cast<uint64_t>((*this)['W']) : 0ull;
+    const uint64_t w = static_cast<uint64_t>((*this)['W']);
 
     return (w << (3u * 16u)) | (r << (2u * 16u)) | (g << (1u * 16u)) | (b << (0u * 16u));
   }
 
-  template <typename T = TComponent, typename = std::enable_if_t<(NChannels >= 3 && NChannels <= 4) && std::is_same_v<T, uint16_t>>> constexpr operator int64_t() const
-  {
-    return static_cast<int64_t>(static_cast<uint64_t>(*this));
-  }
+  template <typename T = TComponent, typename = std::enable_if_t<std::is_same_v<T, uint16_t>>> constexpr operator int64_t() const { return static_cast<int64_t>(static_cast<uint64_t>(*this)); }
 
-  static RgbBasedColor parse(span<const char> text)
+  static RgbwColor parse(span<const char> text)
   {
-    RgbBasedColor color{};
+    RgbwColor color{};
     if (!tryParse(text, color))
     {
       return {};
@@ -187,9 +113,9 @@ public:
     return color;
   }
 
-  static RgbBasedColor parse(const char* text) { return parse(cStringSpan(text)); }
+  static RgbwColor parse(const char* text) { return parse(cStringSpan(text)); }
 
-  static bool tryParse(span<const char> text, RgbBasedColor& color)
+  static bool tryParse(span<const char> text, RgbwColor& color)
   {
     const span<const char> trimmed = trimWhitespace(text);
     if (trimmed.empty())
@@ -197,7 +123,7 @@ public:
       return false;
     }
 
-    RgbBasedColor parsed{};
+    RgbwColor parsed{};
     size_t consumed = 0;
     if (!tryParseToken(trimmed, consumed, parsed))
     {
@@ -213,9 +139,9 @@ public:
     return true;
   }
 
-  static bool tryParse(const char* text, RgbBasedColor& color) { return tryParse(cStringSpan(text), color); }
+  static bool tryParse(const char* text, RgbwColor& color) { return tryParse(cStringSpan(text), color); }
 
-  static constexpr size_t serializedLength() { return static_cast<size_t>(ChannelCount) * sizeof(TComponent) * 2u; }
+  static constexpr size_t serializedLength() { return 4 * sizeof(TComponent) * 2u; }
 
   bool serialize(span<char> sink) const
   {
@@ -232,13 +158,13 @@ public:
       return false;
     }
 
-    const char* effectiveChannelOrder = defaultSerializeChannelOrder();
+    constexpr const char* channelOrder = ChannelOrder::RGBW::value;
 
     size_t outputIndex = 0;
 
-    for (size_t channelIndex = 0; channelIndex < static_cast<size_t>(ChannelCount); ++channelIndex)
+    for (size_t channelIndex = 0; channelIndex < 4; ++channelIndex)
     {
-      const TComponent component = (*this)[effectiveChannelOrder[channelIndex]];
+      const TComponent component = (*this)[channelOrder[channelIndex]];
       for (size_t nibble = 0; nibble < (sizeof(TComponent) * 2u); ++nibble)
       {
         const size_t shift = ((sizeof(TComponent) * 2u) - nibble - 1u) * 4u;
@@ -254,22 +180,32 @@ public:
   bool serialize(char* sink, size_t length) const { return serialize(span<char>(sink, length)); }
 
 private:
-  static constexpr const char* defaultSerializeChannelOrder()
+  static constexpr size_t channelIndex(char channel)
   {
-    if constexpr (ChannelCount <= 3)
+    switch (channel)
     {
-      return ChannelOrder::RGB::value;
-    }
+      case 'R':
+      case 'r':
+        return 0;
 
-    if constexpr (ChannelCount == 4)
-    {
-      return ChannelOrder::RGBW::value;
-    }
+      case 'G':
+      case 'g':
+        return 1;
 
-    return ChannelOrder::RGBCW::value;
+      case 'B':
+      case 'b':
+        return 2;
+
+      case 'W':
+      case 'w':
+        return 3;
+
+      default:
+        return 0;
+    }
   }
 
-  static bool tryParseToken(span<const char> text, size_t& consumed, RgbBasedColor& color)
+  static bool tryParseToken(span<const char> text, size_t& consumed, RgbwColor& color)
   {
     size_t prefixLength = 0;
 
@@ -285,7 +221,7 @@ private:
     size_t scan = prefixLength;
 
     constexpr size_t DigitsPerComponent = sizeof(TComponent) * 2u;
-    constexpr size_t ExpectedDigitCount = static_cast<size_t>(ChannelCount) * DigitsPerComponent;
+    constexpr size_t ExpectedDigitCount = 4 * DigitsPerComponent;
 
     size_t digitCount = 0;
     while (scan < text.size() && hexNibble(text[scan]) >= 0)
@@ -300,23 +236,11 @@ private:
     {
       switch (digitCount)
       {
-        case 6u:
-          return tryParseAndConvertColor<RgbBasedColor<3, uint8_t, AliasInternalSize<3, uint8_t>>>(token, consumed, color);
-
         case 8u:
-          return tryParseAndConvertColor<RgbBasedColor<4, uint8_t, AliasInternalSize<4, uint8_t>>>(token, consumed, color);
-
-        case 10u:
-          return tryParseAndConvertColor<RgbBasedColor<5, uint8_t, AliasInternalSize<5, uint8_t>>>(token, consumed, color);
-
-        case 12u:
-          return tryParseAndConvertColor<RgbBasedColor<3, uint16_t, AliasInternalSize<3, uint16_t>>>(token, consumed, color);
+          return tryParseAndConvertColor<RgbwColor<uint8_t>>(token, consumed, color);
 
         case 16u:
-          return tryParseAndConvertColor<RgbBasedColor<4, uint16_t, AliasInternalSize<4, uint16_t>>>(token, consumed, color);
-
-        case 20u:
-          return tryParseAndConvertColor<RgbBasedColor<5, uint16_t, AliasInternalSize<5, uint16_t>>>(token, consumed, color);
+          return tryParseAndConvertColor<RgbwColor<uint16_t>>(token, consumed, color);
 
         default:
           return false;
@@ -350,7 +274,7 @@ private:
     }
 
     constexpr size_t ParsedDigitsPerComponent = sizeof(typename TParsedColor::ComponentType) * 2u;
-    constexpr size_t ExpectedDigitCount = static_cast<size_t>(TParsedColor::ChannelCount) * ParsedDigitsPerComponent;
+    constexpr size_t ExpectedDigitCount = 4 * ParsedDigitsPerComponent;
 
     if ((token.size() - cursor) != ExpectedDigitCount)
     {
@@ -358,13 +282,10 @@ private:
     }
 
     TParsedColor parsed{};
-    for (size_t logicalChannel = 0; logicalChannel < static_cast<size_t>(TParsedColor::ChannelCount); ++logicalChannel)
+    for (size_t logicalChannel = 0; logicalChannel < 4; ++logicalChannel)
     {
-      const char channelTag = defaultHexChannelTag<TParsedColor>(logicalChannel);
-      if (channelTag == '\0')
-      {
-        return false;
-      }
+      constexpr char ChannelTags[4] = {'R', 'G', 'B', 'W'};
+      const char channelTag = ChannelTags[logicalChannel];
 
       typename TParsedColor::ComponentType value = 0;
       for (size_t digit = 0; digit < ParsedDigitsPerComponent; ++digit)
@@ -386,7 +307,7 @@ private:
     return true;
   }
 
-  template <typename TSourceColor> static bool tryParseAndConvertColor(span<const char> token, size_t& consumed, RgbBasedColor& color)
+  template <typename TSourceColor> static bool tryParseAndConvertColor(span<const char> token, size_t& consumed, RgbwColor& color)
   {
     TSourceColor parsed{};
     if (!tryParseHexColorToken(token, parsed))
@@ -399,18 +320,16 @@ private:
     return true;
   }
 
-  template <typename TSourceColor> static RgbBasedColor convertParsedColor(const TSourceColor& source)
+  template <typename TSourceColor> static RgbwColor convertParsedColor(const TSourceColor& source)
   {
     using SourceComponent = typename TSourceColor::ComponentType;
 
-    RgbBasedColor result{};
-    for (char channel : canonicalChannelTags())
-    {
-      if (!TSourceColor::ChannelIndexRange::isSupportedChannelTag(channel) || !ChannelIndexRange::isSupportedChannelTag(channel))
-      {
-        continue;
-      }
+    RgbwColor result{};
+    constexpr char AllChannels[4] = {'R', 'G', 'B', 'W'};
 
+    for (size_t i = 0; i < 4; ++i)
+    {
+      const char channel = AllChannels[i];
       const SourceComponent value = source[channel];
 
       if constexpr (sizeof(SourceComponent) == sizeof(TComponent))
@@ -430,8 +349,6 @@ private:
 
     return result;
   }
-
-  static constexpr std::array<char, 5> canonicalChannelTags() { return {'R', 'G', 'B', 'W', 'C'}; }
 
   static span<const char> trimWhitespace(span<const char> text)
   {
@@ -482,56 +399,12 @@ private:
     return -1;
   }
 
-  template <typename TParsedColor> static constexpr char defaultHexChannelTag(size_t logicalChannel)
+  constexpr int compareCanonical(const RgbwColor& other) const
   {
-    switch (logicalChannel)
-    {
-      case 0u:
-        return 'R';
-
-      case 1u:
-        return 'G';
-
-      case 2u:
-        return 'B';
-
-      case 3u:
-        if constexpr (TParsedColor::ChannelCount >= 5)
-        {
-          return 'C';
-        }
-
-        if constexpr (TParsedColor::ChannelCount >= 4)
-        {
-          return 'W';
-        }
-
-        return '\0';
-
-      case 4u:
-        if constexpr (TParsedColor::ChannelCount >= 5)
-        {
-          return 'W';
-        }
-
-        return '\0';
-
-      default:
-        return '\0';
-    }
-  }
-
-  constexpr int compareCanonical(const RgbBasedColor& other) const
-  {
-    constexpr std::array<char, 5> CanonicalChannels = {'R', 'G', 'B', 'C', 'W'};
+    constexpr char CanonicalChannels[4] = {'R', 'G', 'B', 'W'};
 
     for (char channel : CanonicalChannels)
     {
-      if (!ColorChannelIndexRange<NChannels>::isSupportedChannelTag(channel))
-      {
-        continue;
-      }
-
       const auto left = (*this)[channel];
       const auto right = other[channel];
       if (left < right)
@@ -548,138 +421,43 @@ private:
     return 0;
   }
 
-  std::array<InternalComponentType, InternalSize / sizeof(InternalComponentType)> Channels; // no {} here so we're trivially constructable
+  std::array<TComponent, 4> Channels{}; // zero-initialized
 };
 
-using Rgb8Color = RgbBasedColor<3, uint8_t, AliasInternalSize<3, uint8_t>>;
-using Rgbw8Color = RgbBasedColor<4, uint8_t, AliasInternalSize<4, uint8_t>>;
-using Rgbcw8Color = RgbBasedColor<5, uint8_t, AliasInternalSize<5, uint8_t>>;
+using Rgbw8Color = RgbwColor<uint8_t>;
+using Rgbw16Color = RgbwColor<uint16_t>;
 
-using Rgb16Color = RgbBasedColor<3, uint16_t, AliasInternalSize<3, uint16_t>>;
-using Rgbw16Color = RgbBasedColor<4, uint16_t, AliasInternalSize<4, uint16_t>>;
-using Rgbcw16Color = RgbBasedColor<5, uint16_t, AliasInternalSize<5, uint16_t>>;
-
-using DefaultColorType =
-    std::conditional_t<(ColorMinimumComponentSizeBits == 16), std::conditional_t<(ColorMinimumComponentCount >= 5), Rgbcw16Color, std::conditional_t<(ColorMinimumComponentCount >= 4), Rgbw16Color, Rgb16Color>>,
-                       std::conditional_t<(ColorMinimumComponentCount >= 5), Rgbcw8Color, std::conditional_t<(ColorMinimumComponentCount >= 4), Rgbw8Color, Rgb8Color>>>;
+using DefaultColorType = std::conditional_t<(ColorMinimumComponentSizeBits == 16), Rgbw16Color, Rgbw8Color>;
 
 using Color = DefaultColorType;
+
 template <typename TColor, typename = void> struct ColorTypeImpl : std::false_type
 {
 };
 
-template <typename TColor>
-struct ColorTypeImpl<TColor, std::void_t<typename TColor::ComponentType, decltype(TColor::ChannelCount)>> : std::integral_constant<bool, std::is_convertible_v<decltype(TColor::ChannelCount), size_t>>
+template <typename TColor> struct ColorTypeImpl<TColor, std::void_t<typename TColor::ComponentType>> : std::true_type
 {
 };
 
 template <typename TColor> static constexpr bool ColorType = ColorTypeImpl<TColor>::value;
 
-template <typename TColor, size_t NChannels> static constexpr bool ColorChannelsExactly = ColorType<TColor> && (TColor::ChannelCount == NChannels);
-
-template <typename TColor, size_t MinChannels> static constexpr bool ColorChannelsAtLeast = ColorType<TColor> && (TColor::ChannelCount >= MinChannels);
-
-template <typename TColor, size_t MaxChannels> static constexpr bool ColorChannelsAtMost = ColorType<TColor> && (TColor::ChannelCount <= MaxChannels);
-
-template <typename TColor, size_t MinChannels, size_t MaxChannels> static constexpr bool ColorChannelsInRange = ColorType<TColor> && (TColor::ChannelCount >= MinChannels) && (TColor::ChannelCount <= MaxChannels);
-
 template <typename TColor, typename TComponent> static constexpr bool ColorComponentTypeIs = ColorType<TColor> && std::is_same_v<typename TColor::ComponentType, TComponent>;
 
 template <typename TColor, size_t BitDepth> static constexpr bool ColorComponentBitDepth = ColorType<TColor> && ((sizeof(typename TColor::ComponentType) * 8) == BitDepth);
 
-template <typename TColor, size_t NChannels> using RequireColorChannelsExactly = std::enable_if_t<ColorChannelsExactly<TColor, NChannels>, int>;
-
-template <typename TColor, size_t MinChannels, size_t MaxChannels> using RequireColorChannelsInRange = std::enable_if_t<ColorChannelsInRange<TColor, MinChannels, MaxChannels>, int>;
-
 template <typename TColor, size_t BitDepth> using RequireColorComponentBitDepth = std::enable_if_t<ColorComponentBitDepth<TColor, BitDepth>, int>;
-
-template <typename TLeftColor, typename TRightColor>
-static constexpr bool ColorComponentAtLeastAsLarge = ColorType<TLeftColor> && ColorType<TRightColor> && (sizeof(typename TLeftColor::ComponentType) >= sizeof(typename TRightColor::ComponentType));
-
-template <typename TLeftColor, typename TRightColor> static constexpr bool ColorChannelAtLeastAsLarge = ColorType<TLeftColor> && ColorType<TRightColor> && (TLeftColor::ChannelCount >= TRightColor::ChannelCount);
-
-template <typename TLeftColor, typename TRightColor>
-static constexpr bool ColorAtLeastAsLarge = ColorType<TLeftColor> && ColorType<TRightColor> &&
-                                            ((sizeof(typename TLeftColor::ComponentType) > sizeof(typename TRightColor::ComponentType)) ||
-                                             ((sizeof(typename TLeftColor::ComponentType) == sizeof(typename TRightColor::ComponentType)) && (TLeftColor::ChannelCount >= TRightColor::ChannelCount)));
-
-template <typename TLeftColor, typename TRightColor, typename = void> struct LargerColorType
-{
-};
-
-template <typename TLeftColor, typename TRightColor> struct LargerColorType<TLeftColor, TRightColor, std::enable_if_t<ColorType<TLeftColor> && ColorType<TRightColor>>>
-{
-  using type = std::conditional_t<ColorAtLeastAsLarge<TLeftColor, TRightColor>, TLeftColor, TRightColor>;
-};
-
-template <typename TLeftColor, typename TRightColor> using LargerColorTypeT = typename LargerColorType<TLeftColor, TRightColor>::type;
-
-template <size_t N, size_t InternalSize> constexpr RgbBasedColor<N, uint16_t> widen(const RgbBasedColor<N, uint8_t, InternalSize>& src)
-{
-  RgbBasedColor<N, uint16_t> result;
-  for (auto channel : RgbBasedColor<N, uint8_t, InternalSize>::channelIndexes())
-  {
-    const uint8_t value = src[channel];
-    result[channel] = static_cast<uint16_t>((static_cast<uint16_t>(value) << 8) | value);
-  }
-  return result;
-}
-
-template <size_t N, size_t InternalSize> constexpr RgbBasedColor<N, uint8_t> narrow(const RgbBasedColor<N, uint16_t, InternalSize>& src)
-{
-  RgbBasedColor<N, uint8_t> result;
-  for (auto channel : RgbBasedColor<N, uint16_t, InternalSize>::channelIndexes())
-  {
-    result[channel] = static_cast<uint8_t>(src[channel] >> 8);
-  }
-  return result;
-}
-
-template <size_t N, size_t M, typename T, size_t SrcInternalSize, typename std::enable_if<(N > M), int>::type = 0> constexpr RgbBasedColor<N, T> expand(const RgbBasedColor<M, T, SrcInternalSize>& src)
-{
-  RgbBasedColor<N, T> result{};
-  for (auto channel : RgbBasedColor<M, T, SrcInternalSize>::channelIndexes())
-  {
-    result[channel] = src[channel];
-  }
-  return result;
-}
-
-template <size_t N, size_t M, typename T, size_t SrcInternalSize, typename std::enable_if<(N < M), int>::type = 0> constexpr RgbBasedColor<N, T> compress(const RgbBasedColor<M, T, SrcInternalSize>& src)
-{
-  RgbBasedColor<N, T> result;
-  for (auto channel : RgbBasedColor<N, T>::channelIndexes())
-  {
-    result[channel] = src[channel];
-  }
-  return result;
-}
 
 } // namespace lw::colors
 
 namespace lw
 {
 
-inline constexpr size_t ColorMinimumComponentCount = colors::ColorMinimumComponentCount;
 inline constexpr size_t ColorMinimumComponentSizeBits = colors::ColorMinimumComponentSizeBits;
 
-template <size_t ChannelCount> inline constexpr size_t InternalChannelCount = colors::InternalChannelCount<ChannelCount>;
+template <typename TComponent = uint8_t> using RgbwColor = colors::RgbwColor<TComponent>;
 
-template <typename TComponent> using InternalStorageComponent = colors::InternalStorageComponent<TComponent>;
-
-template <size_t ChannelCount, typename TComponent> inline constexpr size_t DefaultInternalSize = colors::DefaultInternalSize<ChannelCount, TComponent>;
-
-template <size_t ChannelCount, typename TComponent> inline constexpr size_t AliasInternalSize = colors::AliasInternalSize<ChannelCount, TComponent>;
-
-template <size_t NChannels, typename TComponent = uint8_t, size_t InternalSize = NChannels * sizeof(typename InternalStorageComponent<TComponent>::type)>
-using RgbBasedColor = colors::RgbBasedColor<NChannels, TComponent, InternalSize>;
-
-using Rgb8Color = colors::Rgb8Color;
 using Rgbw8Color = colors::Rgbw8Color;
-using Rgbcw8Color = colors::Rgbcw8Color;
-using Rgb16Color = colors::Rgb16Color;
 using Rgbw16Color = colors::Rgbw16Color;
-using Rgbcw16Color = colors::Rgbcw16Color;
 using DefaultColorType = colors::DefaultColorType;
 using Color = colors::Color;
 
@@ -687,37 +465,10 @@ template <typename TColor, typename Enable = void> using ColorTypeImpl = colors:
 
 template <typename TColor> inline constexpr bool ColorType = colors::ColorType<TColor>;
 
-template <typename TColor, size_t NChannels> inline constexpr bool ColorChannelsExactly = colors::ColorChannelsExactly<TColor, NChannels>;
-
-template <typename TColor, size_t MinChannels> inline constexpr bool ColorChannelsAtLeast = colors::ColorChannelsAtLeast<TColor, MinChannels>;
-
-template <typename TColor, size_t MaxChannels> inline constexpr bool ColorChannelsAtMost = colors::ColorChannelsAtMost<TColor, MaxChannels>;
-
-template <typename TColor, size_t MinChannels, size_t MaxChannels> inline constexpr bool ColorChannelsInRange = colors::ColorChannelsInRange<TColor, MinChannels, MaxChannels>;
-
 template <typename TColor, typename TComponent> inline constexpr bool ColorComponentTypeIs = colors::ColorComponentTypeIs<TColor, TComponent>;
 
 template <typename TColor, size_t BitDepth> inline constexpr bool ColorComponentBitDepth = colors::ColorComponentBitDepth<TColor, BitDepth>;
 
-template <typename TColor, size_t NChannels> using RequireColorChannelsExactly = colors::RequireColorChannelsExactly<TColor, NChannels>;
-
-template <typename TColor, size_t MinChannels, size_t MaxChannels> using RequireColorChannelsInRange = colors::RequireColorChannelsInRange<TColor, MinChannels, MaxChannels>;
-
 template <typename TColor, size_t BitDepth> using RequireColorComponentBitDepth = colors::RequireColorComponentBitDepth<TColor, BitDepth>;
-
-template <typename TLeftColor, typename TRightColor> inline constexpr bool ColorComponentAtLeastAsLarge = colors::ColorComponentAtLeastAsLarge<TLeftColor, TRightColor>;
-
-template <typename TLeftColor, typename TRightColor> inline constexpr bool ColorChannelAtLeastAsLarge = colors::ColorChannelAtLeastAsLarge<TLeftColor, TRightColor>;
-
-template <typename TLeftColor, typename TRightColor> inline constexpr bool ColorAtLeastAsLarge = colors::ColorAtLeastAsLarge<TLeftColor, TRightColor>;
-
-template <typename TLeftColor, typename TRightColor, typename Enable = void> using LargerColorType = colors::LargerColorType<TLeftColor, TRightColor, Enable>;
-
-template <typename TLeftColor, typename TRightColor> using LargerColorTypeT = colors::LargerColorTypeT<TLeftColor, TRightColor>;
-
-using colors::compress;
-using colors::expand;
-using colors::narrow;
-using colors::widen;
 
 } // namespace lw
