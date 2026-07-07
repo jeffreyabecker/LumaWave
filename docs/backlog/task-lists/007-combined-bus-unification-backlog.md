@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-3 complete.** All old bus types, PixelView, and TransportBrightness deleted. `IOutputPipeline` seam created. `IPixelBus::pixels()` now returns `span<Color>&`. Phases 4+ pending.
+**Phases 1-3 complete.** All old bus types, PixelView, and TransportBrightness deleted. `IOutputPipeline` seam created in `src/core/`. `IPixelBus::pixels()` now returns `span<Color>&`. Design decision: `ILightDriver` eliminated — concrete light drivers will implement `IOutputPipeline` directly (no `LightOutputPipeline` wrapper). Phases 4+ pending.
 
 ## Motivation
 
@@ -53,8 +53,10 @@ IPixelBus
     │
     ├── Bus  (NEW — single non-templated class, ~50 lines)
     │       │
-    │       └── std::unique_ptr<IOutputPipeline>  (NEW seam)
-    │               ├── LightOutputPipeline        (wraps ILightDriver)
+    │       └── std::unique_ptr<IOutputPipeline>  (NEW seam, in src/core/)
+    │               ├── RpPwmLightDriver, Esp32SigmaDeltaLightDriver, etc.
+    │               │   (concrete light drivers implement IOutputPipeline directly;
+    │               │    ignore all but colors[0])
     │               └── ProtocolTransportPipeline  (wraps IProtocol + ITransport)
     │
     └── ReferenceAggregateBus  (kept, reworked for external span<Color> buffer)
@@ -79,7 +81,7 @@ public:
 
 `pixels()` returns `span<Color>&` instead of `PixelView&`. All the chunked-mode complexity, lookup tables, and multi-mode dispatch are gone from the interface.
 
-### `IOutputPipeline` — new seam
+### `IOutputPipeline` — new seam (lives in `src/core/`)
 
 ```cpp
 class IOutputPipeline {
@@ -92,6 +94,10 @@ public:
 };
 ```
 
+Located in `src/core/` (not `src/buses/`) to avoid layering violations — transports must be able to implement it without depending on buses.
+
+Concrete light drivers (`RpPwmLightDriver`, `Esp32SigmaDeltaLightDriver`, `AnalogPwmLightDriver`, etc.) implement `IOutputPipeline` directly. They ignore all but `colors[0]`. `ILightDriver`, `LightOutputPipeline`, `LightDriverSettingsBase`, and the `LightDriverLike` traits are all eliminated — one seam instead of three.
+
 ### `Bus` — the only bus class
 
 - Non-templated. Constructor takes `span<Color> pixelStorage` + `std::unique_ptr<IOutputPipeline>`.
@@ -103,7 +109,7 @@ public:
 ### Brightness: on-the-fly during protocol transformation
 
 - `ProtocolTransportPipeline::write()` applies brightness inline during color→bytes encoding — no separate pre-pass, no full-frame scratch buffer.
-- `LightOutputPipeline::write()` delegates to `ILightDriver::write(color, brightness)`.
+- Concrete light drivers apply brightness at PWM hardware level (same as today's `driver.write(color, brightness)`, but now via `IOutputPipeline::write(colors, brightness)` using `colors[0]`).
 - `TransportBrightness` removed from `ITransport`.
 
 ### `ReferenceAggregateBus` — external buffer management
@@ -125,32 +131,34 @@ public:
 | `src/buses/CompositeBus.h` | ~130 | Replaced by `ReferenceAggregateBus` |
 | `src/buses/AggregateBus.h` (owning class) | ~80 | Deleted; only `ReferenceAggregateBus` (non-owning) survives |
 | `src/core/PixelView.h` | ~400 | Replaced by `span<Color>` throughout |
+| `src/transports/ILightDriver.h` | ~50 | Replaced by `IOutputPipeline` — drivers implement it directly |
+| `LightDriverSettingsBase` + `LightDriverLike` traits | ~40 | Obsolete — driver settings remain per-driver, no base class needed |
 | `TransportBrightness` struct | ~15 | Brightness no longer flows through transport |
 | `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` | ~5 | No combinatorial template types remain |
 
-**Total deleted: ~1,378 lines.**
+**Total deleted: ~1,468 lines.**
 
 ### What gets created
 
 | File | Purpose | ~Lines |
 |---|---|---|
-| `src/buses/IOutputPipeline.h` | New seam interface | ~25 |
-| `src/buses/LightOutputPipeline.h` | Wraps `ILightDriver` into `IOutputPipeline` | ~50 |
+| `src/core/IOutputPipeline.h` | New seam interface | ~25 |
 | `src/buses/ProtocolTransportPipeline.h` | Wraps `IProtocol`+`ITransport`, on-the-fly brightness | ~100 |
 | `src/buses/Bus.h` | Single unified bus class | ~60 |
 
-**Total created: ~235 lines. Net reduction: ~1,143 lines.**
+**Total created: ~185 lines. Net reduction: ~1,283 lines.**
 
 ### Updated public surface
 
 ```cpp
 // Before (post-005)                          // After
-Light<TDriver>                                Bus(span, make_unique<LightOutputPipeline>(driver))
+Light<TDriver>                                Bus(span, make_unique<ConcreteDriver>(settings))
 Strip<TProtocol, TTransport>                  Bus(span, make_unique<ProtocolTransportPipeline>(proto, transport))
-ReferenceLight                                Bus(span, make_unique<LightOutputPipeline>(driver))
+ReferenceLight                                Bus(span, make_unique<ConcreteDriver>(settings))
 ReferenceStrip                                Bus(span, make_unique<ProtocolTransportPipeline>(proto, transport))
 CompositeStrip<TBuses...>                     ReferenceAggregateBus (non-owning, non-templated)
-AggregateStrip                                (deleted — owning variant removed)
+AggregateStrip                                (deleted)
+ILightDriver / LightDriverSettingsBase         (deleted — drivers implement IOutputPipeline)
 PixelView                                     (deleted)
 Driver::PlatformDefault                       (deleted)
 LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES       (deleted)
@@ -158,7 +166,7 @@ LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES       (deleted)
 
 ## Non-Goals
 
-- Do not change `ILightDriver`, `IProtocol`, or `ITransport` interfaces (except removing `TransportBrightness` from `ITransport::transmitBytes`).
+- Do not change `IProtocol`, or `ITransport` interfaces (already cleaned up in Phase 1).
 - Do not change concrete driver, protocol, or transport implementations.
 - Do not change `IPixelBus` interface beyond `pixels()` return type.
 - Do not change color math or palette infrastructure.
@@ -204,14 +212,23 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 ### Phase 4 — Create pipeline implementations
 
-- [ ] **`P4a`** — Create `src/buses/LightOutputPipeline.h`. Wraps `std::unique_ptr<ILightDriver>`. `write()` delegates to `_driver->write(colors[0], brightness)`. `begin()`/`isReadyToUpdate()` delegate to driver. `alwaysUpdate()` → `false`.
-- [ ] **`P4b`** — Create `src/buses/ProtocolTransportPipeline.h`. Wraps `std::unique_ptr<IProtocol>` + `std::unique_ptr<ITransport>`. Constructor takes both + pixel count.
-- [ ] **`P4c`** — Implement `ProtocolTransportPipeline::write()`:
+- [ ] **`P4a`** — Move `IOutputPipeline.h` from `src/buses/` to `src/core/`.
+- [ ] **`P4b`** — Delete `src/transports/ILightDriver.h` (including `LightDriverSettingsBase`, `LightDriverLike`, `SettingsConstructibleLightDriverLike` traits).
+- [ ] **`P4c`** — Update all 6 concrete light drivers to implement `IOutputPipeline` directly instead of `ILightDriver`:
+  - `RpPwmLightDriver`, `Esp32SigmaDeltaLightDriver`, `Esp32LedcLightDriver`, `AnalogPwmLightDriver`, `PrintLightDriverT`, `NilLightDriver`
+  - Change base class from `ILightDriver` to `IOutputPipeline`
+  - `write(span<const Color> colors, BrightnessType brightness)` — read `colors[0]`, apply brightness as before
+  - `alwaysUpdate()` → `false`
+  - Single-arg `write(Color)` removed (callers always pass brightness now)
+  - Remove `LightDriverSettingsBase` inheritance from settings structs
+- [ ] **`P4d`** — Update `PlatformDefaultLightDriver` alias (in `Transports.h`) to reference `IOutputPipeline`-based types.
+- [ ] **`P4e`** — Create `src/buses/ProtocolTransportPipeline.h`. Wraps `std::unique_ptr<IProtocol>` + `std::unique_ptr<ITransport>`. Constructor takes both + pixel count.
+- [ ] **`P4f`** — Implement `ProtocolTransportPipeline::write()`:
   - On-the-fly brightness: iterate colors, apply `applyBrightness()` per-channel inline with protocol encoding in a single pass. No full-frame scratch buffer.
   - Allocate protocol byte buffer from `requiredBufferSizeBytes()`.
   - Call `_protocol->update(dimmedColors, byteBuffer)`.
   - Call `_transport->beginTransaction()`, `_transport->transmitBytes(byteBuffer)`, `_transport->endTransaction()`.
-- [ ] **`P4d`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
+- [ ] **`P4g`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
 
 ### Phase 5 — Create unified `Bus` class
 
@@ -234,7 +251,7 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 ### Phase 7 — Update `Busses.h` umbrella include
 
-- [ ] **`P7a`** — Update `src/buses/Busses.h`: remove deleted includes, add `IOutputPipeline.h`, `LightOutputPipeline.h`, `ProtocolTransportPipeline.h`, `Bus.h`, keep `AggregateBus.h` (now contains only `ReferenceAggregateBus`).
+- [ ] **`P7a`** — Update `src/buses/Busses.h`: remove deleted includes, add `ProtocolTransportPipeline.h`, `Bus.h`, keep `AggregateBus.h` (now contains only `ReferenceAggregateBus`).
 
 ### Phase 8 — Update public surface (`LumaWave.h`)
 
@@ -255,11 +272,11 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 #### 10a — New tests for `Bus` and pipelines
 
-- [ ] **`P10a1`** — Create `test/busses/test_bus/`: test `Bus` with `LightOutputPipeline` (write+show, dirty guard, readiness, brightness passthrough).
+- [ ] **`P10a1`** — Create `test/busses/test_bus/`: test `Bus` with a mock `IOutputPipeline` (light path: write+show, dirty guard, readiness, brightness passthrough).
 - [ ] **`P10a2`** — Test `Bus` with `ProtocolTransportPipeline` (multi-pixel write+show, brightness scaling applied by pipeline, protocol encoding, transport transmission).
 - [ ] **`P10a3`** — Test `Bus` span-based storage: writes through `pixels()` go to caller's buffer (zero-copy).
 - [ ] **`P10a4`** — Test `ProtocolTransportPipeline`: brightness applied on-the-fly, protocol receives dimmed colors.
-- [ ] **`P10a5`** — Test `LightOutputPipeline`: driver receives correct color and brightness.
+- [ ] **`P10a5`** — Test concrete light driver as `IOutputPipeline`: driver receives `colors[0]` and brightness correctly.
 
 #### 10b — Remove old bus tests
 
@@ -278,7 +295,7 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 ### Phase 11 — Update examples
 
-- [ ] **`P11a`** — `examples/hello/light/light.ino`: `Light<...>` → direct `Bus(span, make_unique<LightOutputPipeline>(driver))`.
+- [ ] **`P11a`** — `examples/hello/light/light.ino`: `Light<...>` → direct `Bus(span, make_unique<ConcreteDriver>(settings))`.
 - [ ] **`P11b`** — `examples/platform/rp2040/pwm-light/pwm-light.ino`: `LightBus<...>` → direct `Bus` construction.
 - [ ] **`P11c`** — `examples/hello/hello.ino` (strip): `Strip<...>` → direct `Bus(span, make_unique<ProtocolTransportPipeline>(...))`.
 - [ ] **`P11d`** — `examples/multi-strip/`: `CompositeStrip<...>` → `ReferenceAggregateBus` with external buffer.
@@ -346,11 +363,11 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 - 004 converts every bus type's `PixelView` member to `span<Color>` — 006 then deletes every one of those bus types. Sequential execution wastes ~200 lines of conversion work.
 - 004's `ExternalBus` (span, no-op show) is 006's `Bus` (span, delegated show) minus the pipeline. No reason for both to exist.
-- Combined execution: ~12 phases vs ~20 separate, net ~1,143 lines deleted vs net ~660 if done sequentially.
+- Combined execution: ~13 phases, net ~1,283 lines deleted.
 
 ## Resolved Design Decisions
 
-1. **`IOutputPipeline` location**: `src/buses/` — it's the bus's direct delegate, not a cross-cutting seam.
+1. **`IOutputPipeline` location**: `src/core/` — cross-cutting seam at the same level as `IPixelBus`. Transports implement it directly without depending on buses. `ILightDriver` and `LightOutputPipeline` eliminated.
 
 2. **`AggregateBus` ownership**: Keep only `ReferenceAggregateBus` (raw `IPixelBus*`, non-owning). Delete `AggregateBus` (owning variant). The caller manages child `Bus` lifetimes.
 
