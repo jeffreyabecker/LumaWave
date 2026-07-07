@@ -31,7 +31,8 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 - Channel count: always **4** (RGBW)
 - Component type: `uint8_t` or `uint16_t`
 - Concrete aliases: `Rgbw8Color`, `Rgbw16Color`
-- Removed: `Rgb8Color`, `Rgb16Color`, `Rgbcw8Color`, `Rgbcw16Color`, `RgbBasedColor<>` template, `CCTWhiteBalanceShader`, `AutoWhiteBalanceShader::dualWhite`, `ChannelOrder::RGBCW/GRBCW/BGRCW`, `ChannelSource<T,5>`, `ChannelSource<T,3>`
+- Removed: `Rgb8Color`, `Rgb16Color`, `Rgbcw8Color`, `Rgbcw16Color`, `RgbBasedColor<>` template, `ChannelOrder::RGBCW/GRBCW/BGRCW`, `ChannelSource<T,5>`, `ChannelSource<T,3>`
+- Shader changes (`CCTWhiteBalanceShader`, `AutoWhiteBalanceShader::dualWhite`) tracked separately in their own backlog
 
 ## Non-Goals
 
@@ -62,65 +63,63 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 - [ ] **`P2d`** — `ChannelSource.h`: replace with fixed 4-channel `ChannelSource` — remove template specializations.
 - [ ] **`P2e`** — `ChannelMap.h`: remove `>= 5` and `>= 4` branches — always 4 channels.
 
-### Phase 3 — Shaders
+### Phase 3 — Protocols
 
-- [ ] **`P3a`** — Remove entire `CCTWhiteBalanceShader.h` (requires 5-channel `ColorChannelsAtLeast<TColor, 5>`).
-- [ ] **`P3b`** — Strip `dualWhite` mode from `AutoWhiteBalanceShader.h` (removes `color['C']` usage, `_coolCorrection`, and the `bool _dualWhite` member).
-- [ ] **`P3c`** — Remove `ColorChannelsAtLeast<TColor, 4>` constraints from shader templates — always 4 channels.
+Protocols still need their own channel count for wire-format serialization (e.g., WS2812 sends 3 bytes/pixel, TM1814 sends 4). This is a protocol implementation detail, not a color object property.
 
-### Phase 4 — Protocols
+- [ ] **`P3a`** — `DotStarProtocol.h`: change `StripColorType` from template to explicit `StripChannelCount` constant (3 or 4). Remove `ChannelCount`-based `static_assert`s that check `InterfaceColorType::ChannelCount` — interface color is always 4.
+- [ ] **`P3b`** — `Ws2812xProtocol.h`: change `StripColorType` from template to explicit `channelCount` constant. Remove `static_assert`s on `InterfaceColorType::ChannelCount`.
+- [ ] **`P3c`** — `Sm168xProtocol.h`: replace `StripColorType` template with `StripChannelCount` constant. Remove `channelIndexFromTag()` and 5-channel special cases. `static_assert` on strip channel count (3 or 4) instead of color type.
+- [ ] **`P3d`** — `IProtocol.h`: remove `NChannels`/`ChannelCount` from `IProtocol<TColor>` — `TColor` is always `4`-channel `RgbwColor<TComponent>`. Protocol-level channel count moves to each concrete implementation's own constant.
+- [ ] **`P3e`** — All other protocol headers: remove `static_assert`s that constrain `InterfaceColorType::ChannelCount`. Keep protocol-local `StripChannelCount` or equivalent as a private implementation constant.
 
-- [ ] **`P4a`** — `DotStarProtocol.h`: remove `ChannelCount` template on `InterfaceColorType`/`StripColorType`; fix `static_assert`s to always expect 4 channels. Remove `StripChannelCount` as a derived constant.
-- [ ] **`P4b`** — `Ws2812xProtocol.h`: remove `ChannelCount` template on `InterfaceColorType`; fix `static_assert`s to always expect 4 channels.
-- [ ] **`P4c`** — `Sm168xProtocol.h`: remove 5-channel `resolveSettingsSize()` and `maxGain()` cases; remove `channelIndexFromTag()`; fix `static_assert`s to always expect 4 channels.
-- [ ] **`P4d`** — `IProtocol.h`: remove `NChannels` template parameter from `IProtocol<TColor>` — `TColor` is always `RgbwColor<TComponent>`.
-- [ ] **`P4e`** — All other protocol headers: remove `ChannelCount`-derived constants and `static_assert` branching; fix to always expect 4-channel color.
+### Phase 4 — Transports and buses
 
-### Phase 5 — Transports and buses
+Transports and buses still need their own channel count for hardware pin mapping and frame buffer sizing. This is an implementation detail of each transport/bus, not a color object property.
 
-- [ ] **`P5a`** — `AnalogPwmLightDriver.h`: change `MaxChannels = 5` → `4`; change `PinsMap` from `Rgbcw8Color` to `Rgbw8Color`.
-- [ ] **`P5b`** — All `PixelBus`/`LightBus`/`AggregateBus` etc.: remove `NChannels` from color template parameters — always 4.
+- [ ] **`P4a`** — `AnalogPwmLightDriver.h`: change `MaxChannels = 5` → `4`; change `PinsMap` from `Rgbcw8Color` to `Rgbw8Color`. Keep `MaxChannels` as a transport-level pin count constant.
+- [ ] **`P4b`** — `PixelBus`/`LightBus`/`AggregateBus` etc.: remove `NChannels` from `TColor` template assumptions — interface color is always 4. Keep bus-local channel count where needed for buffer sizing, derived from the protocol's strip channel count rather than the color type.
 
-### Phase 6 — Public surface
+### Phase 5 — Public surface
 
-- [ ] **`P6a`** — `LumaWave.h`: remove all color aliases except `Rgbw8Color`, `Rgbw16Color`. Remove `ChannelOrder::RGBCW/GRBCW/BGRCW`. Remove `PixelView<TColor>` as template (always `PixelView<RgbwColor<TComponent>>`).
-- [ ] **`P6b`** — `LumaWave.h`: update/remove `Ws2805` alias; fix any aliases still referencing `RgbBasedColor` or 3-channel colors.
+- [ ] **`P5a`** — `LumaWave.h`: remove all color aliases except `Rgbw8Color`, `Rgbw16Color`. Remove `ChannelOrder::RGBCW/GRBCW/BGRCW`.
+- [ ] **`P5b`** — `LumaWave.h`: update/remove `Ws2805` alias; fix any aliases still referencing `RgbBasedColor` or 3-channel colors.
 
-### Phase 7 — Build and configuration
+### Phase 6 — Build and configuration
 
-- [ ] **`P7a`** — `Compat.h`: remove `LW_COLOR_MINIMUM_COMPONENT_COUNT` entirely (channel count is always 4). Keep only `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
-- [ ] **`P7b`** — `docs/usage/compilation-flags.md`: remove `LW_COLOR_MINIMUM_COMPONENT_COUNT` documentation; keep only `LW_COLOR_MINIMUM_COMPONENT_SIZE` and `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
+- [ ] **`P6a`** — `Compat.h`: remove `LW_COLOR_MINIMUM_COMPONENT_COUNT` entirely (channel count is always 4). Keep only `LW_COLOR_MINIMUM_COMPONENT_SIZE`.
+- [ ] **`P6b`** — `docs/usage/compilation-flags.md`: remove `LW_COLOR_MINIMUM_COMPONENT_COUNT` documentation; keep only `LW_COLOR_MINIMUM_COMPONENT_SIZE` and `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
 
-### Phase 8 — Tests
+### Phase 7 — Tests
 
-- [ ] **`P8a`** — Remove entire `test/shaders/test_cct_white_balance_shader_section8/` directory.
-- [ ] **`P8b`** — `test/protocols/test_protocol_spec_sections_1_5_to_1_13/`: remove RGBCW test cases.
-- [ ] **`P8c`** — `test/protocols/test_protocol_debug_pipeline/`: change `TestColor = lw::Rgbcw8Color` → `lw::Rgbw8Color`.
-- [ ] **`P8d`** — Search and update all test files that use `Rgb8Color`, `Rgb16Color`, `Rgbcw8Color`, `Rgbcw16Color`, `RgbBasedColor`, or `'C'` channel — replace with `Rgbw8Color`/`Rgbw16Color`.
-- [ ] **`P8e`** — Update `test/shaders/test_color_domain_section1/` — remove tests that verify 3-channel or 5-channel behavior.
+- [ ] **`P7a`** — `test/protocols/test_protocol_spec_sections_1_5_to_1_13/`: remove RGBCW test cases.
+- [ ] **`P7b`** — `test/protocols/test_protocol_debug_pipeline/`: change `TestColor = lw::Rgbcw8Color` → `lw::Rgbw8Color`.
+- [ ] **`P7c`** — Search and update all test files that use `Rgb8Color`, `Rgb16Color`, `Rgbcw8Color`, `Rgbcw16Color`, `RgbBasedColor`, or `'C'` channel — replace with `Rgbw8Color`/`Rgbw16Color`.
+- [ ] **`P7d`** — Update `test/shaders/test_color_domain_section1/` — remove tests that verify 3-channel or 5-channel behavior.
+- [ ] **`P7e`** — Remove `test/shaders/test_cct_white_balance_shader_section8/` directory (shader tracked separately, but tests reference removed types).
 
-### Phase 9 — Examples
+### Phase 8 — Examples
 
-- [ ] **`P9a`** — Remove entire `examples/shaders/cct-white-balance/` directory.
-- [ ] **`P9b`** — `examples/hello/light/`: change from `Rgbcw16Color` to `Rgbw16Color`.
-- [ ] **`P9c`** — Search all examples for `Rgb8Color`, `Rgb16Color`, `Rgbcw*` and update to `Rgbw8Color`/`Rgbw16Color`.
+- [ ] **`P8a`** — Remove entire `examples/shaders/cct-white-balance/` directory.
+- [ ] **`P8b`** — `examples/hello/light/`: change from `Rgbcw16Color` to `Rgbw16Color`.
+- [ ] **`P8c`** — Search all examples for `Rgb8Color`, `Rgb16Color`, `Rgbcw*` and update to `Rgbw8Color`/`Rgbw16Color`.
 
-### Phase 10 — Validation
+### Phase 9 — Validation
 
-- [ ] **`P10a`** — Configure and build native tests: `cmake -S . -B build && cmake --build build`
-- [ ] **`P10b`** — Run full test suite: `ctest --test-dir build --output-on-failure`
-- [ ] **`P10c`** — Verify no remaining references to `RgbBasedColor`, `Rgb8Color`, `Rgb16Color`, `Rgbcw`, `RGBCW`, `InternalSize`, `InternalStorageComponent`, `ComponentReference`, `NChannels`, `ChannelCount` (as template param), or `'C'` channel in active source/test paths.
+- [ ] **`P9a`** — Configure and build native tests: `cmake -S . -B build && cmake --build build`
+- [ ] **`P9b`** — Run full test suite: `ctest --test-dir build --output-on-failure`
+- [ ] **`P9c`** — Verify no remaining references to `RgbBasedColor`, `Rgb8Color`, `Rgb16Color`, `Rgbcw`, `RGBCW`, `InternalSize`, `InternalStorageComponent`, `ComponentReference`, `NChannels`, `ChannelCount` (as template param), or `'C'` channel in active source/test paths.
 
 ## Dependencies Between Phases
 
 ```text
-Phase 1 (Color.h) ──► Phase 2 (channel infra) ──► Phase 3-6 (shaders, protocols, transports, surface)
+Phase 1 (Color.h) ──► Phase 2 (channel infra) ──► Phase 3-5 (protocols, transports, surface)
                                                          │
-                                                         └──► Phase 7 (build/config)
+                                                         └──► Phase 6 (build/config)
                                                          │
-                                                         └──► Phase 8-9 (tests, examples)
+                                                         └──► Phase 7-8 (tests, examples)
                                                                      │
-                                                                     └──► Phase 10 (validation)
+                                                                     └──► Phase 9 (validation)
 ```
 
-Phases 3–6 can be done in any order after Phase 2, but all must complete before Phase 10.
+Phases 3–5 can be done in any order after Phase 2, but all must complete before Phase 9.
