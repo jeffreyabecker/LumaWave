@@ -34,60 +34,31 @@ namespace ChannelOrder
 namespace detail
 {
 
-  inline const char* normalizeChannelOrderForCount(const char* providedChannelOrder, const char* defaultChannelOrder, size_t channelCount)
+  inline const char* normalizeChannelOrder(const char* providedChannelOrder, const char* defaultChannelOrder)
   {
-    const char* channelOrder = (providedChannelOrder != nullptr) ? providedChannelOrder : defaultChannelOrder;
-    if (channelOrder == nullptr)
+    if (providedChannelOrder == nullptr || providedChannelOrder[0] == '\0')
     {
       return defaultChannelOrder;
     }
 
-    const size_t suppliedLength = std::char_traits<char>::length(channelOrder);
-    if (suppliedLength == channelCount)
+    size_t len = 0;
+    while (providedChannelOrder[len] != '\0')
     {
-      return channelOrder;
-    }
-
-    const char* value = channelOrder;
-    if (std::char_traits<char>::length(value) < 3)
-    {
-      value = defaultChannelOrder;
-    }
-
-    bool grbPrefix = false;
-    bool bgrPrefix = false;
-    if (value != nullptr && std::char_traits<char>::length(value) >= 3)
-    {
-      grbPrefix = (value[0] == 'G' && value[1] == 'R' && value[2] == 'B');
-      bgrPrefix = (value[0] == 'B' && value[1] == 'G' && value[2] == 'R');
-    }
-
-    if (channelCount <= 3)
-    {
-      if (grbPrefix)
+      const char c = providedChannelOrder[len];
+      if (c != 'R' && c != 'r' && c != 'G' && c != 'g' && c != 'B' && c != 'b' && c != 'W' && c != 'w')
       {
-        return ChannelOrder::GRB::value;
+        return defaultChannelOrder;
       }
 
-      if (bgrPrefix)
-      {
-        return ChannelOrder::BGR::value;
-      }
-
-      return ChannelOrder::RGB::value;
+      ++len;
     }
 
-    if (grbPrefix)
+    if (len < 3 || len > 4)
     {
-      return ChannelOrder::GRBW::value;
+      return defaultChannelOrder;
     }
 
-    if (bgrPrefix)
-    {
-      return ChannelOrder::BGRW::value;
-    }
-
-    return ChannelOrder::RGBW::value;
+    return providedChannelOrder;
   }
 
 } // namespace detail
@@ -101,7 +72,7 @@ namespace ChannelOrder = colors::ChannelOrder;
 
 namespace detail
 {
-  using colors::detail::normalizeChannelOrderForCount;
+  using colors::detail::normalizeChannelOrder;
 }
 
 } // namespace lw

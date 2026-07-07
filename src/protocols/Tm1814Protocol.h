@@ -31,7 +31,7 @@ struct Tm1814ProtocolSettings : public ProtocolSettings
 
   template <typename TColor> static Tm1814ProtocolSettings normalizeForColor(Tm1814ProtocolSettings settings, const char* defaultChannelOrder = "WRGB")
   {
-    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, 4);
+    settings.channelOrder = lw::detail::normalizeChannelOrder(settings.channelOrder, defaultChannelOrder);
     return settings;
   }
 

@@ -27,7 +27,7 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
 
   template <typename TColor> static Ws2812xProtocolSettings normalizeForColor(Ws2812xProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::GRB::value)
   {
-    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, 4);
+    settings.channelOrder = lw::detail::normalizeChannelOrder(settings.channelOrder, defaultChannelOrder);
     return settings;
   }
 
