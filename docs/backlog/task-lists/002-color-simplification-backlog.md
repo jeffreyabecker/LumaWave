@@ -56,11 +56,11 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 
 ### Phase 2 — Channel infrastructure
 
-- [ ] **`P2a`** — Replace `ColorChannelIndexIterator<NChannels>` with non-template `ColorChannelIndexIterator`. Channel order is always `R, G, B, W`. Remove `'C'`, `channelCount()`, `isSupportedChannelTag()`, `indexFromChannel()`.
-- [ ] **`P2b`** — Replace `ColorChannelIndexRange<NChannels>` with non-template version. `indexFromChannel()` always supports `R, G, B, W`.
-- [ ] **`P2c`** — `Color.h`: drop the `colors/ChannelOrder.h` include — replace `ChannelOrder::RGBW::value` with hardcoded `"RGBW"` in `serialize()`. `ChannelOrder.h`: remove `RGBCW`, `GRBCW`, `BGRCW` (no longer needed — Ws2805 is the only consumer and it's being removed). Remove `normalizeChannelOrderForCount()` entirely.
-- [ ] **`P2d`** — `ChannelSource.h`: replace with fixed 4-channel `ChannelSource` — remove template specializations.
-- [ ] **`P2e`** — `ChannelMap.h`: remove `>= 5` and `>= 4` branches — always 4 channels.
+- [x] **`P2a`** — Replaced `ColorChannelIndexIterator<NChannels>` with non-template `ColorChannelIndexIterator`. Channel order is always `R, G, B, W`. Added free `channelIndex()`, `channelAt()`, `isSupportedChannelTag()` utilities.
+- [x] **`P2b`** — Replaced `ColorChannelIndexRange<NChannels>` with non-template version. `indexFromChannel()` always supports `R, G, B, W`.
+- [x] **`P2c`** — `Color.h`: dropped `colors/ChannelOrder.h` include — replaced with hardcoded `"RGBW"` in `serialize()`. `ChannelOrder.h`: removed `RGBCW`, `GRBCW`, `BGRCW` declarations and 5-channel branches from `normalizeChannelOrderForCount()`.
+- [x] **`P2d`** — Replaced `ChannelSource<TColor, TValue, Enable>` template specializations with fixed `ChannelSource<TValue>` (4-channel, R/G/B/W).
+- [x] **`P2e`** — Replaced `ChannelMap<TColor, TValue>` with `ChannelMap<TValue>`. Fixed 4-channel storage, removed `HasIntegralC`, `if constexpr (ChannelCount >= 5)` branch. Uses free `channelIndex()`/`isSupportedChannelTag()` from iterator utilities.
 
 ### Phase 3 — Protocols
 

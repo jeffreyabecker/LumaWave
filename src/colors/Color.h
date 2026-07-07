@@ -9,7 +9,6 @@
 #include <type_traits>
 
 #include "core/Compat.h"
-#include "colors/ChannelOrder.h"
 
 namespace lw::colors
 {
@@ -158,7 +157,7 @@ public:
       return false;
     }
 
-    constexpr const char* channelOrder = ChannelOrder::RGBW::value;
+    constexpr const char* channelOrder = "RGBW";
 
     size_t outputIndex = 0;
 

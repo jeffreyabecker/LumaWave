@@ -1,39 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
-
-#include "colors/Color.h"
 
 namespace lw::colors
 {
 
-template <typename TColor, typename TValue = typename TColor::ComponentType, typename = void> struct ChannelSource;
-
-template <typename TColor, typename TValue>
-struct ChannelSource<TColor, TValue, std::enable_if_t<(TColor::ChannelCount == 3)>>
+template <typename TValue = uint8_t> struct ChannelSource
 {
-    TValue R{};
-    TValue G{};
-    TValue B{};
-};
-
-template <typename TColor, typename TValue>
-struct ChannelSource<TColor, TValue, std::enable_if_t<(TColor::ChannelCount == 4)>>
-{
-    TValue R{};
-    TValue G{};
-    TValue B{};
-    TValue W{};
-};
-
-template <typename TColor, typename TValue>
-struct ChannelSource<TColor, TValue, std::enable_if_t<(TColor::ChannelCount == 5)>>
-{
-    TValue R{};
-    TValue G{};
-    TValue B{};
-    TValue W{};
-    TValue C{};
+  TValue R{};
+  TValue G{};
+  TValue B{};
+  TValue W{};
 };
 
 } // namespace lw::colors
@@ -41,7 +19,6 @@ struct ChannelSource<TColor, TValue, std::enable_if_t<(TColor::ChannelCount == 5
 namespace lw
 {
 
-template <typename TColor, typename TValue = typename TColor::ComponentType, typename Enable = void>
-using ChannelSource = colors::ChannelSource<TColor, TValue, Enable>;
+template <typename TValue = uint8_t> using ChannelSource = colors::ChannelSource<TValue>;
 
 } // namespace lw
