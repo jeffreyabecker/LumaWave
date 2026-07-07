@@ -175,136 +175,132 @@ LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES       (deleted)
 
 ## Task List
 
-### Phase 1 — Define `IOutputPipeline` seam
+### Phase 1 — Bulk deletion (old bus types, PixelView, TransportBrightness)
 
-- [ ] **`P1a`** — Create `src/buses/IOutputPipeline.h`. Pure virtual interface: `begin()`, `isReadyToUpdate()`, `write(span<const Color>, BrightnessType)`, `alwaysUpdate()`.
-- [ ] **`P1b`** — Add `IOutputPipeline.h` to `src/buses/Busses.h` umbrella include.
-- [ ] **`P1c`** — Verify compiles in isolation (no dependencies on types being deleted later).
+Clean slate. Delete everything being replaced before building the new types. No analysis, no refactoring, no conversion work — just delete.
 
-### Phase 2 — Change `IPixelBus::pixels()` to `span<Color>&`
+- [ ] **`P1a`** — Delete `src/buses/PixelBus.h`.
+- [ ] **`P1b`** — Delete `src/buses/LightBus.h`.
+- [ ] **`P1c`** — Delete `src/buses/ReferenceBus.h`.
+- [ ] **`P1d`** — Delete `src/buses/ReferenceLightBus.h`.
+- [ ] **`P1e`** — Delete `src/buses/CompositeBus.h`.
+- [ ] **`P1f`** — Delete `src/buses/AggregateBus.h` (owning variant). `ReferenceAggregateBus` is reworked in Phase 6.
+- [ ] **`P1g`** — Delete `src/core/PixelView.h`.
+- [ ] **`P1h`** — Remove `TransportBrightness` struct and the two-arg `transmitBytes(span<uint8_t>, TransportBrightness)` overload from `ITransport`. Update all transport implementations to remove the two-arg override.
+- [ ] **`P1i`** — Remove `#include "core/PixelView.h"` from `src/core/Core.h`.
+- [ ] **`P1j`** — Remove `test/core/test_pixel_view/` directory and its test target from `test/CMakeLists.txt`.
 
-- [ ] **`P2a`** — Change `IPixelBus::pixels()` return type from `PixelView&` to `span<Color>&` (mutable), and `span<const Color>&` (const).
-- [ ] **`P2b`** — Remove `#include "core/PixelView.h"` from `IPixelBus.h`. Add `#include "core/Compat.h"` for `lw::span` if not present.
-- [ ] **`P2c`** — Update all bus implementations' `pixels()` override signatures (these files are deleted in Phase 6, so minimal changes — just enough to keep the build compiling during intermediate phases):
-  - `PixelBus.h`: member `PixelView _pixels` → `span<Color> _pixels`; constructor builds span from `_rootPixels`.
-  - `LightBus.h`: member `PixelView _pixels` → `span<Color> _pixels`; constructor builds span from `_rootPixel`.
-  - `ReferenceBus.h`: member `PixelView _pixels` → `span<Color> _pixels`; constructor builds span from `_rootBuffer`.
-  - `ReferenceLightBus.h`: member `PixelView _pixels` → `span<Color> _pixels`; constructor builds span from `_rootBuffer`.
-  - `AggregateBus.h`: member `PixelView _pixels` → `span<Color> _pixels`; update `collectAggregateChunks` helper (temporary — fully reworked in Phase 5).
-  - `CompositeBus.h`: member `PixelView _pixels` → `span<Color> _pixels` (temporary — deleted in Phase 6).
-- [ ] **`P2d`** — Update all test stubs' `pixels()` override signatures to return `span<Color>&`.
+### Phase 2 — Define `IOutputPipeline` seam
 
-### Phase 3 — Create pipeline implementations
+- [ ] **`P2a`** — Create `src/buses/IOutputPipeline.h`. Pure virtual interface: `begin()`, `isReadyToUpdate()`, `write(span<const Color>, BrightnessType)`, `alwaysUpdate()`.
+- [ ] **`P2b`** — Verify compiles in isolation (no dependencies on deleted types).
 
-- [ ] **`P3a`** — Create `src/buses/LightOutputPipeline.h`. Wraps `std::unique_ptr<ILightDriver>`. `write()` delegates to `_driver->write(colors[0], brightness)`. `begin()`/`isReadyToUpdate()` delegate to driver. `alwaysUpdate()` → `false`.
-- [ ] **`P3b`** — Provide templated factory: `template<typename TDriver, typename... Args> std::unique_ptr<LightOutputPipeline> makeLightPipeline(Args&&...)`.
-- [ ] **`P3c`** — Create `src/buses/ProtocolTransportPipeline.h`. Wraps `std::unique_ptr<IProtocol>` + `std::unique_ptr<ITransport>`. Constructor takes both + pixel count.
-- [ ] **`P3d`** — Implement `ProtocolTransportPipeline::write()`:
+### Phase 3 — Change `IPixelBus::pixels()` to `span<Color>&`
+
+Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updating.
+
+- [ ] **`P3a`** — Change `IPixelBus::pixels()` return type from `PixelView&` to `span<Color>&` (mutable), and `span<const Color>&` (const). Add `#include "core/Compat.h"` for `lw::span` if not present.
+- [ ] **`P3b`** — Update surviving test stubs: `test/busses/test_aggregate_bus/` stubs that override `pixels()` to return `span<Color>&`.
+
+### Phase 4 — Create pipeline implementations
+
+- [ ] **`P4a`** — Create `src/buses/LightOutputPipeline.h`. Wraps `std::unique_ptr<ILightDriver>`. `write()` delegates to `_driver->write(colors[0], brightness)`. `begin()`/`isReadyToUpdate()` delegate to driver. `alwaysUpdate()` → `false`.
+- [ ] **`P4b`** — Create `src/buses/ProtocolTransportPipeline.h`. Wraps `std::unique_ptr<IProtocol>` + `std::unique_ptr<ITransport>`. Constructor takes both + pixel count.
+- [ ] **`P4c`** — Implement `ProtocolTransportPipeline::write()`:
   - On-the-fly brightness: iterate colors, apply `applyBrightness()` per-channel inline with protocol encoding in a single pass. No full-frame scratch buffer.
   - Allocate protocol byte buffer from `requiredBufferSizeBytes()`.
   - Call `_protocol->update(dimmedColors, byteBuffer)`.
   - Call `_transport->beginTransaction()`, `_transport->transmitBytes(byteBuffer)`, `_transport->endTransaction()`.
-- [ ] **`P3e`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
-- [ ] **`P3f`** — Provide templated factory: `template<typename TProtocol, typename TTransport> std::unique_ptr<ProtocolTransportPipeline> makeStripPipeline(PixelCount, ProtocolSettings, TransportSettings)`.
+- [ ] **`P4d`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
 
-### Phase 4 — Create unified `Bus` class
+### Phase 5 — Create unified `Bus` class
 
-- [ ] **`P4a`** — Create `src/buses/Bus.h`. Non-templated class implementing `IPixelBus`.
-- [ ] **`P4b`** — Constructor: `Bus(span<Color> pixelStorage, std::unique_ptr<IOutputPipeline> pipeline)`. Stores the span — bus does not own the buffer, caller provides it.
-- [ ] **`P4c`** — Members: `span<Color> _pixels`, `std::unique_ptr<IOutputPipeline> _pipeline`, `BrightnessType _brightness{max}`, `bool _dirty{true}`.
-- [ ] **`P4d`** — `pixels()` returns `_pixels`. Mutable access marks dirty.
-- [ ] **`P4e`** — `show()`: check dirty + `alwaysUpdate()` + `isReadyToUpdate()`, then `_pipeline->write(_pixels, _brightness)`. That's it — no brightness logic, no scratch, no protocol/transport bytes.
-- [ ] **`P4f`** — `begin()` → `_pipeline->begin()`, `isReadyToUpdate()` → `_pipeline->isReadyToUpdate()`, `setBrightness()`/`brightness()` trivial getter/setter.
-- [ ] **`P4g`** — Accessor: `IOutputPipeline* pipeline()`.
+- [ ] **`P5a`** — Create `src/buses/Bus.h`. Non-templated class implementing `IPixelBus`.
+- [ ] **`P5b`** — Constructor: `Bus(span<Color> pixelStorage, std::unique_ptr<IOutputPipeline> pipeline)`. Stores the span — bus does not own the buffer, caller provides it.
+- [ ] **`P5c`** — Members: `span<Color> _pixels`, `std::unique_ptr<IOutputPipeline> _pipeline`, `BrightnessType _brightness{max}`, `bool _dirty{true}`.
+- [ ] **`P5d`** — `pixels()` returns `_pixels`. Mutable access marks dirty.
+- [ ] **`P5e`** — `show()`: check dirty + `alwaysUpdate()` + `isReadyToUpdate()`, then `_pipeline->write(_pixels, _brightness)`. That's it — no brightness logic, no scratch, no protocol/transport bytes.
+- [ ] **`P5f`** — `begin()` → `_pipeline->begin()`, `isReadyToUpdate()` → `_pipeline->isReadyToUpdate()`, `setBrightness()`/`brightness()` trivial getter/setter.
+- [ ] **`P5g`** — Accessor: `IOutputPipeline* pipeline()`.
 
-### Phase 5 — Rework `ReferenceAggregateBus` for external buffer management
+### Phase 6 — Rework `ReferenceAggregateBus` for external buffer management
 
-- [ ] **`P5a`** — Delete `AggregateBus` (owning variant, `std::vector<std::unique_ptr<IPixelBus>>`). Keep only `ReferenceAggregateBus` (non-owning, `span<IPixelBus*>`).
-- [ ] **`P5b`** — Remove `collectAggregateChunks` helper and `_pixelChunks` vector from `ReferenceAggregateBus`.
-- [ ] **`P5c`** — Replace `PixelView _pixels` with `span<Color> _pixelSpan`.
-- [ ] **`P5d`** — Add `span<Color> externalBuffer` parameter to constructor. Validates `externalBuffer.size() == totalChildPixelCount`.
-- [ ] **`P5e`** — Store `std::vector<span<Color>> _childSpans` populated from each child's `pixels()`.
-- [ ] **`P5f`** — Rework `show()`: copy `_pixelSpan` sub-ranges into `_childSpans[i]`, then call `child->show()` for each child. O(n) copy on show.
-- [ ] **`P5g`** — Remove `#include "core/PixelView.h"` from `AggregateBus.h`.
+- [ ] **`P6a`** — Remove `collectAggregateChunks` helper and `_pixelChunks` vector from `ReferenceAggregateBus`.
+- [ ] **`P6b`** — Replace `PixelView _pixels` with `span<Color> _pixelSpan`.
+- [ ] **`P6c`** — Add `span<Color> externalBuffer` parameter to constructor. Validates `externalBuffer.size() == totalChildPixelCount`.
+- [ ] **`P6d`** — Store `std::vector<span<Color>> _childSpans` populated from each child's `pixels()`.
+- [ ] **`P6e`** — Rework `show()`: copy `_pixelSpan` sub-ranges into `_childSpans[i]`, then call `child->show()` for each child. O(n) copy on show.
+- [ ] **`P6f`** — Remove `#include "core/PixelView.h"` from `AggregateBus.h`.
 
-### Phase 6 — Bulk deletion
+### Phase 7 — Update `Busses.h` umbrella include
 
-- [ ] **`P6a`** — Delete `src/buses/PixelBus.h`.
-- [ ] **`P6b`** — Delete `src/buses/LightBus.h`.
-- [ ] **`P6c`** — Delete `src/buses/ReferenceBus.h`.
-- [ ] **`P6d`** — Delete `src/buses/ReferenceLightBus.h`.
-- [ ] **`P6e`** — Delete `src/buses/CompositeBus.h`.
-- [ ] **`P6f`** — Delete `src/core/PixelView.h`.
-- [ ] **`P6g`** — Remove `TransportBrightness` struct and the two-arg `transmitBytes(span<uint8_t>, TransportBrightness)` overload from `ITransport`. Update all transport implementations to remove the two-arg override.
-- [ ] **`P6h`** — Update `src/buses/Busses.h`: remove deleted includes, keep `IOutputPipeline.h`, `LightOutputPipeline.h`, `ProtocolTransportPipeline.h`, `Bus.h`, `AggregateBus.h` (now contains only `ReferenceAggregateBus`).
-- [ ] **`P6i`** — Remove `#include "core/PixelView.h"` from `src/core/Core.h`.
-- [ ] **`P6j`** — Remove `test/core/test_pixel_view/` directory and its test target from `test/CMakeLists.txt`.
+- [ ] **`P7a`** — Update `src/buses/Busses.h`: remove deleted includes, add `IOutputPipeline.h`, `LightOutputPipeline.h`, `ProtocolTransportPipeline.h`, `Bus.h`, keep `AggregateBus.h` (now contains only `ReferenceAggregateBus`).
 
-### Phase 7 — Update public surface (`LumaWave.h`)
+### Phase 8 — Update public surface (`LumaWave.h`)
 
-- [ ] **`P7a`** — Remove aliases: `Strip<TProtocol, TTransport>`, `Light<TDriver>`, `ReferenceLight`, `CompositeStrip<TBuses...>`, `ReferenceAggregateStrip`, `AggregateStrip`, `PixelView`.
-- [ ] **`P7b`** — Export `lw::busses::Bus` into global namespace. Export `lw::busses::ReferenceAggregateBus` into global namespace.
-- [ ] **`P7c`** — Remove `namespace Driver { ... }` block.
-- [ ] **`P7d`** — Remove the `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` conditional compilation guards and all references.
-- [ ] **`P7e`** — Remove dead `TColor` default parameters on `ReferenceLight<>` and `Driver::PlatformDefault<>` aliases (these go away with alias removal anyway).
+- [ ] **`P8a`** — Remove aliases: `Strip<TProtocol, TTransport>`, `Light<TDriver>`, `ReferenceLight`, `CompositeStrip<TBuses...>`, `ReferenceAggregateStrip`, `AggregateStrip`, `PixelView`.
+- [ ] **`P8b`** — Export `lw::busses::Bus` into global namespace. Export `lw::busses::ReferenceAggregateBus` into global namespace.
+- [ ] **`P8c`** — Remove `namespace Driver { ... }` block.
+- [ ] **`P8d`** — Remove the `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` conditional compilation guards and all references.
+- [ ] **`P8e`** — Remove dead `TColor` default parameters on `ReferenceLight<>` and `Driver::PlatformDefault<>` aliases (these go away with alias removal anyway).
 
-### Phase 8 — Update `fillPixels` / `fillPixelsIndexed`
+### Phase 9 — Update `fillPixels` / `fillPixelsIndexed`
 
-- [ ] **`P8a`** — Add/update `fillPixels(span<Color>, const Color&)` overload.
-- [ ] **`P8b`** — Add/update `fillPixelsIndexed(span<Color>, TGenerator&&)` overload.
-- [ ] **`P8c`** — Remove `PixelView`-based overloads.
-- [ ] **`P8d`** — Verify palette infrastructure works with `span<Color>` (it accepts `TOutputRange&&`, which `span<Color>` satisfies).
+- [ ] **`P9a`** — Add/update `fillPixels(span<Color>, const Color&)` overload.
+- [ ] **`P9b`** — Add/update `fillPixelsIndexed(span<Color>, TGenerator&&)` overload.
+- [ ] **`P9c`** — Remove `PixelView`-based overloads.
+- [ ] **`P9d`** — Verify palette infrastructure works with `span<Color>` (it accepts `TOutputRange&&`, which `span<Color>` satisfies).
 
-### Phase 9 — Update tests
+### Phase 10 — Update tests
 
-#### 9a — New tests for `Bus` and pipelines
+#### 10a — New tests for `Bus` and pipelines
 
-- [ ] **`P9a1`** — Create `test/busses/test_bus/`: test `Bus` with `LightOutputPipeline` (write+show, dirty guard, readiness, brightness passthrough).
-- [ ] **`P9a2`** — Test `Bus` with `ProtocolTransportPipeline` (multi-pixel write+show, brightness scaling applied by pipeline, protocol encoding, transport transmission).
-- [ ] **`P9a3`** — Test `Bus` span-based storage: writes through `pixels()` go to caller's buffer (zero-copy).
-- [ ] **`P9a4`** — Test `ProtocolTransportPipeline`: brightness applied on-the-fly, protocol receives dimmed colors.
-- [ ] **`P9a5`** — Test `LightOutputPipeline`: driver receives correct color and brightness.
+- [ ] **`P10a1`** — Create `test/busses/test_bus/`: test `Bus` with `LightOutputPipeline` (write+show, dirty guard, readiness, brightness passthrough).
+- [ ] **`P10a2`** — Test `Bus` with `ProtocolTransportPipeline` (multi-pixel write+show, brightness scaling applied by pipeline, protocol encoding, transport transmission).
+- [ ] **`P10a3`** — Test `Bus` span-based storage: writes through `pixels()` go to caller's buffer (zero-copy).
+- [ ] **`P10a4`** — Test `ProtocolTransportPipeline`: brightness applied on-the-fly, protocol receives dimmed colors.
+- [ ] **`P10a5`** — Test `LightOutputPipeline`: driver receives correct color and brightness.
 
-#### 9b — Remove old bus tests
+#### 10b — Remove old bus tests
 
-- [ ] **`P9b1`** — Delete `test/busses/test_light_bus/`.
-- [ ] **`P9b2`** — Delete `test/busses/test_reference_light_bus/`.
-- [ ] **`P9b3`** — Delete `test/busses/test_static_bus_driver_pixel_bus/`.
-- [ ] **`P9b4`** — Delete `test/busses/test_reference_bus/`.
-- [ ] **`P9b5`** — Delete `test/busses/test_composite_bus/`.
+- [ ] **`P10b1`** — Delete `test/busses/test_light_bus/`.
+- [ ] **`P10b2`** — Delete `test/busses/test_reference_light_bus/`.
+- [ ] **`P10b3`** — Delete `test/busses/test_static_bus_driver_pixel_bus/`.
+- [ ] **`P10b4`** — Delete `test/busses/test_reference_bus/`.
+- [ ] **`P10b5`** — Delete `test/busses/test_composite_bus/`.
 
-#### 9c — Update remaining tests
+#### 10c — Update remaining tests
 
-- [ ] **`P9c1`** — Update `test/busses/test_aggregate_bus/`: allocate external contiguous buffer, pass to `ReferenceAggregateBus` constructor, verify distribute-on-show behavior. Remove `AggregateBus` (owning variant) tests.
-- [ ] **`P9c2`** — Update any contract tests referencing deleted types.
-- [ ] **`P9c3`** — Update any transport tests that reference `TransportBrightness`.
-- [ ] **`P9c4`** — Update `test/CMakeLists.txt`: remove deleted test targets, add new ones.
+- [ ] **`P10c1`** — Update `test/busses/test_aggregate_bus/`: allocate external contiguous buffer, pass to `ReferenceAggregateBus` constructor, verify distribute-on-show behavior. Remove `AggregateBus` (owning variant) tests.
+- [ ] **`P10c2`** — Update any contract tests referencing deleted types.
+- [ ] **`P10c3`** — Update any transport tests that reference `TransportBrightness`.
+- [ ] **`P10c4`** — Update `test/CMakeLists.txt`: remove deleted test targets, add new ones.
 
-### Phase 10 — Update examples
+### Phase 11 — Update examples
 
-- [ ] **`P10a`** — `examples/hello/light/light.ino`: `Light<...>` → direct `Bus(span, make_unique<LightOutputPipeline>(driver))`.
-- [ ] **`P10b`** — `examples/platform/rp2040/pwm-light/pwm-light.ino`: `LightBus<...>` → direct `Bus` construction.
-- [ ] **`P10c`** — `examples/hello/hello.ino` (strip): `Strip<...>` → direct `Bus(span, make_unique<ProtocolTransportPipeline>(...))`.
-- [ ] **`P10d`** — `examples/multi-strip/`: `CompositeStrip<...>` → `ReferenceAggregateBus` with external buffer.
-- [ ] **`P10e`** — Verify all other examples compile (most use `auto& pixels = strip.pixels()` which deduces `span<Color>&` — no code changes needed).
+- [ ] **`P11a`** — `examples/hello/light/light.ino`: `Light<...>` → direct `Bus(span, make_unique<LightOutputPipeline>(driver))`.
+- [ ] **`P11b`** — `examples/platform/rp2040/pwm-light/pwm-light.ino`: `LightBus<...>` → direct `Bus` construction.
+- [ ] **`P11c`** — `examples/hello/hello.ino` (strip): `Strip<...>` → direct `Bus(span, make_unique<ProtocolTransportPipeline>(...))`.
+- [ ] **`P11d`** — `examples/multi-strip/`: `CompositeStrip<...>` → `ReferenceAggregateBus` with external buffer.
+- [ ] **`P11e`** — Verify all other examples compile (most use `auto& pixels = strip.pixels()` which deduces `span<Color>&` — no code changes needed).
 
-### Phase 11 — Build validation
+### Phase 12 — Build validation
 
-- [ ] **`P11a`** — `cmake -S . -B build && cmake --build build` — zero errors.
-- [ ] **`P11b`** — `ctest --test-dir build --output-on-failure` — all tests pass.
-- [ ] **`P11c`** — Verify no remaining `#include` of deleted headers anywhere.
-- [ ] **`P11d`** — Verify no `PixelView` references remain in any header.
-- [ ] **`P11e`** — Verify no `TransportBrightness` references remain.
-- [ ] **`P11f`** — Verify `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` is fully removed.
+- [ ] **`P12a`** — `cmake -S . -B build && cmake --build build` — zero errors.
+- [ ] **`P12b`** — `ctest --test-dir build --output-on-failure` — all tests pass.
+- [ ] **`P12c`** — Verify no remaining `#include` of deleted headers anywhere.
+- [ ] **`P12d`** — Verify no `PixelView` references remain in any header.
+- [ ] **`P12e`** — Verify no `TransportBrightness` references remain.
+- [ ] **`P12f`** — Verify `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` is fully removed.
 
-### Phase 12 — Documentation
+### Phase 13 — Documentation
 
-- [ ] **`P12a`** — Update `docs/usage/compilation-flags.md`: remove `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
-- [ ] **`P12b`** — Update `docs/internal/information/library-modularization-refactor-design.md`: reflect new bus architecture, remove `PixelView` references.
-- [ ] **`P12c`** — Update `docs/README.md` and usage guides: new `Bus` API, pipeline concepts (no factory functions — direct construction only).
-- [ ] **`P12d`** — Update `examples/README.md`: new patterns.
-- [ ] **`P12e`** — Remove any design docs that still frame `PixelView` as a core kernel contract.
-- [ ] **`P12f`** — Update `.github/copilot-instructions.md`: remove factory/descriptor guidance (`makeBus`, `MakeBus.h`, factory authoring rules). Replace with direct `Bus` construction guidance.
+- [ ] **`P13a`** — Update `docs/usage/compilation-flags.md`: remove `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
+- [ ] **`P13b`** — Update `docs/internal/information/library-modularization-refactor-design.md`: reflect new bus architecture, remove `PixelView` references.
+- [ ] **`P13c`** — Update `docs/README.md` and usage guides: new `Bus` API, pipeline concepts (no factory functions — direct construction only).
+- [ ] **`P13d`** — Update `examples/README.md`: new patterns.
+- [ ] **`P13e`** — Remove any design docs that still frame `PixelView` as a core kernel contract.
+- [ ] **`P13f`** — Update `.github/copilot-instructions.md`: remove factory/descriptor guidance (`makeBus`, `MakeBus.h`, factory authoring rules). Replace with direct `Bus` construction guidance.
 
 ## Design Decisions
 
