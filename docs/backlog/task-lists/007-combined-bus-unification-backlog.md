@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phase 1 complete.** All six old bus types deleted (`PixelBus`, `LightBus`, `ReferenceBus`, `ReferenceLightBus`, `CompositeBus`). `PixelView.h` deleted. Owning `AggregateBus` class stripped from `AggregateBus.h`. `TransportBrightness` removed from `ITransport` and all transport implementations. `test_pixel_view` directory removed. Build is intentionally broken — new types created in Phases 2+.
+**Phases 1-3 complete.** All old bus types, PixelView, and TransportBrightness deleted. `IOutputPipeline` seam created. `IPixelBus::pixels()` now returns `span<Color>&`. Phases 4+ pending.
 
 ## Motivation
 
@@ -190,17 +190,17 @@ Clean slate. Delete everything being replaced before building the new types. No 
 - [x] **`P1i`** — Remove `#include "core/PixelView.h"` from `src/core/Core.h`.
 - [x] **`P1j`** — Remove `test/core/test_pixel_view/` directory and its test target from `test/CMakeLists.txt`.
 
-### Phase 2 — Define `IOutputPipeline` seam
+### Phase 2 — Define `IOutputPipeline` seam — ✅ DONE
 
-- [ ] **`P2a`** — Create `src/buses/IOutputPipeline.h`. Pure virtual interface: `begin()`, `isReadyToUpdate()`, `write(span<const Color>, BrightnessType)`, `alwaysUpdate()`.
-- [ ] **`P2b`** — Verify compiles in isolation (no dependencies on deleted types).
+- [x] **`P2a`** — Create `src/buses/IOutputPipeline.h`. Pure virtual interface: `begin()`, `isReadyToUpdate()`, `write(span<const Color>, BrightnessType)`, `alwaysUpdate()`.
+- [x] **`P2b`** — Verify compiles in isolation (no dependencies on deleted types).
 
-### Phase 3 — Change `IPixelBus::pixels()` to `span<Color>&`
+### Phase 3 — Change `IPixelBus::pixels()` to `span<Color>&` — ✅ DONE
 
 Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updating.
 
-- [ ] **`P3a`** — Change `IPixelBus::pixels()` return type from `PixelView&` to `span<Color>&` (mutable), and `span<const Color>&` (const). Add `#include "core/Compat.h"` for `lw::span` if not present.
-- [ ] **`P3b`** — Update surviving test stubs: `test/busses/test_aggregate_bus/` stubs that override `pixels()` to return `span<Color>&`.
+- [x] **`P3a`** — Change `IPixelBus::pixels()` return type from `PixelView&` to `span<Color>&` (mutable), and `span<const Color>&` (const). Removed `#include "core/PixelView.h"`, already had `core/Compat.h`.
+- [x] **`P3b`** — Update surviving test stubs: `test/busses/test_aggregate_bus/` and `test/contracts/test_disable_template_combinatorial_types_compile/` stubs that override `pixels()` to return `span<Color>&`.
 
 ### Phase 4 — Create pipeline implementations
 
