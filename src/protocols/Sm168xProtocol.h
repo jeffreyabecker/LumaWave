@@ -16,17 +16,14 @@ struct Sm168xProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = TInterfaceColor> class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color, size_t NStripChannels = 3> class Sm168xProtocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
   using SettingsType = Sm168xProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Sm168xProtocol requires uint8_t or uint16_t interface components.");
-  static_assert(std::is_same_v<typename StripColorType::ComponentType, uint8_t>, "Sm168xProtocol requires uint8_t strip components.");
-  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 4, "Sm168xProtocol requires 3 or 4 strip channels.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (static_cast<size_t>(pixelCount) * StripChannelCount) + SettingsSize; }
 
@@ -60,7 +57,7 @@ private:
     return 2;
   }
 
-  static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
+  static constexpr size_t StripChannelCount = NStripChannels;
   static constexpr size_t SettingsSize = resolveSettingsSize(StripChannelCount);
 
   static constexpr uint8_t maxGain() { return 0x0f; }

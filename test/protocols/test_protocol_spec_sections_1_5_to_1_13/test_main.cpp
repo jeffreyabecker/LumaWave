@@ -193,8 +193,8 @@ void test_1_8_1_sm168x_variant_resolution_and_frame_sizing(void)
     TEST_ASSERT_EQUAL_UINT32(expectedFrameSize, static_cast<uint32_t>(protocolBuffer.size()));
   };
 
-  run_case(8U, [](lw::protocols::Sm168xProtocolSettings settings) { return lw::protocols::Sm168xProtocol<lw::Rgbw8Color, lw::Rgbw8Color>(2, std::move(settings)); }, "RGBW");
-  run_case(10U, [](lw::protocols::Sm168xProtocolSettings settings) { return lw::protocols::Sm168xProtocol<lw::Rgbw8Color, lw::Rgbw8Color>(2, std::move(settings)); }, "RGBW");
+  run_case(10U, [](lw::protocols::Sm168xProtocolSettings settings) { return lw::protocols::Sm168xProtocol<lw::Rgbw8Color, 4>(2, std::move(settings)); }, "RGBW");
+  run_case(10U, [](lw::protocols::Sm168xProtocolSettings settings) { return lw::protocols::Sm168xProtocol<lw::Rgbw8Color, 4>(2, std::move(settings)); }, "RGBW");
 }
 
 void test_1_8_4_sm168x_oversized_and_order_safety(void)
@@ -203,11 +203,11 @@ void test_1_8_4_sm168x_oversized_and_order_safety(void)
     lw::protocols::Sm168xProtocolSettings settings{};
     settings.channelOrder = "";
 
-    lw::protocols::Sm168xProtocol<lw::Rgbw8Color, lw::Rgbw8Color> protocol(1, std::move(settings));
+    lw::protocols::Sm168xProtocol<lw::Rgbw8Color, 4> protocol(1, std::move(settings));
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Rgbw8Color, 1>{lw::Rgbw8Color{11, 12, 13, 14}}, as_span(protocolBuffer));
 
-    TEST_ASSERT_EQUAL_UINT32(5U, static_cast<uint32_t>(protocolBuffer.size()));
+    TEST_ASSERT_EQUAL_UINT32(6U, static_cast<uint32_t>(protocolBuffer.size()));
   }
 }
 

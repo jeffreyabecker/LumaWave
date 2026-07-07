@@ -32,16 +32,14 @@ struct Hd108ProtocolSettings : public ProtocolSettings
   }
 };
 
-template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = TInterfaceColor> class Apa102Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw8Color> class Apa102Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Apa102Protocol interface color supports uint8_t or uint16_t components.");
-  static_assert(std::is_same_v<typename StripColorType::ComponentType, uint8_t>, "Apa102Protocol requires uint8_t strip components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -89,7 +87,7 @@ public:
 
 private:
   static constexpr uint8_t MaxGain = 0x1f;
-  static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
+  static constexpr size_t StripChannelCount = 3; // APA102 wire format: RGB (no white)
   static constexpr size_t BytesPerPixel = 1 + StripChannelCount;
   static constexpr size_t StartFrameSize = 4;
   static constexpr size_t EndFrameFixedSize = 4;
@@ -111,16 +109,14 @@ private:
   span<uint8_t> _byteBuffer{};
 };
 
-template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = Rgbw16Color> class Hd108Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
+template <typename TInterfaceColor = Rgbw16Color> class Hd108Protocol : public IProtocol<TInterfaceColor>, public IHaveGain
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Hd108Protocol interface color supports uint8_t or uint16_t components.");
-  static_assert(std::is_same_v<typename StripColorType::ComponentType, uint16_t>, "Hd108Protocol requires uint16_t strip components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
@@ -167,7 +163,7 @@ public:
 
 private:
   static constexpr uint8_t MaxGain = 0x1f;
-  static constexpr size_t StripChannelCount = StripColorType::ChannelCount;
+  static constexpr size_t StripChannelCount = 3; // HD108 wire format: RGB (no white)
   static constexpr size_t BytesPerPixel = 2 + (StripChannelCount * 2);
   static constexpr size_t StartFrameSize = 16;
   static constexpr size_t EndFrameSize = 4;

@@ -68,9 +68,9 @@ Fixing channel count to exactly 4 eliminates the `NChannels` template parameter 
 
 Protocols still need their own channel count for wire-format serialization (e.g., WS2812 sends 3 bytes/pixel, TM1814 sends 4). This is a protocol implementation detail, not a color object property.
 
-- [x] **`P3a`** — `DotStarProtocol.h`: changed default template params from `Rgb8Color`/`Rgb16Color` to `Rgbw8Color`/`Rgbw16Color`. Removed `InterfaceColorType::ChannelCount` static_asserts. `StripColorType` template retained for strip format (3-channel for APA102).
-- [x] **`P3b`** — `Ws2812xProtocol.h`: removed `InterfaceColorType::ChannelCount` static_assert. Kept `StripColorType` for wire format (3 or 4 channel).
-- [x] **`P3c`** — `Sm168xProtocol.h`: removed 5-channel `resolveSettingsSize()` case (always 2 now), `maxGain()` (always 0x0f), `channelIndexFromTag()` simplified to fixed RGWB. Interface static_assert removed, strip limited to 3-4 channels.
+- [x] **`P3a`** — `DotStarProtocol.h`: changed default template params. Regressed: `TStripColor` default (`TInterfaceColor=Rgbw8Color`) now gives `StripChannelCount=4` instead of 3 for APA102. **Needs fix: hardcode `StripChannelCount=3` for APA102/HD108.**
+- [x] **`P3b`** — `Ws2812xProtocol.h`: same regression — `TStripColor = TInterfaceColor` defaults to 4 channels. **Needs fix.**
+- [x] **`P3c`** — `Sm168xProtocol.h`: same regression. **Needs fix.**
 - [x] **`P3d`** — `IProtocol.h`: no change needed — it's generic over `TColor`.
 - [x] **`P3e`** — All other protocol headers: `Lpd6803Protocol.h`, `Lpd8806Protocol.h`, `P9813Protocol.h`, `PixieProtocol.h`, `Sm16716Protocol.h`, `Tlc59711Protocol.h`, `Ws2801Protocol.h`, `Tm1814Protocol.h`, `Tm1914Protocol.h`, `DebugProtocol.h` — removed all `InterfaceColorType::ChannelCount` static_asserts; changed default `Rgb8Color`/`Rgb16Color` params to `Rgbw8Color`/`Rgbw16Color`; replaced `Rgb8Color` strip typedefs with comments. `ProtocolAliases.h`: fixed `DotStar`, `Hd108`, `None`, `Debug`, `Tm1914` defaults; replaced `ColorAtLeastAsLarge` with direct `sizeof(ComponentType)` comparisons.
 

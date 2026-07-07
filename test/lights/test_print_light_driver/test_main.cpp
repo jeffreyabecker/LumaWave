@@ -38,10 +38,11 @@ void test_print_light_driver_writes_binary_by_default(void)
     TestDriver driver(settings);
     driver.write(TestColor{0x11, 0x22, 0x33});
 
-    TEST_ASSERT_EQUAL_UINT32(3U, static_cast<uint32_t>(sink.bytes.size()));
+    TEST_ASSERT_EQUAL_UINT32(4U, static_cast<uint32_t>(sink.bytes.size()));
     TEST_ASSERT_EQUAL_HEX8(0x11, sink.bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(0x22, sink.bytes[1]);
     TEST_ASSERT_EQUAL_HEX8(0x33, sink.bytes[2]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, sink.bytes[3]);
 }
 
 void test_print_light_driver_writes_ascii_when_enabled(void)
@@ -54,7 +55,7 @@ void test_print_light_driver_writes_ascii_when_enabled(void)
     TestDriver driver(settings);
     driver.write(TestColor{0x0A, 0x14, 0xFF});
 
-    static constexpr char Expected[] = "0A14FF";
+    static constexpr char Expected[] = "0A14FF00";
     TEST_ASSERT_EQUAL_UINT32(sizeof(Expected) - 1U, static_cast<uint32_t>(sink.bytes.size()));
     TEST_ASSERT_EQUAL_MEMORY(Expected, sink.bytes.data(), sizeof(Expected) - 1U);
 }

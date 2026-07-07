@@ -39,15 +39,12 @@ namespace detail
 
 } // namespace detail
 
-template <typename TInterfaceColor = lw::Rgbw8Color, typename TDefaultChannelOrder = lw::ChannelOrder::BGR, typename TStripColor = TInterfaceColor> struct DotStar
+template <typename TInterfaceColor = lw::Rgbw8Color, typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct DotStar
 {
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using EffectiveInterfaceColor = std::conditional_t<(sizeof(typename TInterfaceColor::ComponentType) >= sizeof(typename TStripColor::ComponentType)), TInterfaceColor, TStripColor>;
-
-  using ProtocolType = lw::protocols::Apa102Protocol<EffectiveInterfaceColor, StripColorType>;
+  using ProtocolType = lw::protocols::Apa102Protocol<TInterfaceColor>;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
@@ -61,15 +58,12 @@ template <typename TInterfaceColor = lw::Rgbw8Color, typename TDefaultChannelOrd
   static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::template normalizeForColor<ColorType>(std::move(settings), TDefaultChannelOrder::value); }
 };
 
-template <typename TInterfaceColor = lw::Rgbw16Color, typename TDefaultChannelOrder = lw::ChannelOrder::BGR, typename TStripColor = lw::Rgbw16Color> struct Hd108
+template <typename TInterfaceColor = lw::Rgbw16Color, typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct Hd108
 {
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using EffectiveInterfaceColor = std::conditional_t<(sizeof(typename TInterfaceColor::ComponentType) >= sizeof(typename TStripColor::ComponentType)), TInterfaceColor, TStripColor>;
-
-  using ProtocolType = lw::protocols::Hd108Protocol<EffectiveInterfaceColor, StripColorType>;
+  using ProtocolType = lw::protocols::Hd108Protocol<TInterfaceColor>;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
@@ -159,16 +153,13 @@ template <typename TInterfaceColor = lw::Rgbw8Color> struct Tm1914
 };
 
 template <typename TInterfaceColor = lw::Color, typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transports::OneWireTiming* TDefaultTiming = &lw::transports::timing::Generic800,
-          typename TStripColor = TInterfaceColor, bool TIdleHigh = false>
+          size_t NStripChannels = 3, bool TIdleHigh = false>
 struct Ws2812x
 {
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
   using DefaultChannelOrder = TDefaultChannelOrder;
 
-  using EffectiveInterfaceColor = std::conditional_t<(sizeof(typename TInterfaceColor::ComponentType) >= sizeof(typename TStripColor::ComponentType)), TInterfaceColor, TStripColor>;
-
-  using ProtocolType = lw::protocols::Ws2812xProtocol<EffectiveInterfaceColor, StripColorType>;
+  using ProtocolType = lw::protocols::Ws2812xProtocol<InterfaceColorType, NStripChannels>;
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 

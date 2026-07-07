@@ -49,12 +49,13 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
   }
 };
 
-template <typename TInterfaceColor, typename TStripColor = TInterfaceColor> class Ws2812xProtocol : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor, size_t NStripChannels = 3> class Ws2812xProtocol : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
   using SettingsType = Ws2812xProtocolSettings;
+
+  static constexpr size_t StripChannelCount = NStripChannels;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings)
   {
@@ -74,8 +75,7 @@ public:
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
-  static_assert((std::is_same_v<typename StripColorType::ComponentType, uint8_t> || std::is_same_v<typename StripColorType::ComponentType, uint16_t>), "Ws2812xProtocol strip color supports uint8_t or uint16_t components.");
-  static_assert(StripColorType::ChannelCount >= 3 && StripColorType::ChannelCount <= 4, "Ws2812xProtocol strip color expects 3 or 4 channels.");
+  static_assert(StripChannelCount >= 3 && StripChannelCount <= 4, "Ws2812xProtocol strip expects 3 or 4 channels.");
 
   Ws2812xProtocol(PixelCount pixelCount, SettingsType settings)
       : IProtocol<InterfaceColorType>(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)},
@@ -169,38 +169,21 @@ private:
       return ChannelOrder::GRB::length;
     }
 
-    return std::min(requestedCount, std::min(InterfaceColorType::ChannelCount, StripColorType::ChannelCount));
+    return std::min(requestedCount, std::min(InterfaceColorType::ChannelCount, StripChannelCount));
   }
 
-  static constexpr size_t bytesNeeded(size_t pixelCount, size_t channelCount) { return pixelCount * channelCount * sizeof(typename StripColorType::ComponentType); }
+  static constexpr size_t bytesNeeded(size_t pixelCount, size_t channelCount) { return pixelCount * channelCount; }
 
   static constexpr void appendWireComponent(span<uint8_t> pixels, size_t& offset, typename InterfaceColorType::ComponentType value)
   {
-    if constexpr (std::is_same_v<typename StripColorType::ComponentType, uint8_t>)
-    {
-      if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
-      {
-        pixels[offset++] = value;
-      }
-      else
-      {
-        pixels[offset++] = static_cast<uint8_t>(value >> 8);
-      }
-      return;
-    }
-
-    uint16_t encoded = 0;
     if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
     {
-      encoded = static_cast<uint16_t>((static_cast<uint16_t>(value) << 8) | static_cast<uint16_t>(value));
+      pixels[offset++] = value;
     }
     else
     {
-      encoded = static_cast<uint16_t>(value);
+      pixels[offset++] = static_cast<uint8_t>(value >> 8);
     }
-
-    pixels[offset++] = static_cast<uint8_t>(encoded >> 8);
-    pixels[offset++] = static_cast<uint8_t>(encoded & 0xFF);
   }
 
   void serialize(span<uint8_t> pixels, span<const InterfaceColorType> colors)

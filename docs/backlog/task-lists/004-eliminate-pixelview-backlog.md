@@ -1,6 +1,6 @@
 # Eliminate PixelView Backlog
 
-Purpose: Replace `PixelView<TColor>` with `span<TColor>` as the buffer-access mechanism in the bus interface and simple bus implementations. `PixelView` is retained only as an internal implementation detail for aggregate/composite bus composition. The result is a simpler core contract, less memory overhead in simple buses, and a clearer separation between contiguous (simple) and composed (aggregate) buses.
+Purpose: Replace `PixelView<TColor>` with `span<TColor>` as the buffer-access mechanism in the bus interface and all bus implementations. `PixelView` is eliminated entirely — aggregate/composite buses receive an externally-managed contiguous buffer via `span<TColor>` instead of internally composing child chunks. A new `ExternalBus<TColor>` type is introduced that externalizes color-buffer management entirely: it wraps a caller-provided `span<TColor>`, owns no storage, and delegates buffer lifetime to the caller. Consumers of aggregate/composite buses use `ExternalBus` (or manage buffers directly) and are responsible for allocating the buffer and managing child ordering. The result is a simpler core contract, less memory overhead, and complete removal of `PixelView` from the codebase.
 
 Status legend:
 - `todo`: not started
@@ -32,16 +32,22 @@ For aggregate/composite buses, the PixelView chunk mechanism is essential — th
 
 - `IPixelBus<TColor>::pixels()` returns `span<TColor>` instead of `PixelView<TColor>&`
 - Simple bus implementations store a `span<TColor>` member (not `PixelView<TColor>`)
-- `PixelView<TColor>` is removed from the public API surface
-- `PixelView` is retained as an **internal-only** type in aggregate/composite bus headers for chunked composition
+- `PixelView<TColor>` is **completely eliminated** — no internal retention, no header moved, just deleted
+- New `ExternalBus<TColor>` type is introduced: an `IPixelBus` implementation that wraps a caller-provided `span<TColor>` and owns no storage
+  - Constructor accepts `span<TColor>`; caller manages buffer allocation and lifetime
+  - `pixels()` returns the span directly — zero overhead, no indirection
+  - Serves as the building block for aggregate/composite bus children and any scenario requiring external buffer ownership
+  - Header: `src/buses/ExternalBus.h`; re-exported via `LumaWave.h`
 - `fillPixels` and `fillPixelsIndexed` are reworked to accept `span<TColor>` (or replaced with range-based alternatives)
-- Aggregate/composite buses switch from zero-copy chunk collection to a **contiguous staging buffer** strategy:
-  - Aggregate/Composite bus allocates its own contiguous buffer of `TColor`
-  - `pixels()` returns `span<TColor>` pointing to this buffer
-  - `show()` distributes the contiguous buffer contents to each child bus's buffer before calling child `show()`
-- `PixelView` header may be deleted entirely or moved to an internal location
+- Aggregate/composite buses use an **externally-managed contiguous buffer** strategy:
+  - Aggregate/Composite bus does **not** own its pixel buffer; it receives `span<TColor>` from the caller
+  - The caller (consumer) is responsible for allocating a contiguous buffer of `TColor` sized to total child pixels
+  - The caller manages child ordering by deciding how to populate the buffer before passing it to the aggregate/composite bus
+  - `pixels()` returns `span<TColor>` pointing to the externally-provided buffer
+  - `show()` distributes the buffer contents to each child bus's buffer before calling child `show()`
+- `PixelView` header is **deleted entirely**
 - The `PixelView` alias in `LumaWave.h` is removed
-- `test_core/test_pixel_view/` directory may be deleted (PixelView is no longer a public API)
+- `test_core/test_pixel_view/` directory is **deleted** (PixelView no longer exists)
 
 ## Non-Goals
 
@@ -89,23 +95,58 @@ For aggregate/composite buses, the PixelView chunk mechanism is essential — th
 - [ ] **`P2d2`** — Update constructor: `_pixelSpan(makePixelChunk(...))`.
 - [ ] **`P2d3`** — Update `pixels()` override.
 
+#### 2e — New: `ExternalBus.h` (external buffer ownership)
+
+A new bus type that externalizes color-buffer management entirely. Unlike all existing buses which own their pixel storage, `ExternalBus<TColor>` wraps a caller-provided `span<TColor>` and owns **no** storage. The caller controls allocation, layout, and lifetime. This is the foundational building block for the aggregate/composite external-buffer strategy and any scenario where the consumer wants full control over the pixel buffer.
+
+- [ ] **`P2e1`** — Create `src/buses/ExternalBus.h`.
+  - Template: `template <typename TColor> class ExternalBus : public IPixelBus<TColor>`.
+  - No protocol/transport dependency — pure buffer wrapper (follows `ReferenceBus` pattern).
+  - Members: `span<TColor> _pixelSpan`.
+- [ ] **`P2e2`** — Constructor: `explicit ExternalBus(span<TColor> buffer)`.
+  - Stores `_pixelSpan = buffer`.
+  - Caller is responsible for buffer lifetime and initial contents.
+- [ ] **`P2e3`** — Implement `pixels()` override — returns `_pixelSpan` (simple `span<TColor>&`).
+- [ ] **`P2e4`** — Implement `size()` override — returns `_pixelSpan.size()`.
+- [ ] **`P2e5`** — Implement remaining `IPixelBus` pure virtuals with sensible defaults:
+  - `show()`: no-op (no protocol/transport; caller handles output separately).
+  - `begin()`: no-op.
+  - `isReadyToUpdate()`: returns `true`.
+  - `setBrightness(uint8_t)`: stores value, no-op otherwise.
+  - `brightness()`: returns stored value.
+- [ ] **`P2e6`** — Add `#include "buses/ExternalBus.h"` to `LumaWave.h`.
+- [ ] **`P2e7`** — Add `using ExternalBus = lw::ExternalBus<TColor>;` alias (or unqualified re-export) in `LumaWave.h` if project conventions call for it.
+- [ ] **`P2e8`** — Add `ExternalBus.h` to `CMakeLists.txt` header list.
+
 ### Phase 3 — Aggregate/Composite bus rework
+
+#### Design decision — External buffer management
+
+Aggregate/composite buses will **not** own their pixel buffer. Instead, the consumer (caller) provides an externally-allocated contiguous `span<TColor>` via an additional constructor parameter or setter. This enables complete elimination of `PixelView`: there is no internal chunk composition, no lookup table, no multi-mode dispatch. The consumer is responsible for:
+
+1. Allocating a contiguous buffer of `TColor` sized to the total pixel count across all child buses.
+2. Managing child ordering — the consumer decides which regions of the buffer map to which child bus.
+3. Ensuring the buffer outlives the aggregate/composite bus instance.
+
+The aggregate/composite bus stores only a `span<TColor>` (pointing to the external buffer) and child span references for `show()` distribution.
 
 #### 3a — `AggregateBus.h` / `ReferenceAggregateBus.h`
 
-The aggregate bus currently collects child `PixelView` chunks into its own `PixelView`. With child buses returning `span<TColor>`, we switch to a contiguous staging buffer strategy.
+The aggregate bus currently collects child `PixelView` chunks into its own `PixelView`. With child buses returning `span<TColor>` and external buffer management, `PixelView` is completely eliminated.
 
 - [ ] **`P3a1`** — Remove `PixelView`-based `collectAggregateChunks` helper.
-- [ ] **`P3a2`** — Add a contiguous `std::vector<TColor> _stagingBuffer` member sized to total child pixel count.
-- [ ] **`P3a3`** — Replace `PixelView<TColor> _pixels` with `span<TColor> _pixelSpan` pointing to `_stagingBuffer`.
-- [ ] **`P3a4`** — In constructor: iterate child buses, sum their pixel counts, allocate `_stagingBuffer`, set `_pixelSpan`. Optionally capture child span pointers for `show()` distribution.
-- [ ] **`P3a5`** — Rework `pixels()` override — returns `_pixelSpan` (simple `span<TColor>&`).
-- [ ] **`P3a6`** — Rework `show()`: before delegating to child `show()`, distribute the staging buffer contents back to each child bus's buffer.
-  - For each child, copy `_stagingBuffer[offset..offset+childSize]` → `child->pixels()`.
-  - Then call `child->show()`.
+- [ ] **`P3a2`** — Remove `_pixelChunks` vector (no longer needed).
+- [ ] **`P3a3`** — Remove `using ChunkType` typedef (no longer needed).
+- [ ] **`P3a4`** — Replace `PixelView<TColor> _pixels` with `span<TColor> _pixelSpan`.
+- [ ] **`P3a5`** — Add constructor parameter: `span<TColor> externalBuffer` — the caller provides the contiguous buffer. Store as `_pixelSpan`.
+  - Constructor validates that `externalBuffer.size() == totalChildPixelCount` (sum of child `size()`).
+  - Store `std::vector<span<TColor>> _childSpans` populated from each child's `pixels()` for use in `show()`.
+- [ ] **`P3a6`** — Rework `pixels()` override — returns `_pixelSpan` (simple `span<TColor>&`).
+- [ ] **`P3a7`** — Rework `show()`: before delegating to child `show()`, distribute the external buffer contents back to each child bus's buffer.
+  - For each child at index `i`, copy `_pixelSpan[offset..offset+childSize]` → `_childSpans[i]`.
+  - Then call `child->show()` for each child.
   - This is O(n) copy on `show()`, which is the trade-off for eliminating `PixelView` complexity.
-- [ ] **`P3a7`** — Remove `_pixelChunks` vector (no longer needed).
-- [ ] **`P3a8`** — Remove `using ChunkType` typedef (no longer needed).
+- [ ] **`P3a8`** — Remove `#include "core/PixelView.h"` from aggregate bus headers.
 
 #### 3b — `CompositeBus.h`
 
@@ -113,13 +154,14 @@ Same strategy as `AggregateBus`, but with tuple-based child storage.
 
 - [ ] **`P3b1`** — Remove `collectChunks()` static method.
 - [ ] **`P3b2`** — Remove `_pixelChunks` vector member.
-- [ ] **`P3b3`** — Add `std::vector<ColorType> _stagingBuffer` member.
+- [ ] **`P3b3`** — Remove `ChunkType` typedef.
 - [ ] **`P3b4`** — Replace `PixelView<ColorType> _pixels` with `span<ColorType> _pixelSpan`.
-- [ ] **`P3b5`** — In constructor: sum child pixel counts, allocate `_stagingBuffer`, set `_pixelSpan`. Capture child span references for `show()`.
+- [ ] **`P3b5`** — Add constructor parameter: `span<ColorType> externalBuffer` — the caller provides the contiguous buffer.
+  - Constructor validates `externalBuffer.size() == sum of child pixel counts`.
   - Store `std::array<span<ColorType>, sizeof...(TBuses)> _childSpans` populated via `std::get<Indices>(_buses).pixels()`.
-- [ ] **`P3b6`** — Rework `pixels()` override.
-- [ ] **`P3b7`** — Rework `show()`: distribute staging buffer → child spans, then call child `show()`.
-- [ ] **`P3b8`** — Remove `ChunkType` typedef.
+- [ ] **`P3b6`** — Rework `pixels()` override — returns `_pixelSpan`.
+- [ ] **`P3b7`** — Rework `show()`: distribute external buffer → child spans, then call child `show()` for each child.
+- [ ] **`P3b8`** — Remove `#include "core/PixelView.h"` from composite bus headers.
 
 ### Phase 4 — Public surface (`LumaWave.h`)
 
@@ -136,18 +178,17 @@ Same strategy as `AggregateBus`, but with tuple-based child storage.
 
 ### Phase 6 — `PixelView.h` cleanup
 
-- [ ] **`P6a`** — Decide fate of `PixelView.h`:
-  - **Option A**: Delete entirely if no code references it after Phase 5.
-  - **Option B**: Move to `src/busses/internal/PixelView.h` if aggregate/composite buses need it internally for chunked operations.
-  - **Option C**: Keep in `src/core/` but mark as internal/deprecated (not recommended — adds confusion).
-- [ ] **`P6b`** — If retained internally, remove the `PixelView` alias from `Core.h`.
+With external buffer management in aggregate/composite buses, `PixelView` is no longer needed anywhere.
+
+- [ ] **`P6a`** — Delete `src/core/PixelView.h` entirely.
+- [ ] **`P6b`** — Remove `#include "core/PixelView.h"` from `Core.h`.
 
 ### Phase 7 — Tests
 
 #### 7a — `test_core/test_pixel_view/`
 
-- [ ] **`P7a1`** — If `PixelView` is removed entirely, delete `test/core/test_pixel_view/` directory and remove from `test/CMakeLists.txt`.
-- [ ] **`P7a2`** — If retained internally, move these tests to an internal test location.
+- [ ] **`P7a1`** — Delete `test/core/test_pixel_view/` directory and remove from `test/CMakeLists.txt`.
+  - `PixelView` is completely eliminated; these tests are obsolete.
 
 #### 7b — Bus test stubs
 
@@ -159,11 +200,23 @@ Update all bus test stub implementations that override `pixels()`:
 - [ ] **`P7b4`** — `test/busses/test_reference_light_bus/test_main.cpp`: if any stub overrides `pixels()`.
 - [ ] **`P7b5`** — `test/contracts/test_disable_template_combinatorial_types_compile/test_main.cpp`: update stub.
 
+#### 7b2 — `test_busses/test_external_bus/` (new)
+
+- [ ] **`P7b6`** — Create `test/busses/test_external_bus/` directory with `test_main.cpp` and `CMakeLists.txt`.
+- [ ] **`P7b7`** — Test: constructor accepts `span<TColor>` and `pixels()` returns the same span.
+- [ ] **`P7b8`** — Test: writes through `pixels()` are visible in the original caller buffer (zero-copy).
+- [ ] **`P7b9`** — Test: `size()` matches the span extent.
+- [ ] **`P7b10`** — Test: `ExternalBus` satisfies `IPixelBus<TColor>` contract (compile-time check).
+- [ ] **`P7b11`** — Test: buffer outlives bus — caller controls lifetime; no double-free or dangling reference.
+- [ ] **`P7b12`** — Register `test_external_bus` in `test/CMakeLists.txt`.
+
 #### 7c — Bus behavior tests
 
-- [ ] **`P7c1`** — `test/busses/test_aggregate_bus/test_main.cpp`: update aggregate bus tests to work with span-based API and new staging-buffer `show()` semantics.
+- [ ] **`P7c1`** — `test/busses/test_aggregate_bus/test_main.cpp`: update aggregate bus tests for external buffer management.
+  - Tests must allocate an external contiguous buffer and pass it to the aggregate bus constructor.
   - After writing to `aggregate.pixels()`, `show()` must be called to distribute to children.
   - Verify child pixel buffers are updated after `show()`.
+  - Verify that child ordering is determined by the test's buffer layout, not by the aggregate bus.
 - [ ] **`P7c2`** — `test/busses/test_composite_bus/test_main.cpp`: same as P7c1.
 - [ ] **`P7c3`** — All other bus tests: update `auto& pixels = bus.pixels()` → now returns `span<TColor>&` (API-compatible pattern, just different type).
 - [ ] **`P7c4`** — Update `test/CMakeLists.txt` to reflect any test directory deletions/renames.
