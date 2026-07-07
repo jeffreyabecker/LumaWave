@@ -260,14 +260,14 @@ void test_1_14_1_constructor_equivalence_and_1_14_3_serialization_for_8_16_bit(v
   }
 
   {
-    lw::protocols::Ws2812xProtocol<lw::Rgbw16Color, 3> protocolMixed(1, lw::protocols::Ws2812xProtocolSettings{{}, lw::ChannelOrder::RGB::value});
+    lw::protocols::Ws2812xProtocol<lw::Rgbw16Color> protocolMixed(1, lw::protocols::Ws2812xProtocolSettings{{}, lw::ChannelOrder::RGB::value});
     auto protocolBuffer = bind_protocol_buffer(protocolMixed);
     protocolMixed.update(std::array<lw::Rgbw16Color, 1>{lw::Rgbw16Color{0x12AB, 0x34CD, 0x56EF}}, as_span(protocolBuffer));
     assert_bytes_equal(protocolBuffer, encode_ws2812x_payload(std::vector<uint8_t>{0x12, 0x34, 0x56}));
   }
 
   {
-    lw::protocols::Ws2812xProtocol<lw::Rgbw8Color, 3> protocolMixed(1, lw::protocols::Ws2812xProtocolSettings{{}, lw::ChannelOrder::RGB::value});
+    lw::protocols::Ws2812xProtocol<lw::Rgbw8Color> protocolMixed(1, lw::protocols::Ws2812xProtocolSettings{{}, lw::ChannelOrder::RGB::value});
     auto protocolBuffer = bind_protocol_buffer(protocolMixed);
     protocolMixed.update(std::array<lw::Rgbw8Color, 1>{lw::Rgbw8Color{0x12, 0x34, 0x56}}, as_span(protocolBuffer));
     assert_bytes_equal(protocolBuffer, encode_ws2812x_payload(std::vector<uint8_t>{0x12, 0x12, 0x34, 0x34, 0x56, 0x56}));

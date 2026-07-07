@@ -123,7 +123,7 @@ using HD108 = lw::protocols::Hd108<lw::Rgbw16Color, lw::ChannelOrder::BGR>;
 using Lpd6803 = lw::protocols::Lpd6803ProtocolT<lw::Rgbw8Color>;
 using Sm16716 = lw::protocols::Sm16716ProtocolT<lw::Rgbw8Color>;
 
-template <typename TInterfaceColor = lw::Rgbw8Color, typename TStripColor = lw::Rgbw8Color> using Ws2801x = lw::protocols::Ws2801ProtocolT<TInterfaceColor, TStripColor>;
+template <typename TInterfaceColor = lw::Rgbw8Color> using Ws2801x = lw::protocols::Ws2801ProtocolT<TInterfaceColor>;
 
 using Ws2801 = Ws2801x<>;
 

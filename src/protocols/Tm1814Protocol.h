@@ -45,7 +45,6 @@ template <typename TInterfaceColor = Rgbw8Color> class Tm1814ProtocolT : public 
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = Rgbw8Color;
   using SettingsType = Tm1814ProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),

@@ -34,7 +34,7 @@ namespace ChannelOrder
 namespace detail
 {
 
-  inline const char* normalizeChannelOrder(const char* providedChannelOrder, const char* defaultChannelOrder)
+  inline constexpr const char* normalizeChannelOrder(const char* providedChannelOrder, const char* defaultChannelOrder)
   {
     if (providedChannelOrder == nullptr || providedChannelOrder[0] == '\0')
     {

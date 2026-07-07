@@ -22,16 +22,14 @@ struct Ws2801ProtocolSettings : public ProtocolSettings
 // No start or end frame.
 // Latch: 500 ?s clock-low after last byte.
 //
-template <typename TInterfaceColor = Rgbw8Color, typename TStripColor = TInterfaceColor> class Ws2801ProtocolT : public IProtocol<TInterfaceColor>
+template <typename TInterfaceColor = Rgbw8Color> class Ws2801ProtocolT : public IProtocol<TInterfaceColor>
 {
 public:
   using InterfaceColorType = TInterfaceColor;
-  using StripColorType = TStripColor;
   using SettingsType = Ws2801ProtocolSettings;
 
   static_assert((std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t> || std::is_same_v<typename InterfaceColorType::ComponentType, uint16_t>),
                 "Ws2801Protocol requires uint8_t or uint16_t interface components.");
-  static_assert((std::is_same_v<typename StripColorType::ComponentType, uint8_t> || std::is_same_v<typename StripColorType::ComponentType, uint16_t>), "Ws2801Protocol requires uint8_t or uint16_t strip components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 
@@ -48,7 +46,6 @@ public:
 
     _byteBuffer = span<uint8_t>{buffer.data(), _requiredBufferSize};
 
-    // Serialize: raw 3-byte channel data in configured order
     size_t offset = 0;
     const size_t pixelLimit = std::min(colors.size(), static_cast<size_t>(this->pixelCount()));
     for (size_t index = 0; index < pixelLimit; ++index)
@@ -56,8 +53,7 @@ public:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < BytesPerPixel; ++channel)
       {
-        const auto component = color[_settings.channelOrder[channel]];
-        _byteBuffer[offset++] = toWireComponent8(toStripComponent(component));
+        _byteBuffer[offset++] = toWireByte(color[_settings.channelOrder[channel]]);
       }
     }
   }
@@ -71,24 +67,9 @@ public:
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::RGB::length;
 
-  static constexpr typename StripColorType::ComponentType toStripComponent(typename InterfaceColorType::ComponentType value)
+  static constexpr uint8_t toWireByte(typename InterfaceColorType::ComponentType value)
   {
-    if constexpr (std::is_same_v<typename StripColorType::ComponentType, typename InterfaceColorType::ComponentType>)
-    {
-      return value;
-    }
-
-    if constexpr (std::is_same_v<typename StripColorType::ComponentType, uint8_t>)
-    {
-      return static_cast<uint8_t>(value >> 8);
-    }
-
-    return static_cast<uint16_t>((static_cast<uint16_t>(value) << 8) | static_cast<uint16_t>(value));
-  }
-
-  static constexpr uint8_t toWireComponent8(typename StripColorType::ComponentType value)
-  {
-    if constexpr (std::is_same_v<typename StripColorType::ComponentType, uint8_t>)
+    if constexpr (std::is_same_v<typename InterfaceColorType::ComponentType, uint8_t>)
     {
       return value;
     }
