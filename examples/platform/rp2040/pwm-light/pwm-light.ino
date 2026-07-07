@@ -14,7 +14,7 @@ API assumptions: Uses direct `LightBus<Color, RpPwmLightDriver>` construction.
 
 namespace
 {
-using ColorType = lw::Rgb8Color;
+using ColorType = lw::Rgbw8Color;
 using DriverType = lw::transports::rp2040::RpPwmLightDriver<ColorType>;
 using LightType = lw::busses::LightBus<ColorType, DriverType>;
 

@@ -7,7 +7,7 @@ When a suitable global alias is not available, examples intentionally use fully 
 
 - `hello/ws2812/ws2812.ino`: Basic one-wire strip animation.
 - `hello/apa102/apa102.ino`: Basic SPI/DotStar strip animation.
-- `hello/light/light.ino`: Single-light RGBCW16 output with platform-default light driver.
+- `hello/light/light.ino`: Single-light RGBW16 output with platform-default light driver.
 
 ## Strip Composition
 

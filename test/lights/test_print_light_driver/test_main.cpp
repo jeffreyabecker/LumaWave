@@ -25,7 +25,7 @@ class MockWritable
     std::vector<uint8_t> bytes{};
 };
 
-using TestColor = lw::Rgb8Color;
+using TestColor = lw::Rgbw8Color;
 using TestSettings = lw::transports::PrintLightDriverSettingsT<MockWritable>;
 using TestDriver = lw::transports::PrintLightDriverT<TestColor, MockWritable>;
 

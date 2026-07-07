@@ -9,7 +9,7 @@
 
 namespace
 {
-using Color = lw::Rgb8Color;
+using Color = lw::Rgbw8Color;
 
 void test_default_constructed_view_is_empty(void)
 {

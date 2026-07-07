@@ -204,7 +204,7 @@ namespace detail::palettegen
   }
 } // namespace detail::palettegen
 
-template <typename TColor, RequireColorChannelsInRange<TColor, 3, 5> = 0> class RainbowPaletteGenerator : public IPalette<TColor>
+template <typename TColor> class RainbowPaletteGenerator : public IPalette<TColor>
 {
 public:
   using ComponentType = typename TColor::ComponentType;
@@ -330,7 +330,7 @@ private:
   ComponentType _hueOffset{0};
 };
 
-template <typename TColor, RequireColorChannelsInRange<TColor, 3, 5> = 0> class TemporalRainbowPaletteGenerator : public IPalette<TColor>
+template <typename TColor> class TemporalRainbowPaletteGenerator : public IPalette<TColor>
 {
 public:
   using SettingsView = typename IPalette<TColor>::SettingsView;

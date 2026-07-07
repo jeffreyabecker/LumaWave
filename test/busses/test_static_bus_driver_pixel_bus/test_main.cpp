@@ -12,7 +12,7 @@
 
 namespace
 {
-using TestColor = lw::Rgb8Color;
+using TestColor = lw::Rgbw8Color;
 
 struct MockProtocolSettings : public lw::protocols::ProtocolSettings
 {

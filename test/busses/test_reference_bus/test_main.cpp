@@ -12,7 +12,7 @@
 
 namespace
 {
-using TestColor = lw::Rgb8Color;
+using TestColor = lw::Rgbw8Color;
 
 class CaptureProtocol : public lw::protocols::IProtocol<TestColor>
 {
@@ -74,11 +74,12 @@ public:
 
 int CaptureTransport::destructorCount = 0;
 
-struct OwnedColor
+struct OwnedColor : lw::Rgbw8Color
 {
   static int destructorCount;
 
   OwnedColor() = default;
+  using lw::Rgbw8Color::Rgbw8Color;
 
   ~OwnedColor() { ++destructorCount; }
 };

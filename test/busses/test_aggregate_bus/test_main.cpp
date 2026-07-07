@@ -9,7 +9,7 @@
 
 namespace
 {
-using TestColor = lw::Rgb8Color;
+using TestColor = lw::Rgbw8Color;
 
 class StubBus : public lw::IPixelBus<TestColor>
 {
