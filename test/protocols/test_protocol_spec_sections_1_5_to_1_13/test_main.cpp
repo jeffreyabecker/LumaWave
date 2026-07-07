@@ -207,7 +207,7 @@ void test_1_8_4_sm168x_oversized_and_order_safety(void)
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Rgbw8Color, 1>{lw::Rgbw8Color{11, 12, 13, 14}}, as_span(protocolBuffer));
 
-        TEST_ASSERT_EQUAL_UINT32(5U, static_cast<uint32_t>(protocolBuffer.size()));
+    TEST_ASSERT_EQUAL_UINT32(5U, static_cast<uint32_t>(protocolBuffer.size()));
   }
 }
 

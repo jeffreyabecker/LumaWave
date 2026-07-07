@@ -16,7 +16,7 @@ struct Apa102ProtocolSettings : public ProtocolSettings
 
   template <typename TColor> static Apa102ProtocolSettings normalizeForColor(Apa102ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::BGR::value)
   {
-    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, static_cast<size_t>(TColor::ChannelCount));
+    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, 4);
     return settings;
   }
 };
@@ -27,7 +27,7 @@ struct Hd108ProtocolSettings : public ProtocolSettings
 
   template <typename TColor> static Hd108ProtocolSettings normalizeForColor(Hd108ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::BGR::value)
   {
-    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, static_cast<size_t>(TColor::ChannelCount));
+    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, 4);
     return settings;
   }
 };

@@ -30,7 +30,7 @@ struct Tm1914ProtocolSettings : public ProtocolSettings
 
   template <typename TColor> static Tm1914ProtocolSettings normalizeForColor(Tm1914ProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::GRB::value)
   {
-    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, static_cast<size_t>(TColor::ChannelCount));
+    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, 4);
     return settings;
   }
 

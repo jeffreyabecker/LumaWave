@@ -205,7 +205,7 @@ private:
 
   size_t activeChannelCount() const
   {
-    const size_t colorChannels = static_cast<size_t>(ColorType::ChannelCount);
+    const size_t colorChannels = 4;
     const size_t configuredPins = _settings.pins.size();
 
     size_t count = (colorChannels < configuredPins) ? colorChannels : configuredPins;

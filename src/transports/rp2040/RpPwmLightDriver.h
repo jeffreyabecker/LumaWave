@@ -62,7 +62,7 @@ public:
       return;
     }
 
-    for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
+    for (size_t channel = 0; channel < 4 && channel < _settings.pins.size(); ++channel)
     {
       const int pin = _settings.pins[channel];
       if (pin >= 0)
@@ -81,7 +81,7 @@ public:
 
     std::array<bool, NUM_PWM_SLICES> initializedSlices{};
 
-    for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
+    for (size_t channel = 0; channel < 4 && channel < _settings.pins.size(); ++channel)
     {
       const int pin = _settings.pins[channel];
       if (pin < 0)
@@ -130,7 +130,7 @@ public:
     const WideType componentMax = static_cast<WideType>(std::numeric_limits<ComponentType>::max());
     const WideType wrap = static_cast<WideType>(_settings.wrap);
 
-    for (size_t channel = 0; channel < ColorType::ChannelCount && channel < _settings.pins.size(); ++channel)
+    for (size_t channel = 0; channel < 4 && channel < _settings.pins.size(); ++channel)
     {
       const int pin = _settings.pins[channel];
       if (pin < 0)

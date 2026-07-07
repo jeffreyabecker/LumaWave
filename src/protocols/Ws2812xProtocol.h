@@ -27,7 +27,7 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
 
   template <typename TColor> static Ws2812xProtocolSettings normalizeForColor(Ws2812xProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::GRB::value)
   {
-    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, static_cast<size_t>(TColor::ChannelCount));
+    settings.channelOrder = lw::detail::normalizeChannelOrderForCount(settings.channelOrder, defaultChannelOrder, 4);
     return settings;
   }
 
@@ -166,7 +166,7 @@ private:
       return ChannelOrder::GRB::length;
     }
 
-    return std::min(requestedCount, InterfaceColorType::ChannelCount);
+    return std::min(requestedCount, size_t{4});
   }
 
   static constexpr void appendWireComponent(span<uint8_t> pixels, size_t& offset, typename InterfaceColorType::ComponentType value)

@@ -21,7 +21,6 @@ template <typename TComponent = uint8_t> class RgbwColor
 public:
   using ComponentType = TComponent;
 
-  static constexpr size_t ChannelCount = 4;
   static constexpr TComponent MaxComponent = std::numeric_limits<TComponent>::max();
 
   constexpr RgbwColor() = default;

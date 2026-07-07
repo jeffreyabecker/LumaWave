@@ -64,7 +64,7 @@ private:
       return ChannelOrder::RGB::length;
     }
 
-    return std::min(std::char_traits<char>::length(channelOrder), InterfaceColorType::ChannelCount);
+    return std::min(std::char_traits<char>::length(channelOrder), size_t{4});
   }
 
   static constexpr uint8_t maxGain() { return 0x0f; }
