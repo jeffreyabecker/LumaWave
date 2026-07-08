@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <cstddef>
 #include <limits>
@@ -19,7 +20,10 @@ class ProtocolTransportPipeline : public IOutputPipeline
 public:
   using BrightnessType = IOutputPipeline::BrightnessType;
 
-  ProtocolTransportPipeline(protocols::IProtocol& protocol, transports::ITransport& transport) : _protocol(protocol), _transport(transport) {}
+  ProtocolTransportPipeline(protocols::IProtocol& protocol, transports::ITransport& transport, span<uint8_t> protocolBuffer, span<lw::colors::Color> scratchPixels)
+      : _protocol(protocol), _transport(transport), _protocolBuffer(protocolBuffer), _scratchPixels(scratchPixels)
+  {
+  }
 
   void begin() override
   {
@@ -45,29 +49,17 @@ public:
       return;
     }
 
-    if (_protocolBuffer.size() != requiredSize)
-    {
-      _protocolBuffer.assign(requiredSize, 0);
-    }
+    assert(_protocolBuffer.size() >= requiredSize);
 
     const bool applyBrightness = (brightness != std::numeric_limits<BrightnessType>::max());
 
     if (applyBrightness)
     {
-      // On-the-fly brightness: apply per-channel inline during encoding pass.
-      // Use a single-element reuse buffer to avoid full-frame scratch allocation.
-      if (_scratchPixel.empty())
-      {
-        _scratchPixel.resize(colors.size());
-      }
-      else if (_scratchPixel.size() != colors.size())
-      {
-        _scratchPixel.assign(colors.size(), lw::colors::Color{});
-      }
+      assert(!_scratchPixels.empty() && _scratchPixels.size() >= colors.size());
 
       for (size_t i = 0; i < colors.size(); ++i)
       {
-        auto& dst = _scratchPixel[i];
+        auto& dst = _scratchPixels[i];
         dst = colors[i];
 
         for (char channel : {'R', 'G', 'B', 'W'})
@@ -76,25 +68,23 @@ public:
         }
       }
 
-      span<uint8_t> protocolBytes{_protocolBuffer.data(), _protocolBuffer.size()};
-      _protocol.update(span<const lw::colors::Color>{_scratchPixel.data(), _scratchPixel.size()}, protocolBytes);
+      _protocol.update(span<const lw::colors::Color>{_scratchPixels.data(), colors.size()}, _protocolBuffer);
     }
     else
     {
-      span<uint8_t> protocolBytes{_protocolBuffer.data(), _protocolBuffer.size()};
-      _protocol.update(colors, protocolBytes);
+      _protocol.update(colors, _protocolBuffer);
     }
 
     _transport.beginTransaction();
-    _transport.transmitBytes(span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()});
+    _transport.transmitBytes(_protocolBuffer);
     _transport.endTransaction();
   }
 
 private:
   protocols::IProtocol& _protocol;
   transports::ITransport& _transport;
-  std::vector<uint8_t> _protocolBuffer;
-  std::vector<lw::colors::Color> _scratchPixel;
+  span<uint8_t> _protocolBuffer;
+  span<lw::colors::Color> _scratchPixels;
 };
 
 } // namespace lw::buses
