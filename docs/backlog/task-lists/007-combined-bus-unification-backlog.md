@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-4 complete.** All old bus types deleted. `IOutputPipeline` seam in `src/core/`. `IPixelBus::pixels()` returns `span<Color>&`. All 6 light drivers migrated to `IOutputPipeline` directly. `ILightDriver` and its supporting types deleted. `ProtocolTransportPipeline` created with on-the-fly brightness. Phases 5+ pending.
+**Phases 1-7 complete.** All old bus types deleted. `IOutputPipeline` seam in `src/core/`. `IPixelBus::pixels()` returns `span<Color>&`. All 6 light drivers migrated to `IOutputPipeline`. `ProtocolTransportPipeline` created. `Bus` class created with `PipelineRun` multi-run support. `AggregateBus.h` deleted. `Busses.h` updated. Phases 8+ pending.
 
 ## Motivation
 
@@ -256,24 +256,24 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
   - Call `_transport->beginTransaction()`, `_transport->transmitBytes(byteBuffer)`, `_transport->endTransaction()`.
 - [x] **`P4g`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
 
-### Phase 5 — Create unified `Bus` class
+### Phase 5 — Create unified `Bus` class — ✅ DONE
 
-- [ ] **`P5a`** — Create `src/buses/Bus.h`. Non-templated class implementing `IPixelBus`.
-- [ ] **`P5b`** — Define `PipelineRun` struct: `std::unique_ptr<IOutputPipeline> pipeline` + `size_t length`.
-- [ ] **`P5c`** — Constructor: `Bus(span<Color> pixelStorage, std::initializer_list<PipelineRun> runs)`. Validates sum of `length` fields equals `pixelStorage.size()`. Stores span + vector of runs.
-- [ ] **`P5d`** — Members: `span<Color> _pixels`, `std::vector<PipelineRun> _runs`, `BrightnessType _brightness{max}`, `bool _dirty{true}`.
-- [ ] **`P5e`** — `pixels()` returns `_pixels`. Mutable access marks dirty.
-- [ ] **`P5f`** — `show()`: check dirty, iterate `_runs`, pass each pipeline its sub-view `span{_pixels.data() + offset, run.length}`. Zero-copy — sub-view spans point directly into caller buffer.
-- [ ] **`P5g`** — `begin()` → each `run.pipeline->begin()`, `isReadyToUpdate()` → all pipelines ready, `setBrightness()`/`brightness()` trivial getter/setter.
-- [ ] **`P5h`** — Accessor: `const std::vector<PipelineRun>& runs()`.
+- [x] **`P5a`** — Create `src/buses/Bus.h`. Non-templated class implementing `IPixelBus`.
+- [x] **`P5b`** — Define `PipelineRun` struct: `std::unique_ptr<IOutputPipeline> pipeline` + `size_t length`.
+- [x] **`P5c`** — Constructor: `Bus(span<Color> pixelStorage, std::initializer_list<PipelineRun> runs)`. Validates sum of `length` fields equals `pixelStorage.size()`. Stores span + vector of runs.
+- [x] **`P5d`** — Members: `span<Color> _pixels`, `std::vector<PipelineRun> _runs`, `BrightnessType _brightness{max}`, `bool _dirty{true}`.
+- [x] **`P5e`** — `pixels()` returns `_pixels`. Mutable access marks dirty.
+- [x] **`P5f`** — `show()`: check dirty, iterate `_runs`, pass each pipeline its sub-view `span{_pixels.data() + offset, run.length}`. Zero-copy — sub-view spans point directly into caller buffer.
+- [x] **`P5g`** — `begin()` → each `run.pipeline->begin()`, `isReadyToUpdate()` → all pipelines ready, `setBrightness()`/`brightness()` trivial getter/setter.
+- [x] **`P5h`** — Accessor: `const std::vector<PipelineRun>& runs()`.
 
-### Phase 6 — Delete `AggregateBus.h` entirely
+### Phase 6 — Delete `AggregateBus.h` entirely — ✅ DONE
 
-- [ ] **`P6a`** — Delete `src/buses/AggregateBus.h` (both `ReferenceAggregateBus` and the owning variant). Multi-run `Bus` with sub-view spans replaces all aggregate/composite functionality.
+- [x] **`P6a`** — Delete `src/buses/AggregateBus.h` (both `ReferenceAggregateBus` and the owning variant). Multi-run `Bus` with sub-view spans replaces all aggregate/composite functionality.
 
-### Phase 7 — Update `Busses.h` umbrella include
+### Phase 7 — Update `Busses.h` umbrella include — ✅ DONE
 
-- [ ] **`P7a`** — Update `src/buses/Busses.h`: remove deleted includes, add `ProtocolTransportPipeline.h`, `Bus.h`.
+- [x] **`P7a`** — Update `src/buses/Busses.h`: remove deleted includes, add `ProtocolTransportPipeline.h`, `Bus.h`.
 
 ### Phase 8 — Update public surface (`LumaWave.h`)
 
