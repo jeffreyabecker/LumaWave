@@ -9,30 +9,12 @@
 #ifndef LW_USE_EXPLICIT_NAMESPACES
 
 using pixel_count_t = lw::PixelCount;
-// REMOVED: lw::Color;
-// REMOVED: lw::Color;
 using Color = lw::colors::Color;
-
-using PixelView = lw::PixelView;
 
 using lw::fillPixels;
 using lw::fillPixelsIndexed;
 
-#if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
-template <typename TProtocol, typename TTransport = lw::busses::PlatformDefaultTransport> using Strip = lw::busses::PixelBus<TProtocol, TTransport>;
-#endif
-
-template <typename TDriver = lw::transports::PlatformDefaultLightDriver> using Light = lw::busses::LightBus<TDriver>;
-
-template <typename TColor = lw::colors::Color> using ReferenceLight = lw::busses::ReferenceLightBus;
-
-#if !LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES
-template <typename... TBuses> using CompositeStrip = lw::busses::CompositeBus<TBuses...>;
-#endif
-
-using ReferenceAggregateStrip = lw::busses::ReferenceAggregateBus;
-
-using AggregateStrip = lw::busses::AggregateBus;
+using Bus = lw::busses::Bus;
 
 using Palette = lw::colors::palettes::Palette;
 using IPalette = lw::colors::palettes::IPalette;
@@ -175,18 +157,11 @@ using Tm1809 = Tm1803;
 
 } // namespace Protocols
 
-namespace Driver
-{
-
-template <typename TColor = lw::colors::Color> using PlatformDefault = lw::transports::PlatformDefaultLightDriver;
-
-} // namespace Driver
-
 namespace Transport
 {
 
-using Default = lw::busses::PlatformDefaultTransport;
-using DefaultSettings = lw::busses::PlatformDefaultTransportSettings;
+// Platform-specific transport defaults are selected via make_unique<ProtocolTransportPipeline>(...)
+// or by constructing concrete transports directly.
 
 } // namespace Transport
 

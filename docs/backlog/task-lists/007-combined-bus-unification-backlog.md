@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-7 complete.** All old bus types deleted. `IOutputPipeline` seam in `src/core/`. `IPixelBus::pixels()` returns `span<Color>&`. All 6 light drivers migrated to `IOutputPipeline`. `ProtocolTransportPipeline` created. `Bus` class created with `PipelineRun` multi-run support. `AggregateBus.h` deleted. `Busses.h` updated. Phases 8+ pending.
+**Phases 1-8 complete.** All old bus types deleted. `IOutputPipeline` seam in `src/core/`. `Bus` class with `PipelineRun` multi-run support. `LumaWave.h` updated — old aliases removed, `Bus` exported, `namespace Driver` deleted. `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` removed from `Compat.h`. Phases 9+ pending.
 
 ## Motivation
 
@@ -275,13 +275,13 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 - [x] **`P7a`** — Update `src/buses/Busses.h`: remove deleted includes, add `ProtocolTransportPipeline.h`, `Bus.h`.
 
-### Phase 8 — Update public surface (`LumaWave.h`)
+### Phase 8 — Update public surface (`LumaWave.h`) — ✅ DONE
 
-- [ ] **`P8a`** — Remove aliases: `Strip<TProtocol, TTransport>`, `Light<TDriver>`, `ReferenceLight`, `CompositeStrip<TBuses...>`, `ReferenceAggregateStrip`, `AggregateStrip`, `PixelView`.
-- [ ] **`P8b`** — Export `lw::busses::Bus` into global namespace.
-- [ ] **`P8c`** — Remove `namespace Driver { ... }` block.
-- [ ] **`P8d`** — Remove the `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` conditional compilation guards and all references.
-- [ ] **`P8e`** — Remove dead `TColor` default parameters on `ReferenceLight<>` and `Driver::PlatformDefault<>` aliases (these go away with alias removal anyway).
+- [x] **`P8a`** — Remove aliases: `Strip<TProtocol, TTransport>`, `Light<TDriver>`, `ReferenceLight`, `CompositeStrip<TBuses...>`, `ReferenceAggregateStrip`, `AggregateStrip`, `PixelView`.
+- [x] **`P8b`** — Export `lw::busses::Bus` into global namespace.
+- [x] **`P8c`** — Remove `namespace Driver { ... }` block.
+- [x] **`P8d`** — Remove the `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` conditional compilation guards and all references.
+- [x] **`P8e`** — Remove dead `TColor` default parameters on `ReferenceLight<>` and `Driver::PlatformDefault<>` aliases (these go away with alias removal anyway).
 
 ### Phase 9 — Update `fillPixels` / `fillPixelsIndexed`
 
