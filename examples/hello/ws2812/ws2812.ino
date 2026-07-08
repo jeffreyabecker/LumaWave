@@ -2,33 +2,44 @@
 #include <LumaWave.h>
 
 constexpr pixel_count_t ledCount = 30;
+
+// Caller-owned pixel storage
 lw::Color pixels[30];
-lw::busses::Bus strip(lw::span<lw::Color>{pixels}, {
-    {std::make_unique<lw::busses::ProtocolTransportPipeline>(
-         std::make_unique<Protocols::Ws2812::ProtocolType>(ledCount, Protocols::Ws2812::defaultSettings()),
-         std::make_unique<lw::transports::NilTransport>()), ledCount}
-});
+
+// Caller-owned protocol and transport
+Protocols::Ws2812::ProtocolType ws2812proto(ledCount, Protocols::Ws2812::defaultSettings());
+lw::transports::NilTransport nilTransport;
+
+// Caller-owned buffers
+uint8_t protocolBuffer[4096]; // generous size for 30 WS2812 LEDs
+lw::Color scratchPixels[ledCount];
+
+// Caller-owned pipeline and run array
+lw::busses::ProtocolTransportPipeline pipeline(ws2812proto, nilTransport, protocolBuffer, scratchPixels);
+lw::busses::PipelineRun runs[] = {{&pipeline, ledCount}};
+
+// Bus: non-owning view over caller-managed resources
+lw::busses::Bus strip(lw::span<lw::Color>{pixels}, lw::span<const lw::busses::PipelineRun>{runs});
 uint16_t frame = 0;
 
 void setup()
 {
-    strip.begin();
+  strip.begin();
 }
 
 void loop()
 {
-    auto& pixels = strip.pixels();
-    const size_t count = pixels.size();
-    while (true)
+  auto& pixels = strip.pixels();
+  const size_t count = pixels.size();
+  while (true)
+  {
+
+    for (size_t i = 0; i < count; ++i)
     {
-
-        for (size_t i = 0; i < count; ++i)
-        {
-            pixels[i] = Color(static_cast<uint8_t>((i + frame) & 0x3F), static_cast<uint8_t>((2U * i + frame) & 0x3F),
-                              static_cast<uint8_t>((3U * i + frame) & 0x3F));
-        }
-
-        strip.show();
-        ++frame;
-        delay(20);
+      pixels[i] = Color(static_cast<uint8_t>((i + frame) & 0x3F), static_cast<uint8_t>((2U * i + frame) & 0x3F), static_cast<uint8_t>((3U * i + frame) & 0x3F));
     }
+
+    strip.show();
+    ++frame;
+    delay(20);
+  }

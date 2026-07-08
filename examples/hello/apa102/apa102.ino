@@ -11,15 +11,23 @@ constexpr pixel_count_t ledCount = 60;
 constexpr int clockPin = 18;
 constexpr int dataPin = 23;
 
+// Caller-owned pixel storage
 lw::Color pixels[60];
-lw::busses::Bus strip(lw::span<lw::Color>{pixels}, {
-    {std::make_unique<lw::busses::ProtocolTransportPipeline>(
-         std::make_unique<Protocols::APA102::ProtocolType>(ledCount, Protocols::APA102::defaultSettings()),
-         std::make_unique<lw::transports::SpiTransport>(
-             lw::transports::SpiTransportSettings{{false, 8000000UL, lw::transports::BitOrderMsbFirst,
-                                                    lw::transports::SpiMode0, clockPin, dataPin}})),
-     ledCount}
-});
+
+// Caller-owned protocol and transport
+Protocols::APA102::ProtocolType apa102proto(ledCount, Protocols::APA102::defaultSettings());
+lw::transports::SpiTransport spiTransport(lw::transports::SpiTransportSettings{{false, 8000000UL, lw::transports::BitOrderMsbFirst, lw::transports::SpiMode0, clockPin, dataPin}});
+
+// Caller-owned buffers
+uint8_t protocolBuffer[512]; // generous size for 60 APA102 LEDs
+lw::Color scratchPixels[ledCount];
+
+// Caller-owned pipeline and run array
+lw::busses::ProtocolTransportPipeline pipeline(apa102proto, spiTransport, protocolBuffer, scratchPixels);
+lw::busses::PipelineRun runs[] = {{&pipeline, ledCount}};
+
+// Bus: non-owning view over caller-managed resources
+lw::busses::Bus strip(lw::span<lw::Color>{pixels}, lw::span<const lw::busses::PipelineRun>{runs});
 uint16_t frame = 0;
 
 void setup()
