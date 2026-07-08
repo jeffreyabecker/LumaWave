@@ -11,7 +11,7 @@ Status legend:
 
 ## Current Status
 
-Design phase. No code changes.
+**COMPLETED** — All phases implemented. `Bus`, `ProtocolTransportPipeline`, and `PipelineRun` are fully non-owning with caller-managed lifetime.
 
 ## Motivation
 

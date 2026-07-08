@@ -32,9 +32,10 @@
 
 - Keep responsibilities separated:
 	- `IPixelBus`: storage/composition + frame lifecycle.
-	- `IShader`: pixel transforms.
+	- `IShader`: pixel transforms (see backlog 009).
 	- `IProtocol`: chip byte-stream encoding/framing.
 	- `ITransport`: hardware/peripheral transfer behavior.
+- External lifetime model: `Bus`, `ProtocolTransportPipeline`, and `PipelineRun` are non-owning. The caller owns and manages protocol instances, transport instances, protocol encoding buffers, scratch pixel buffers, pixel storage, and pipeline run arrays. No heap allocation occurs inside these classes.
 - For transport settings types, maintain required `public bool invert` contract.
 - Use canonical static bus-driver naming already adopted by the codebase:
 	- `PixelBus<...>`
@@ -51,11 +52,14 @@
 
 ## Bus Construction Rules
 
-- Use direct `Bus(span<Color>, {{make_unique<Pipeline>(...), length}})` construction.
+- Use direct `Bus(span<Color>, span<const PipelineRun>)` construction with caller-allocated resources.
 - Pipelines: `ProtocolTransportPipeline` (protocol + transport pair) or a concrete light driver implementing `IOutputPipeline`.
-- `PipelineRun` = `{unique_ptr<IOutputPipeline>, size_t length}`. Single light: length=1. Strip: length=N.
-- Multi-strip uses multiple `PipelineRun` entries in the initializer list with sub-view spans.
+- `PipelineRun` = `{IOutputPipeline*, size_t length}`. Single light: length=1. Strip: length=N.
+- Multi-strip uses multiple `PipelineRun` entries in a caller-owned array with sub-view spans.
+- `ProtocolTransportPipeline` constructor: `(IProtocol&, ITransport&, span<uint8_t> protocolBuffer, span<Color> scratchPixels)`.
+- Protocol buffer size: use `protocol.requiredBufferSizeBytes()` to determine the minimum buffer size. An empty `scratchPixels` span disables the brightness/shader scratch path.
 - No factory functions, no descriptor system, no template aliases.
+- No `std::make_unique`, `std::unique_ptr`, or `std::initializer_list` in Bus/PipelineRun construction.
 
 ## Testing and Validation Rules
 
@@ -67,7 +71,7 @@
 
 ## Examples Guidance
 
-- Author examples under `examples/` using direct `Bus(span, {{pipeline, length}})` construction.
+- Author examples under `examples/` using direct `Bus(span, span<const PipelineRun>)` construction with caller-owned protocol, transport, and buffer instances.
 - In examples, include only `#include <LumaWave.h>` (and `#include <Arduino.h>` when needed for sketch/runtime APIs).
 - Do not include internal project headers (for example `transports/*`, `protocols/*`) from examples.
 - If an example needs extra internal includes to compile, treat that as a public-surface gap and fix exposure through `src/LumaWave.h` instead of adding more includes in the example.
