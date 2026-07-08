@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <memory>
-#include <vector>
 #include <limits>
 
 #include "core/Compat.h"
@@ -15,22 +13,14 @@ namespace lw::buses
 
 struct PipelineRun
 {
-  std::unique_ptr<IOutputPipeline> pipeline;
-  size_t length;
+  IOutputPipeline* pipeline{nullptr};
+  size_t length{0};
 };
 
 class Bus : public IPixelBus
 {
 public:
-  Bus(span<lw::colors::Color> pixelStorage, std::initializer_list<PipelineRun> runs) : _pixels(pixelStorage)
-  {
-    size_t total = 0;
-    for (auto& run : runs)
-    {
-      total += run.length;
-      _runs.push_back({std::move(const_cast<PipelineRun&>(run).pipeline), run.length});
-    }
-  }
+  Bus(span<lw::colors::Color> pixelStorage, span<const PipelineRun> runs) : _pixels(pixelStorage), _runs(runs) {}
 
   void begin() override
   {
@@ -93,11 +83,11 @@ public:
 
   BrightnessType brightness() const override { return _brightness; }
 
-  const std::vector<PipelineRun>& runs() const { return _runs; }
+  span<const PipelineRun> runs() const { return _runs; }
 
 private:
   span<lw::colors::Color> _pixels;
-  std::vector<PipelineRun> _runs;
+  span<const PipelineRun> _runs;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };

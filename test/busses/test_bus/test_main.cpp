@@ -1,7 +1,6 @@
 #include <unity.h>
 
 #include <array>
-#include <memory>
 #include <limits>
 
 #include "buses/Bus.h"
@@ -42,85 +41,84 @@ public:
 void test_bus_single_run_writes_on_show(void)
 {
   lw::Color pixel{};
-  auto mock = std::make_unique<MockPipeline>();
-  auto* mockPtr = mock.get();
+  MockPipeline mock;
 
-  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::PipelineRun runs[] = {{&mock, 1}};
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, lw::span<const lw::buses::PipelineRun>{runs});
 
   bus.begin();
   bus.pixels()[0] = lw::Color{10, 20, 30};
   bus.show();
 
-  TEST_ASSERT_TRUE(mockPtr->began);
-  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mockPtr->writeCount));
-  TEST_ASSERT_EQUAL_UINT8(10, mockPtr->lastColor['R']);
-  TEST_ASSERT_EQUAL_UINT8(20, mockPtr->lastColor['G']);
-  TEST_ASSERT_EQUAL_UINT8(30, mockPtr->lastColor['B']);
-  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mockPtr->lastSpanSize));
+  TEST_ASSERT_TRUE(mock.began);
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock.writeCount));
+  TEST_ASSERT_EQUAL_UINT8(10, mock.lastColor['R']);
+  TEST_ASSERT_EQUAL_UINT8(20, mock.lastColor['G']);
+  TEST_ASSERT_EQUAL_UINT8(30, mock.lastColor['B']);
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock.lastSpanSize));
 }
 
 void test_bus_dirty_guard_prevents_double_write(void)
 {
   lw::Color pixel{};
-  auto mock = std::make_unique<MockPipeline>();
-  auto* mockPtr = mock.get();
+  MockPipeline mock;
 
-  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::PipelineRun runs[] = {{&mock, 1}};
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, lw::span<const lw::buses::PipelineRun>{runs});
 
   bus.pixels()[0] = lw::Color{1, 2, 3};
   bus.show();
   bus.show(); // second show should be no-op
   bus.show();
 
-  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mockPtr->writeCount));
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock.writeCount));
 }
 
 void test_bus_respects_pipeline_readiness(void)
 {
   lw::Color pixel{};
-  auto mock = std::make_unique<MockPipeline>();
-  auto* mockPtr = mock.get();
-  mockPtr->ready = false;
+  MockPipeline mock;
+  mock.ready = false;
 
-  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::PipelineRun runs[] = {{&mock, 1}};
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, lw::span<const lw::buses::PipelineRun>{runs});
 
   TEST_ASSERT_FALSE(bus.isReadyToUpdate());
 
   bus.pixels()[0] = lw::Color{5, 6, 7};
   bus.show();
 
-  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(mockPtr->writeCount));
+  TEST_ASSERT_EQUAL_UINT32(0U, static_cast<uint32_t>(mock.writeCount));
 
-  mockPtr->ready = true;
+  mock.ready = true;
   TEST_ASSERT_TRUE(bus.isReadyToUpdate());
   bus.show();
-  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mockPtr->writeCount));
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock.writeCount));
 }
 
 void test_bus_passes_brightness_to_pipeline(void)
 {
   lw::Color pixel{};
-  auto mock = std::make_unique<MockPipeline>();
-  auto* mockPtr = mock.get();
+  MockPipeline mock;
 
-  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::PipelineRun runs[] = {{&mock, 1}};
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, lw::span<const lw::buses::PipelineRun>{runs});
 
   bus.setBrightness(64);
   bus.pixels()[0] = lw::Color{100, 100, 100};
   bus.show();
 
-  TEST_ASSERT_EQUAL_UINT8(64, mockPtr->lastBrightness);
+  TEST_ASSERT_EQUAL_UINT8(64, mock.lastBrightness);
 }
 
 void test_bus_multi_run_zero_copy_subspans(void)
 {
   std::array<lw::Color, 5> buf{};
-  auto mock1 = std::make_unique<MockPipeline>();
-  auto mock2 = std::make_unique<MockPipeline>();
-  auto* m1 = mock1.get();
-  auto* m2 = mock2.get();
+  MockPipeline mock1;
+  MockPipeline mock2;
 
-  lw::buses::Bus bus(lw::span<lw::Color>{buf}, {{std::move(mock1), 2}, {std::move(mock2), 3}});
+  lw::buses::PipelineRun runs[] = {{&mock1, 2}, {&mock2, 3}};
+  lw::buses::Bus bus(lw::span<lw::Color>{buf}, lw::span<const lw::buses::PipelineRun>{runs});
 
   buf[0] = lw::Color{1, 0, 0};
   buf[1] = lw::Color{2, 0, 0};
@@ -130,20 +128,21 @@ void test_bus_multi_run_zero_copy_subspans(void)
 
   bus.show();
 
-  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(m1->writeCount));
-  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(m2->writeCount));
-  TEST_ASSERT_EQUAL_UINT32(2U, static_cast<uint32_t>(m1->lastSpanSize));
-  TEST_ASSERT_EQUAL_UINT32(3U, static_cast<uint32_t>(m2->lastSpanSize));
-  TEST_ASSERT_EQUAL_UINT8(1, m1->lastColor['R']);
-  TEST_ASSERT_EQUAL_UINT8(3, m2->lastColor['R']);
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock1.writeCount));
+  TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock2.writeCount));
+  TEST_ASSERT_EQUAL_UINT32(2U, static_cast<uint32_t>(mock1.lastSpanSize));
+  TEST_ASSERT_EQUAL_UINT32(3U, static_cast<uint32_t>(mock2.lastSpanSize));
+  TEST_ASSERT_EQUAL_UINT8(1, mock1.lastColor['R']);
+  TEST_ASSERT_EQUAL_UINT8(3, mock2.lastColor['R']);
 }
 
 void test_bus_writes_go_to_caller_buffer(void)
 {
   std::array<lw::Color, 3> buf{};
-  auto mock = std::make_unique<MockPipeline>();
+  MockPipeline mock;
 
-  lw::buses::Bus bus(lw::span<lw::Color>{buf}, {{std::move(mock), 3}});
+  lw::buses::PipelineRun runs[] = {{&mock, 3}};
+  lw::buses::Bus bus(lw::span<lw::Color>{buf}, lw::span<const lw::buses::PipelineRun>{runs});
 
   bus.pixels()[1] = lw::Color{42, 0, 0};
 
