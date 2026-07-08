@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-3 complete.** All old bus types, PixelView, TransportBrightness deleted. `IOutputPipeline` seam in `src/core/`. `IPixelBus::pixels()` returns `span<Color>&`. Design: `ILightDriver` eliminated (drivers implement `IOutputPipeline`). `ReferenceAggregateBus` eliminated (multi-run `Bus` with `PipelineRun` handles all fan-out). Phases 4+ pending.
+**Phases 1-4 complete.** All old bus types deleted. `IOutputPipeline` seam in `src/core/`. `IPixelBus::pixels()` returns `span<Color>&`. All 6 light drivers migrated to `IOutputPipeline` directly. `ILightDriver` and its supporting types deleted. `ProtocolTransportPipeline` created with on-the-fly brightness. Phases 5+ pending.
 
 ## Motivation
 
@@ -236,25 +236,25 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 - [x] **`P3a`** — Change `IPixelBus::pixels()` return type from `PixelView&` to `span<Color>&` (mutable), and `span<const Color>&` (const). Removed `#include "core/PixelView.h"`, already had `core/Compat.h`.
 - [x] **`P3b`** — Update surviving test stubs: `test/busses/test_aggregate_bus/` and `test/contracts/test_disable_template_combinatorial_types_compile/` stubs that override `pixels()` to return `span<Color>&`.
 
-### Phase 4 — Create pipeline implementations
+### Phase 4 — Create pipeline implementations — ✅ DONE
 
-- [ ] **`P4a`** — Move `IOutputPipeline.h` from `src/buses/` to `src/core/`.
-- [ ] **`P4b`** — Delete `src/transports/ILightDriver.h` (including `LightDriverSettingsBase`, `LightDriverLike`, `SettingsConstructibleLightDriverLike` traits).
-- [ ] **`P4c`** — Update all 6 concrete light drivers to implement `IOutputPipeline` directly instead of `ILightDriver`:
+- [x] **`P4a`** — Move `IOutputPipeline.h` from `src/buses/` to `src/core/`.
+- [x] **`P4b`** — Delete `src/transports/ILightDriver.h` (including `LightDriverSettingsBase`, `LightDriverLike`, `SettingsConstructibleLightDriverLike` traits).
+- [x] **`P4c`** — Update all 6 concrete light drivers to implement `IOutputPipeline` directly instead of `ILightDriver`:
   - `RpPwmLightDriver`, `Esp32SigmaDeltaLightDriver`, `Esp32LedcLightDriver`, `AnalogPwmLightDriver`, `PrintLightDriverT`, `NilLightDriver`
   - Change base class from `ILightDriver` to `IOutputPipeline`
   - `write(span<const Color> colors, BrightnessType brightness)` — read `colors[0]`, apply brightness as before
   - `alwaysUpdate()` → `false`
   - Single-arg `write(Color)` removed (callers always pass brightness now)
   - Remove `LightDriverSettingsBase` inheritance from settings structs
-- [ ] **`P4d`** — Update `PlatformDefaultLightDriver` alias (in `Transports.h`) to reference `IOutputPipeline`-based types.
-- [ ] **`P4e`** — Create `src/buses/ProtocolTransportPipeline.h`. Wraps `std::unique_ptr<IProtocol>` + `std::unique_ptr<ITransport>`. Constructor takes both + pixel count.
-- [ ] **`P4f`** — Implement `ProtocolTransportPipeline::write()`:
+- [x] **`P4d`** — Update `PlatformDefaultLightDriver` alias (in `Transports.h`) to reference `IOutputPipeline`-based types.
+- [x] **`P4e`** — Create `src/buses/ProtocolTransportPipeline.h`. Wraps `std::unique_ptr<IProtocol>` + `std::unique_ptr<ITransport>`. Constructor takes both.
+- [x] **`P4f`** — Implement `ProtocolTransportPipeline::write()`:
   - On-the-fly brightness: iterate colors, apply `applyBrightness()` per-channel inline with protocol encoding in a single pass. No full-frame scratch buffer.
   - Allocate protocol byte buffer from `requiredBufferSizeBytes()`.
   - Call `_protocol->update(dimmedColors, byteBuffer)`.
   - Call `_transport->beginTransaction()`, `_transport->transmitBytes(byteBuffer)`, `_transport->endTransaction()`.
-- [ ] **`P4g`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
+- [x] **`P4g`** — Implement `begin()` → `_transport->begin()` + `_protocol->begin()`, `isReadyToUpdate()` → `_transport->isReadyToUpdate()`, `alwaysUpdate()` → `_protocol->alwaysUpdate()`.
 
 ### Phase 5 — Create unified `Bus` class
 

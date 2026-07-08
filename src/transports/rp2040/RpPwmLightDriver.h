@@ -15,12 +15,12 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "transports/ILightDriver.h"
+#include "core/IOutputPipeline.h"
 
 namespace lw::transports::rp2040
 {
 
-struct RpPwmLightDriverSettings : LightDriverSettingsBase
+struct RpPwmLightDriverSettings
 {
   static constexpr size_t MaxChannels = 4;
   using PinsMap = ChannelMap<int>;
@@ -46,11 +46,11 @@ struct RpPwmLightDriverSettings : LightDriverSettingsBase
   }
 };
 
- class RpPwmLightDriver : public ILightDriver
+class RpPwmLightDriver : public IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = typename ILightDriver::BrightnessType;
+  using BrightnessType = lw::colors::ColorComponent;
   using LightDriverSettingsType = RpPwmLightDriverSettings;
 
   explicit RpPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
@@ -115,10 +115,16 @@ public:
 
   bool isReadyToUpdate() const override { return true; }
 
-  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+  bool alwaysUpdate() const override { return false; }
 
-  void write(const ColorType& color, BrightnessType brightness) override
+  void write(span<const ColorType> colors, BrightnessType brightness) override
   {
+    if (colors.empty())
+    {
+      return;
+    }
+
+    const auto& color = colors[0];
     if (!_begun)
     {
       begin();

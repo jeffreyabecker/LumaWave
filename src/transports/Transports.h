@@ -1,7 +1,7 @@
 #pragma once
 
 #include "transports/ITransport.h"
-#include "transports/ILightDriver.h"
+#include "core/IOutputPipeline.h"
 #include "transports/NilTransport.h"
 #include "transports/NilLightDriver.h"
 #include "transports/OneWireEncoding.h"
@@ -38,7 +38,6 @@
 
 namespace lw::transports
 {
-
 
 #if defined(ARDUINO_ARCH_RP2040)
 using PlatformDefaultLightDriver = lw::transports::rp2040::RpPwmLightDriver;

@@ -1,31 +1,35 @@
 #pragma once
 
-#include "transports/ILightDriver.h"
+#include "core/IOutputPipeline.h"
 
 namespace lw::transports
 {
 
-struct NilLightDriverSettings : LightDriverSettingsBase
+struct NilLightDriverSettings
 {
-    static NilLightDriverSettings normalize(NilLightDriverSettings settings) { return settings; }
+  static NilLightDriverSettings normalize(NilLightDriverSettings settings) { return settings; }
 };
 
- class NilLightDriver : public ILightDriver
+class NilLightDriver : public IOutputPipeline
 {
-  public:
-    using ColorType = lw::Color;
-    using BrightnessType = typename ILightDriver::BrightnessType;
-    using LightDriverSettingsType = NilLightDriverSettings;
+public:
+  using ColorType = lw::Color;
+  using BrightnessType = lw::colors::ColorComponent;
+  using LightDriverSettingsType = NilLightDriverSettings;
 
-    explicit NilLightDriver(LightDriverSettingsType = {}) {}
+  explicit NilLightDriver(LightDriverSettingsType = {}) {}
 
-    void begin() override {}
+  void begin() override {}
 
-    bool isReadyToUpdate() const override { return true; }
+  bool isReadyToUpdate() const override { return true; }
 
-    void write(const ColorType&) override {}
+  bool alwaysUpdate() const override { return false; }
 
-    void write(const ColorType&, BrightnessType) override {}
+  void write(span<const ColorType> colors, BrightnessType brightness) override
+  {
+    (void)colors;
+    (void)brightness;
+  }
 };
 
 } // namespace lw::transports

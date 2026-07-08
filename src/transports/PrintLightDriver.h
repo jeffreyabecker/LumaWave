@@ -15,7 +15,7 @@
 #endif
 
 #include "core/Writable.h"
-#include "transports/ILightDriver.h"
+#include "core/IOutputPipeline.h"
 
 namespace lw::transports
 {
@@ -26,7 +26,7 @@ using DefaultPrintLightDriverWritable = Print;
 using DefaultPrintLightDriverWritable = lw::detail::NullWritable;
 #endif
 
-template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::enable_if_t<Writable<TWritable>>> struct PrintLightDriverSettingsT : LightDriverSettingsBase
+template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::enable_if_t<Writable<TWritable>>> struct PrintLightDriverSettingsT
 {
   TWritable* output = nullptr;
   bool asciiOutput = false;
@@ -45,11 +45,11 @@ template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::
   }
 };
 
-template < typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public ILightDriver
+template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = typename ILightDriver::BrightnessType;
+  using BrightnessType = lw::colors::ColorComponent;
   using LightDriverSettingsType = PrintLightDriverSettingsT<TWritable>;
 
   explicit PrintLightDriverT(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }
@@ -67,14 +67,16 @@ public:
 
   bool isReadyToUpdate() const override { return true; }
 
-  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+  bool alwaysUpdate() const override { return false; }
 
-  void write(const ColorType& color, BrightnessType brightness) override
+  void write(span<const ColorType> colors, BrightnessType brightness) override
   {
-    if (_settings.output == nullptr)
+    if (_settings.output == nullptr || colors.empty())
     {
       return;
     }
+
+    const auto& color = colors[0];
 
     if (_settings.debugOutput)
     {
@@ -217,7 +219,7 @@ private:
 
 #if LW_HAS_ARDUINO
 using PrintLightDriverSettings = PrintLightDriverSettingsT<Print>;
- using PrintLightDriver = PrintLightDriverT<lw::Color, Print>;
+using PrintLightDriver = PrintLightDriverT<lw::Color, Print>;
 #endif
 
 } // namespace lw::transports

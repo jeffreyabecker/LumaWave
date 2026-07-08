@@ -20,12 +20,12 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "transports/ILightDriver.h"
+#include "core/IOutputPipeline.h"
 
 namespace lw::transports::esp32
 {
 
-struct Esp32LedcLightDriverSettings : LightDriverSettingsBase
+struct Esp32LedcLightDriverSettings
 {
   static constexpr size_t MaxChannels = 4;
   using PinsMap = ChannelMap<int>;
@@ -68,11 +68,11 @@ struct Esp32LedcLightDriverSettings : LightDriverSettingsBase
   }
 };
 
- class Esp32LedcLightDriver : public ILightDriver
+ class Esp32LedcLightDriver : public IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = typename ILightDriver::BrightnessType;
+  using BrightnessType = lw::colors::ColorComponent;
   using LightDriverSettingsType = Esp32LedcLightDriverSettings;
 
   explicit Esp32LedcLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)), _maxDuty(computeMaxDuty(_settings.resolutionBits)) {}
@@ -152,10 +152,16 @@ public:
 
   bool isReadyToUpdate() const override { return true; }
 
-  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+  bool alwaysUpdate() const override { return false; }
 
-  void write(const ColorType& color, BrightnessType brightness) override
+  void write(span<const ColorType> colors, BrightnessType brightness) override
   {
+    if (colors.empty())
+    {
+      return;
+    }
+
+    const auto& color = colors[0];
     if (!_begun)
     {
       begin();

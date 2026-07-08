@@ -12,7 +12,7 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "transports/ILightDriver.h"
+#include "core/IOutputPipeline.h"
 
 #if __has_include("driver/sdm.h")
 #include "driver/sdm.h"
@@ -31,7 +31,7 @@
 namespace lw::transports::esp32
 {
 
-struct Esp32SigmaDeltaLightDriverSettings : LightDriverSettingsBase
+struct Esp32SigmaDeltaLightDriverSettings
 {
   static constexpr size_t MaxChannels = 4;
   using PinsMap = ChannelMap<int>;
@@ -52,11 +52,11 @@ struct Esp32SigmaDeltaLightDriverSettings : LightDriverSettingsBase
   }
 };
 
- class Esp32SigmaDeltaLightDriver : public ILightDriver
+class Esp32SigmaDeltaLightDriver : public IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = typename ILightDriver::BrightnessType;
+  using BrightnessType = lw::colors::ColorComponent;
   using LightDriverSettingsType = Esp32SigmaDeltaLightDriverSettings;
 
   explicit Esp32SigmaDeltaLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
@@ -135,10 +135,16 @@ public:
 
   bool isReadyToUpdate() const override { return true; }
 
-  void write(const ColorType& color) override { write(color, std::numeric_limits<BrightnessType>::max()); }
+  bool alwaysUpdate() const override { return false; }
 
-  void write(const ColorType& color, BrightnessType brightness) override
+  void write(span<const ColorType> colors, BrightnessType brightness) override
   {
+    if (colors.empty())
+    {
+      return;
+    }
+
+    const auto& color = colors[0];
     if (!_begun)
     {
       begin();
