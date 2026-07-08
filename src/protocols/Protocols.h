@@ -1,6 +1,5 @@
 #pragma once
 
-#include "protocols/DebugProtocol.h"
 #include "protocols/DotStarProtocol.h"
 #include "protocols/IProtocol.h"
 #include "protocols/ProtocolDecoratorBase.h"

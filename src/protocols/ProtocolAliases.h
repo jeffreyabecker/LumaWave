@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "colors/Color.h"
-#include "protocols/DebugProtocol.h"
 #include "protocols/DotStarProtocol.h"
 #include "protocols/NilProtocol.h"
 #include "protocols/Tm1814Protocol.h"
@@ -84,40 +83,6 @@ struct None
   static SettingsType defaultSettings() { return SettingsType{}; }
 
   static SettingsType normalizeSettings(SettingsType settings) { return settings; }
-};
-
-template <typename TWrappedProtocolSpec = None> struct Debug
-{
-  using WrappedProtocolType = typename detail::ResolveProtocolType<TWrappedProtocolSpec>::Type;
-  using ProtocolType = lw::protocols::DebugProtocol<WrappedProtocolType>;
-  using SettingsType = typename ProtocolType::SettingsType;
-  using ColorType = typename ProtocolType::ColorType;
-
-  static SettingsType defaultSettings()
-  {
-    SettingsType settings{};
-    settings.wrapped = normalizeWrappedSettings(settings.wrapped);
-    return settings;
-  }
-
-  static SettingsType normalizeSettings(SettingsType settings)
-  {
-    settings.wrapped = normalizeWrappedSettings(std::move(settings.wrapped));
-    return settings;
-  }
-
-private:
-  using WrappedSettingsType = typename WrappedProtocolType::SettingsType;
-
-  static WrappedSettingsType normalizeWrappedSettings(WrappedSettingsType settings)
-  {
-    if constexpr (detail::WrappedSpecHasNormalizeSettings<TWrappedProtocolSpec, WrappedSettingsType>::value)
-    {
-      return TWrappedProtocolSpec::normalizeSettings(std::move(settings));
-    }
-
-    return settings;
-  }
 };
 
 struct Tm1814
