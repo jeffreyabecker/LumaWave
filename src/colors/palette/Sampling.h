@@ -7,7 +7,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "core/IndexIterator.h"
 #include "colors/palette/Blends.h"
 #include "colors/palette/SamplingTransition.h"
 #include "colors/palette/Traits.h"

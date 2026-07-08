@@ -158,7 +158,7 @@ public:
         continue;
       }
 
-      const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
+      const char channelTag = "RGBW"[channel];
       const auto scaledComponent = lw::colors::applyBrightness(color[channelTag], brightness);
       const int8_t duty = mapComponentToDensity(scaledComponent);
 

@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "colors/Color.h"
-#include "colors/ColorChannelIndexIterator.h"
 
 namespace lw::colors
 {

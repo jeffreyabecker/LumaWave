@@ -127,7 +127,7 @@ public:
         continue;
       }
 
-      const char channelTag = ColorType::ChannelIndexIterator::channelAt(channel);
+      const char channelTag = "RGBW"[channel];
       const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
       WideType level = (component * pwmMax + (componentMax / 2U)) / componentMax;
       if (_settings.invert)
