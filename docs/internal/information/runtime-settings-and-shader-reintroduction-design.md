@@ -2,49 +2,56 @@
 
 This document defines the design for two interrelated features:
 
-1. **Generalized runtime settings** — a uniform pattern for applying configuration changes to protocols and transports after construction.
+1. **Runtime parameters** — frame-variant values like brightness and gamma, owned by the user (or `Bus`) and bound to shaders via constructor references.
 2. **Shader reintroduction** — bringing back `IShader` as a pipeline-local pixel-transform seam, integrated into `ProtocolTransportPipeline`.
 
 ## Motivation
 
-### Runtime Settings
+Currently, brightness is applied via an inline per-pixel loop inside `ProtocolTransportPipeline::write()`. It is the only frame-variant pipeline behavior, hard-coded into one implementation. Adding gamma correction, color temperature, or power limiting would require more inline code or a different mechanism.
 
-Currently, protocol and transport settings are baked at construction and not designed to change afterward:
+Shaders were removed in backlog 003. The old integration placed shaders as a `TShader` template parameter on `Bus`, entangled `brightnessOwnership()` across three seams, and carried `AggregateShader`/`CompositeShader` template machinery. The new design avoids all of that.
 
-- `ProtocolSettings& settings()` returns a mutable reference, but there is no standard way to signal that settings have changed — no `apply()` or `reconfigure()` hook.
-- `IHaveGain::setGain()` is the lone exception: a mixin interface with a dedicated virtual setter. This pattern does not scale to the diverse settings that different protocols and transports expose (timing parameters, channel order, SPI clock rate, idle-high behavior, etc.).
-- The `Ws2812xProtocolSettings::applyTransportDefaults()` bridge is construction-time only.
+## Design Principle: Reference-Bound Configuration
 
-Users need a general pattern: mutate a typed settings struct, then tell the component to rebuild internal state.
+Instead of threading a parameter struct through the pipeline at write time, shaders bind to external configuration values via constructor references:
 
-### Shader Reintroduction
+```cpp
+// User declares and owns the variable.
+BrightnessType myBrightness = 255;
 
-Shaders were removed in backlog 003 ("Eliminate Shader Concept"). The motivation at the time was:
+// Shader binds to it at construction.
+auto shader = std::make_unique<BrightnessShader>(myBrightness);
 
-- The old shader integration was too tightly coupled to `PixelBus` (template parameter `TShader`, `UsesShaderScratch`, `brightnessOwnership()`).
-- Brightness ownership was entangled between bus, shader, and protocol.
-- Shader scratch buffers and virtual dispatch added complexity most users didn't need.
+// User changes the variable directly.
+myBrightness = 128;
 
-The conclusion of that backlog left the door open: *"re-add later if needed."* The key insight for reintroduction is that shaders should **not** be a bus-level concern. They belong in the pipeline, alongside protocol encoding and before transport transmission — the same place brightness already lives.
+// Next show() — shader reads the current value through its reference.
+```
+
+This means:
+- **No parameter struct passed through the pipeline.** Shaders get what they need at construction time.
+- **No notification hooks.** Mutating the external variable is sufficient — the reference makes the new value visible on next `apply()`.
+- **No pipeline knowledge of configuration values.** The pipeline just runs shaders. It doesn't know about brightness, gamma, or anything else.
+- **Explicit wiring.** The user decides which shader binds to which variable. No magic auto-injection.
 
 ## Goals
 
-- Define `IShader` as a minimal, pipeline-local seam for per-frame pixel transforms.
-- Define `IReconfigurable` as an opt-in mixin for components that support runtime settings mutation.
-- Integrate both into `ProtocolTransportPipeline` without changing `IPixelBus`, `IProtocol`, `ITransport`, or `Bus`.
-- Keep the zero-shader fast path: when no shaders are present, `write()` behavior is identical to today.
-- Keep brightness Bus-owned and applied in the pipeline, after shaders.
-- No per-pixel virtual dispatch — shaders are called once per frame.
-- No RTTI requirement — settings access uses `static_cast` with caller knowledge of concrete types.
+- Define `IShader` as a minimal, pipeline-local seam: `virtual void apply(span<Color>) = 0`.
+- `BrightnessShader` binds to a `const BrightnessType&` at construction.
+- Remove the inline brightness loop from `ProtocolTransportPipeline::write()`. All pixel transforms go through shaders.
+- `ProtocolTransportPipeline` owns `vector<unique_ptr<IShader>>` and runs them in order. No auto-injection, no brightness knowledge.
+- `Bus` stores `BrightnessType _brightness` (as today). `setBrightness()` updates it. A `BrightnessShader` can reference `bus.brightnessRef()` if desired.
+- `IOutputPipeline::write()` takes `span<const Color>` — no brightness, no params. The pipeline is a pure shader → encode → transmit engine.
+- Keep the zero-shader fast path: when `_shaders` is empty, no scratch buffer is allocated.
+- `IPixelBus` and `Bus` contracts remain backward compatible.
 
 ## Non-Goals
 
 - Do not add a shader template parameter to `Bus` or `IPixelBus`.
-- Do not reintroduce `brightnessOwnership()` or ownership entanglement.
-- Do not create a unified settings type — heterogeneous settings per protocol/transport is intentional and correct.
-- Do not add RTTI-dependent downcast (`dynamic_cast`).
-- Do not change the `IProtocol` or `ITransport` virtual seams.
-- Do not change `Bus::show()` or the `PipelineRun` structure.
+- Do not reintroduce `brightnessOwnership()`, `UsesShaderScratch`, `AggregateShader`, `CompositeShader`, or any old shader machinery.
+- Do not add `IShader::begin()`.
+- Do not pass configuration values through `write()` or `apply()` — shaders bind at construction.
+- Do not change construction-time settings (protocol/transport settings structs).
 
 ---
 
@@ -62,8 +69,7 @@ public:
     virtual ~IShader() = default;
 
     /// Apply a per-frame pixel transform in-place.
-    /// Called once per show() per pipeline run.
-    /// @param pixels  mutable span of the pixels to transform.
+    /// Configuration values are bound at construction via reference.
     virtual void apply(span<colors::Color> pixels) = 0;
 };
 
@@ -72,26 +78,41 @@ public:
 
 **Design decisions:**
 
-- **In-place transform.** Shaders mutate the span directly. No allocation, no return value, no separate input/output buffers.
-- **Frame granularity.** One virtual call per shader per `show()`, not per pixel. Per-pixel loops are inline inside each shader's `apply()`.
-- **No `begin()`.** Shaders needing setup (e.g., gamma lookup tables) do it in their constructor. If a future shader needs deferred init, `begin()` can be added later without breaking the interface (it would be a new virtual with a default no-op — but that changes the vtable, so we defer it).
-- **Composition via list.** An ordered `std::vector<std::unique_ptr<IShader>>` replaces the old `AggregateShader`/`CompositeShader` template machinery. Shaders apply sequentially: output of shader N feeds input of shader N+1.
+- **No configuration parameters in `apply()`.** Shaders get external values bound via constructor references. This keeps `apply()` stable as new parameters are added — the interface never changes.
+- **In-place transform.** Shaders mutate the span directly.
+- **Frame granularity.** One virtual call per shader per `show()`. Per-pixel loops are inline inside `apply()`.
+- **No `begin()`.** Deferred. Add later if needed as a default no-op virtual.
+- **Composition via list.** An ordered `std::vector<std::unique_ptr<IShader>>` in the pipeline.
 
-### 2. `IReconfigurable` — Runtime Settings Mixin (`src/core/IReconfigurable.h`, new)
+### 2. `BrightnessShader` — Reference-Bound Brightness (`src/core/BrightnessShader.h`, new)
 
 ```cpp
 namespace lw
 {
 
-class IReconfigurable
+class BrightnessShader : public IShader
 {
 public:
-    virtual ~IReconfigurable() = default;
+    /// @param brightnessRef  reference to the user-owned brightness value.
+    explicit BrightnessShader(const BrightnessType& brightnessRef)
+        : _brightness(brightnessRef) {}
 
-    /// Called after settings fields have been mutated at runtime.
-    /// The component should rebuild any derived internal state
-    /// (timing constants, hardware registers, lookup tables, etc.).
-    virtual void reconfigure() {}
+    void apply(span<colors::Color> pixels) override
+    {
+        const auto b = _brightness;
+        if (b == std::numeric_limits<BrightnessType>::max())
+            return;  // no-op fast path
+
+        for (auto& pixel : pixels)
+        {
+            for (char ch : {'R', 'G', 'B', 'W'})
+                pixel[ch] = static_cast<lw::colors::ColorComponent>(
+                    lw::colors::applyBrightness(pixel[ch], b));
+        }
+    }
+
+private:
+    const BrightnessType& _brightness;
 };
 
 } // namespace lw
@@ -99,38 +120,83 @@ public:
 
 **Design decisions:**
 
-- **Opt-in.** Components that don't support runtime reconfiguration simply don't inherit `IReconfigurable`. The pipeline checks with a `static_cast` (or a helper) and calls `reconfigure()` only when available.
-- **Default no-op.** A component that inherits `IReconfigurable` but has nothing to rebuild can leave the default.
-- **No data in the interface.** `IReconfigurable` carries no settings — it is purely a notification hook. The actual settings struct lives on the concrete class, accessed via the existing `settings()` pattern.
-- **Relationship to `IHaveGain`.** `IHaveGain` remains a separate mixin for gain-specific protocols (APA102, HD108). A protocol can inherit both. `IHaveGain::setGain()` is a typed setter; `IReconfigurable::reconfigure()` is the general "apply changes" hook. They serve different purposes and do not conflict.
+- **`const&` to external variable.** The shader reads the current value every `apply()`. Mutating the external variable is instantaneous — no notification needed.
+- **No-op when max.** If `_brightness` is max, the shader returns immediately without touching pixels. This preserves the zero-copy fast path at the pipeline level (see section 5).
+- **User owns the variable.** The variable must outlive the shader. Typical patterns:
+  - `Bus` member: `BrightnessShader(bus.brightnessRef())`
+  - Static/global: `BrightnessShader(g_brightness)`
+  - Heap-allocated config struct: `BrightnessShader(config->brightness)`
 
-### 3. `IOutputPipeline` — One Addition (`src/core/IOutputPipeline.h`)
+### 3. `IOutputPipeline` — Simplified (`src/core/IOutputPipeline.h`)
 
-Add `reconfigure()` as a virtual with a default no-op:
+Remove the `BrightnessType` parameter from `write()`. The pipeline doesn't know about brightness at all.
 
 ```cpp
 class IOutputPipeline
 {
 public:
-    using BrightnessType = lw::colors::ColorComponent;
-
     virtual ~IOutputPipeline() = default;
     virtual void begin() = 0;
     virtual bool isReadyToUpdate() const = 0;
-    virtual void write(span<const lw::colors::Color> colors, BrightnessType brightness) = 0;
+    virtual void write(span<const lw::colors::Color> colors) = 0;
     virtual bool alwaysUpdate() const { return false; }
-
-    /// Propagate reconfiguration to pipeline components.
-    /// Default no-op; ProtocolTransportPipeline overrides.
-    virtual void reconfigure() {}
 };
 ```
 
-Light driver implementations (e.g., `NilLightDriver`, `RpPwmLightDriver`) don't override this — they get the default no-op. Only `ProtocolTransportPipeline` does.
+**Impact:** All `IOutputPipeline` implementations lose their `BrightnessType` parameter. Light drivers become simpler. `ProtocolTransportPipeline` becomes pure shader → encode → transmit.
 
-### 4. `ProtocolTransportPipeline` — Shader & Settings Hub
+### 4. `IPixelBus` and `Bus` — Minimal Change
 
-This is the core integration point. It **owns** the shader list, runs the shader pass during `write()`, and propagates `reconfigure()`.
+`IPixelBus` is unchanged. `Bus` keeps `_brightness` as today. `setBrightness()` updates it. No parameters struct needed.
+
+```cpp
+class Bus : public IPixelBus
+{
+public:
+    // ... constructors unchanged ...
+
+    void begin() override;
+    void show() override;
+    bool isReadyToUpdate() const override;
+
+    span<lw::colors::Color>& pixels() override;
+    const span<lw::colors::Color>& pixels() const override;
+
+    void setBrightness(BrightnessType brightness) override { _brightness = brightness; _dirty = true; }
+    BrightnessType brightness() const override { return _brightness; }
+
+    // Expose a reference for BrightnessShader binding.
+    const BrightnessType& brightnessRef() const { return _brightness; }
+
+private:
+    span<lw::colors::Color> _pixels;
+    std::vector<PipelineRun> _runs;
+    BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
+    bool _dirty{true};
+};
+```
+
+**Usage pattern:**
+
+```cpp
+Bus bus(pixels, {{std::move(pipeline), count}});
+auto brightnessShader = std::make_unique<BrightnessShader>(bus.brightnessRef());
+// ... pipe must be reconstructed to include the shader, or
+// the user constructs the pipeline with shaders from the start:
+
+auto pipeline = std::make_unique<ProtocolTransportPipeline>(
+    std::move(protocol), std::move(transport),
+    std::make_unique<BrightnessShader>(bus.brightnessRef()));
+
+Bus bus(pixels, {{std::move(pipeline), count}});
+
+// Runtime: brightness change is instant.
+bus.setBrightness(128);  // next show() sees it via the shader's reference.
+```
+
+### 5. `ProtocolTransportPipeline` — Pure Shader Engine
+
+No brightness knowledge. No inline brightness loop. Just shader → encode → transmit.
 
 ```cpp
 namespace lw::buses
@@ -139,14 +205,12 @@ namespace lw::buses
 class ProtocolTransportPipeline : public IOutputPipeline
 {
 public:
-    using BrightnessType = IOutputPipeline::BrightnessType;
-
-    /// Construct with protocol + transport (no shaders).
+    // No-shader constructor.
     ProtocolTransportPipeline(
         std::unique_ptr<protocols::IProtocol> protocol,
         std::unique_ptr<transports::ITransport> transport);
 
-    /// Construct with protocol + transport + shader list.
+    // Shader constructor — one or more shaders.
     ProtocolTransportPipeline(
         std::unique_ptr<protocols::IProtocol> protocol,
         std::unique_ptr<transports::ITransport> transport,
@@ -155,313 +219,213 @@ public:
     void begin() override;
     bool isReadyToUpdate() const override;
     bool alwaysUpdate() const override;
-    void write(span<const lw::colors::Color> colors, BrightnessType brightness) override;
-
-    /// Propagate reconfiguration to protocol and transport.
-    void reconfigure() override;
-
-    // Accessors for runtime settings manipulation.
-    protocols::IProtocol*  protocol()  { return _protocol.get(); }
-    transports::ITransport* transport() { return _transport.get(); }
+    void write(span<const lw::colors::Color> colors) override;
 
 private:
     std::unique_ptr<protocols::IProtocol>  _protocol;
     std::unique_ptr<transports::ITransport> _transport;
-    std::vector<std::unique_ptr<IShader>>  _shaders;          // NEW: ordered shader pipeline
-    std::vector<uint8_t>                   _protocolBuffer;   // existing
-    std::vector<lw::colors::Color>         _scratchPixel;     // existing (reused for shaders)
+    std::vector<std::unique_ptr<IShader>>  _shaders;
+    std::vector<uint8_t>                   _protocolBuffer;
+    std::vector<lw::colors::Color>         _scratchPixel;
 };
 
 } // namespace lw::buses
 ```
 
-#### `write()` — Updated Data Flow
+#### `write()` — Data Flow
 
 ```
 1. Null/empty guard (unchanged).
 2. Protocol buffer resize (unchanged).
-3. SHADER PASS (NEW):
+3. SHADER PASS:
    if _shaders is non-empty:
        copy colors → _scratchPixel
        for each shader in _shaders:
            shader->apply(_scratchPixel)
-4. BRIGHTNESS + ENCODE (updated):
-   if brightness != max:
-       if _scratchPixel was not already populated by shader pass:
-           copy colors → _scratchPixel  (existing brightness path)
-       apply brightness per-channel on _scratchPixel
-       protocol->update(_scratchPixel, _protocolBuffer)
-   else if shader pass populated _scratchPixel:
        protocol->update(_scratchPixel, _protocolBuffer)
    else:
-       protocol->update(colors, _protocolBuffer)  (existing fast path)
-5. Transmit (unchanged).
+       protocol->update(colors, _protocolBuffer)   (ZERO-COPY FAST PATH)
+4. Transmit (unchanged).
 ```
 
-**Key invariants:**
+**Key invariant:** When `_shaders` is empty, `_scratchPixel` is never allocated or touched — the zero-copy fast path is unconditional.
 
-- **Zero-shader fast path is preserved.** When `_shaders` is empty and brightness is max, `_scratchPixel` is never touched — pixels go directly from Bus to protocol.
-- **Single scratch buffer.** `_scratchPixel` is reused for both shader output and brightness application. When shaders are present, shader output stays in `_scratchPixel` and brightness is applied on top. No second allocation.
-- **Shader output feeds brightness.** This is the correct semantic order: color correction (gamma, white balance) happens before master brightness attenuation.
+### 6. Other Shader Examples
 
-#### `reconfigure()` — Propagation
+#### CurrentLimiterShader (reference-bound)
 
 ```cpp
-void ProtocolTransportPipeline::reconfigure() override
+class CurrentLimiterShader : public IShader
 {
-    // Reconfigure protocol if it supports it.
-    if (auto* r = dynamic_cast<IReconfigurable*>(_protocol.get()))
-        r->reconfigure();
+public:
+    struct Settings {
+        uint32_t maxMilliamps = 0;
+        uint16_t controllerMilliamps = 100;
+        uint16_t standbyMilliampsPerPixel = 1;
+        bool rgbwDerating = true;
+        // Per-channel milliamps default to 20mA.
+    };
 
-    // Reconfigure transport if it supports it.
-    if (auto* r = dynamic_cast<IReconfigurable*>(_transport.get()))
-        r->reconfigure();
-}
-```
+    explicit CurrentLimiterShader(const Settings& settings)
+        : _settings(settings) {}
 
-Wait — this uses `dynamic_cast`, which requires RTTI. Since the project avoids RTTI, we use a different approach.
+    void apply(span<colors::Color> pixels) override { /* power-budget logic */ }
 
-#### `reconfigure()` — RTTI-Free Approach
+    uint32_t lastEstimatedMilliamps() const { return _lastEstimatedMilliamps; }
 
-Since `IProtocol` and `ITransport` are abstract bases with virtual destructors, and the concrete classes are known at the pipeline construction site, we can use a pointer-to-base pattern without RTTI:
-
-```cpp
-void ProtocolTransportPipeline::reconfigure() override
-{
-    // _protocol and _transport are stored as unique_ptr<IProtocol>/unique_ptr<ITransport>.
-    // We cannot static_cast from base to derived without knowing the concrete type.
-    // Instead, we store an optional reconfigure callback per component.
-}
-
-// Alternative: store raw function pointers set at construction:
-class ProtocolTransportPipeline : public IOutputPipeline
-{
-    // ...
 private:
-    void (*_protocolReconfigure)(void*) = nullptr;
-    void* _protocolReconfigureArg = nullptr;
-    void (*_transportReconfigure)(void*) = nullptr;
-    void* _transportReconfigureArg = nullptr;
+    const Settings& _settings;   // or by-value copy if runtime mutation not needed
+    uint32_t _lastEstimatedMilliamps{0};
 };
 ```
 
-This is awkward. A cleaner approach:
-
-**Option A: Virtual `reconfigure()` on `IProtocol` and `ITransport`.**
-
-Add `virtual void reconfigure() {}` directly to `IProtocol` and `ITransport` as a default no-op. No new interface, no RTTI, no stored function pointers. Protocols/transports that need it override; others don't.
-
-- Pro: Zero storage overhead. Single virtual dispatch. No new types.
-- Con: Adds a virtual to the two core seams. But it's a default no-op — no behavior change for existing implementations.
-
-**Option B: `IReconfigurable` mixin, detected at pipeline construction.**
-
-At construction time, try a `static_cast<IReconfigurable*>` on the raw pointer before it's wrapped in `unique_ptr`. Store a `IReconfigurable*` or `nullptr` per component.
-
-- Pro: Keeps `IProtocol` and `ITransport` clean.
-- Con: Requires storage of two extra pointers (16 bytes on 32-bit, 32 bytes on 64-bit). Requires construction-time detection.
-
-**Recommendation: Option A.** The default no-op virtual on `IProtocol` and `ITransport` is the simplest, most maintainable approach. It follows the same pattern as `ITransport::beginTransaction()` / `endTransaction()` — optional hooks with default no-ops. `IReconfigurable` as a separate type adds complexity for no real benefit.
-
-Revised proposal:
+#### GammaShader (baked at construction, no runtime reference)
 
 ```cpp
-// In IProtocol.h
-class IProtocol
+class GammaShader : public IShader
 {
+    std::array<uint8_t, 256> _lut;
 public:
-    // ... existing ...
-    virtual void reconfigure() {}  // NEW: called after settings mutation
-};
-
-// In ITransport.h
-class ITransport
-{
-public:
-    // ... existing ...
-    virtual void reconfigure() {}  // NEW: called after settings mutation
-};
-```
-
-And `ProtocolTransportPipeline::reconfigure()` becomes trivial:
-
-```cpp
-void ProtocolTransportPipeline::reconfigure() override
-{
-    if (_protocol)  _protocol->reconfigure();
-    if (_transport) _transport->reconfigure();
-}
-```
-
-### 5. Settings Access Pattern
-
-The user accesses typed settings through the pipeline's accessors:
-
-```cpp
-// User constructs the pipeline and bus
-auto pipeline = std::make_unique<ProtocolTransportPipeline>(
-    std::make_unique<Ws2812xProtocol>(count, Ws2812xProtocolSettings{...}),
-    std::make_unique<RpPioTransport>(RpPioTransportSettings{...}));
-
-Bus bus(pixels, {{std::move(pipeline), count}});
-bus.begin();
-
-// Later, at runtime: change protocol timing
-auto& runs = bus.runs();
-auto* ptp = static_cast<ProtocolTransportPipeline*>(runs[0].pipeline.get());
-auto* ws2812 = static_cast<Ws2812xProtocol*>(ptp->protocol());
-
-ws2812->settings().timing.idleHigh = true;
-ptp->reconfigure();  // → ws2812->reconfigure() rebuilds timing state
-```
-
-**Why `static_cast` is safe:** The caller constructed the pipeline and knows the concrete protocol and transport types. The downcast from `IProtocol*` → `Ws2812xProtocol*` is deterministic. No RTTI needed.
-
-**Alternative convenience (future):** If this pattern becomes common, a template accessor on `ProtocolTransportPipeline` could wrap the cast:
-
-```cpp
-template<typename T>
-T* protocolAs() { return static_cast<T*>(_protocol.get()); }
-```
-
-But that's sugar; start without it.
-
-### 6. Construction — Shader List is Optional
-
-Two constructors preserve backward compatibility:
-
-```cpp
-// No shaders — identical to today's constructor
-ProtocolTransportPipeline(
-    std::unique_ptr<protocols::IProtocol> protocol,
-    std::unique_ptr<transports::ITransport> transport);
-
-// With shaders — shader list is moved in
-ProtocolTransportPipeline(
-    std::unique_ptr<protocols::IProtocol> protocol,
-    std::unique_ptr<transports::ITransport> transport,
-    std::vector<std::unique_ptr<IShader>> shaders);
-```
-
-Example with shaders:
-
-```cpp
-std::vector<std::unique_ptr<IShader>> shaders;
-shaders.push_back(std::make_unique<GammaShader>(2.2f));
-shaders.push_back(std::make_unique<WhiteBalanceShader>(6500));
-
-auto pipeline = std::make_unique<ProtocolTransportPipeline>(
-    std::make_unique<Ws2812xProtocol>(count, Ws2812xProtocolSettings{}),
-    std::make_unique<RpPioTransport>(RpPioTransportSettings{}),
-    std::move(shaders));
-
-Bus bus(pixels, {{std::move(pipeline), count}});
-```
-
-### 7. Protocol/Transport Participation in `reconfigure()`
-
-Protocols and transports opt into runtime reconfiguration by overriding `reconfigure()`:
-
-```cpp
-class Ws2812xProtocol : public IProtocol
-{
-    Ws2812xProtocolSettings _settings;
-    Ws2812xTiming _timingNs;  // derived from _settings
-
-public:
-    void reconfigure() override
+    explicit GammaShader(float gamma)
     {
-        _timingNs = computeTiming(_settings);
+        for (int i = 0; i < 256; ++i)
+            _lut[i] = std::pow(i / 255.0f, gamma) * 255.0f + 0.5f;
+    }
+
+    void apply(span<colors::Color> pixels) override
+    {
+        for (auto& pixel : pixels)
+            for (char ch : {'R', 'G', 'B'})
+                pixel[ch] = _lut[pixel[ch]];
     }
 };
 ```
 
-Protocols/transports that don't need runtime reconfiguration leave the default no-op.
+GammaShader doesn't need a reference — gamma is baked into a LUT at construction. If runtime gamma is needed later, add a `const float&` constructor parameter and recompute.
+
+#### AggregateShader
+
+```cpp
+class AggregateShader : public IShader
+{
+public:
+    explicit AggregateShader(std::vector<std::unique_ptr<IShader>> shaders)
+        : _shaders(std::move(shaders)) {}
+
+    void apply(span<colors::Color> pixels) override
+    {
+        for (auto& shader : _shaders)
+            shader->apply(pixels);
+    }
+
+    void add(std::unique_ptr<IShader> shader) { _shaders.push_back(std::move(shader)); }
+    bool empty() const { return _shaders.empty(); }
+    size_t size() const { return _shaders.size(); }
+    void clear() { _shaders.clear(); }
+
+private:
+    std::vector<std::unique_ptr<IShader>> _shaders;
+};
+```
 
 ---
 
 ## Data Flow Comparison
 
-### Current (`show()` with brightness)
+### Current
 
 ```
 Bus::show()
-  └→ PipelineRun::write(span, brightness)
-       └→ ProtocolTransportPipeline::write():
-            1. Resize protocol buffer if needed
-            2. If brightness != max: copy → scratch, apply brightness, encode
-               Else: encode directly
+  └→ PipelineRun::write(subspan, _brightness)
+       └→ ProtocolTransportPipeline::write(colors, brightness):
+            1. If brightness != max: copy → scratch, apply brightness
+            2. Encode
             3. Transmit
 ```
 
-### Proposed (`show()` with shaders + brightness)
+### Proposed
 
 ```
 Bus::show()
-  └→ PipelineRun::write(span, brightness)
-       └→ ProtocolTransportPipeline::write():
-            1. Resize protocol buffer if needed
-            2. If shaders present: copy → scratch, shader[0]→...→shader[N]
-            3. If brightness != max:
-                 copy → scratch (if not already there from step 2)
-                 apply brightness per-channel
-                 encode from scratch
-               Else if scratch populated (shaders ran):
-                 encode from scratch
-               Else:
-                 encode directly from input (ZERO-COPY FAST PATH)
-            4. Transmit
+  └→ PipelineRun::write(subspan)
+       └→ ProtocolTransportPipeline::write(colors):
+            1. If _shaders non-empty: copy → scratch,
+               shader[0]->apply → shader[N]->apply
+            2. Encode
+            3. Transmit
 ```
 
-The zero-copy fast path (no shaders, brightness=max) is preserved exactly.
+No pipeline knows about brightness. If you want brightness, add a `BrightnessShader` to the shader list.
 
 ---
 
 ## Summary of Changes
 
-| Component | File | Change |
+| Component | Change | Impact |
 |---|---|---|
-| `IShader` | `src/core/IShader.h` (new) | `apply(span<Color>)` virtual |
-| `IProtocol` | `src/protocols/IProtocol.h` | +`virtual void reconfigure() {}` |
-| `ITransport` | `src/transports/ITransport.h` | +`virtual void reconfigure() {}` |
-| `IOutputPipeline` | `src/core/IOutputPipeline.h` | +`virtual void reconfigure() {}` |
-| `ProtocolTransportPipeline` | `src/buses/ProtocolTransportPipeline.h` | +shader list, +`reconfigure()` override, +`protocol()`/`transport()` accessors, +shader-aware `write()` |
-| `IPixelBus` | `src/core/IPixelBus.h` | No change |
-| `Bus` | `src/buses/Bus.h` | No change |
-| Concrete protocols | `src/protocols/*.h` | Opt-in `reconfigure()` overrides |
-| Concrete transports | `src/transports/*.h` | Opt-in `reconfigure()` overrides |
+| `IShader` (new) | `apply(span<Color>)` — pure pixels, no config params | New seam |
+| `BrightnessShader` (new) | Binds to external `const BrightnessType&` at construction | Reference-based config |
+| `IOutputPipeline` | `write(colors)` — no brightness parameter | Breaking change to all impls |
+| `IPixelBus` | No change | |
+| `Bus` | Keeps `_brightness`. Adds `brightnessRef()`. `setBrightness()` unchanged. | Backward compatible |
+| `ProtocolTransportPipeline` | `_shaders` list. No inline brightness. `write(colors)` only. | Core integration point |
+| `IProtocol` | No change | |
+| `ITransport` | No change | |
+| Light drivers | `write()` loses brightness param — mechanical change only | |
 
 ---
 
 ## Implementation Phases
 
-### Phase 1 — Interfaces
+### Phase 1 — IShader Interface + Pipeline Signature
 
 1. Create `src/core/IShader.h` with `IShader` class.
-2. Add `virtual void reconfigure() {}` to `IProtocol`, `ITransport`, and `IOutputPipeline`.
-3. Update `LumaWave.h` to include `IShader.h` and expose `using IShader = lw::IShader;`.
-4. Build and run tests — verify no breakage (all changes are additive).
+2. Update `IOutputPipeline.h`: remove `BrightnessType` from `write()`. Signature becomes `write(span<const Color>)`.
+3. Update all `IOutputPipeline` implementations (light drivers + `ProtocolTransportPipeline`): match new signature.
+4. Create `src/core/BrightnessShader.h` with `BrightnessShader`.
+5. Update `LumaWave.h`: add includes and `using` declarations for `IShader`, `BrightnessShader`.
+6. Build and run tests.
 
-### Phase 2 — ProtocolTransportPipeline Integration
+### Phase 2 — ProtocolTransportPipeline Shader Integration
 
-1. Add `_shaders` member and second constructor to `ProtocolTransportPipeline`.
-2. Add `protocol()` and `transport()` accessors.
-3. Implement `reconfigure()` override.
-4. Update `write()` with shader pass logic.
-5. Add unit tests for `ProtocolTransportPipeline` with 0, 1, and N shaders.
-6. Add unit test for `reconfigure()` propagation.
+1. Add `_shaders` member and second constructor (takes `vector<unique_ptr<IShader>>`).
+2. Rewrite `write()`: shader pass if non-empty (zero-copy fast path if empty), then encode, transmit. No inline brightness.
+3. Build and run tests.
 
-### Phase 3 — Concrete Shader Implementations (stretch)
+### Phase 3 — Bus Brightness Ref
 
-1. Implement `GammaShader` as first concrete shader.
-2. Implement `WhiteBalanceShader` or `KelvinShader`.
-3. Add integration tests and examples.
+1. Add `brightnessRef()` to `Bus`.
+2. Build and run tests.
 
-### Phase 4 — Protocol/Transport `reconfigure()` Opt-Ins (stretch)
+### Phase 4 — AggregateShader
 
-1. Add `reconfigure()` overrides to protocols with mutable settings (Ws2812x, APA102, etc.).
-2. Add `reconfigure()` overrides to transports with mutable settings (SPI clock, pins, etc.).
-3. Add tests for runtime settings mutation + reconfigure.
+1. Create `src/buses/AggregateShader.h`.
+2. Add to `LumaWave.h`.
+3. Build and verify compilation.
+
+### Phase 5 — CurrentLimiterShader
+
+1. Create `src/core/CurrentLimiterShader.h` with `CurrentLimiterShaderSettings` and `CurrentLimiterShader`.
+2. Add to `LumaWave.h`.
+3. Build and verify compilation.
+
+### Phase 6 — Tests
+
+1. Test `ProtocolTransportPipeline` with 0 shaders (zero-copy fast path).
+2. Test `ProtocolTransportPipeline` with `BrightnessShader` — brightness scales correctly.
+3. Test `BrightnessShader` standalone at various levels (0, 128, max).
+4. Test `BrightnessShader` with max — verify no-op.
+5. Test `AggregateShader` with 0, 1, N shaders.
+6. Test `CurrentLimiterShader` — budget enforcement, RGBW derating, `lastEstimatedMilliamps()`.
+7. Test `Bus::brightnessRef()` — reference tracks mutations.
+8. Test end-to-end: Bus + ProtocolTransportPipeline + BrightnessShader + CurrentLimiterShader.
+9. Run full suite.
+
+### Phase 7 — Documentation
+
+1. Update `.github/copilot-instructions.md`: Add `IShader` back to seam list.
+2. Update `docs/internal/information/object-model-contracts.md`.
+3. Mark backlog completed.
 
 ---
 
@@ -469,8 +433,9 @@ The zero-copy fast path (no shaders, brightness=max) is preserved exactly.
 
 | Decision | Status | Notes |
 |---|---|---|
-| `IShader::begin()` | **Defer.** | Start without it. Add later if a concrete shader needs deferred initialization. Adding a new pure virtual would break existing shaders; adding a default no-op virtual is safe but changes vtable. |
-| Scratch buffer strategy for shader+brightness | **Single buffer.** | `_scratchPixel` serves both. Shaders write to it; brightness is applied on top. This is correct ordering (color correction before master attenuation). |
-| `reconfigure()` on `IProtocol`/`ITransport` vs. separate `IReconfigurable` mixin | **On the seams directly.** | Simpler, follows `beginTransaction()`/`endTransaction()` precedent, no extra storage. |
-| Shader composition (ordered list vs. tree) | **Ordered list.** | `vector<unique_ptr<IShader>>`. Simple, predictable, matches 99% of use cases. Old `CompositeShader` template variadic composition is not reintroduced. |
-| Exposure of concrete shader types in `LumaWave.h` | **Per-implementation decision.** | `IShader` is exposed. Concrete shaders like `GammaShader` are exposed when they exist and are stable. |
+| `IShader::begin()` | **Defer.** | No concrete shader needs it yet. Add later as default no-op if required. |
+| BrightnessShader auto-injection | **No.** | Pipeline is pure shader engine. User explicitly adds shaders. |
+| Zero-copy fast path | **`_shaders.empty()`.** | When no shaders are installed, input colors go directly to `protocol->update()` without scratch buffer allocation. |
+| BrightnessShader reference vs. value | **`const&`** | Shader reads the current value every frame. Mutating the external variable is the notification mechanism. |
+| `CompositeShader` variadic template | **Not reintroduced.** | `AggregateShader` + `vector` covers all use cases. |
+| `CurrentLimiterShader` template parameter | **Removed.** | Works on `colors::Color` directly, not templated on `TColor`. |
