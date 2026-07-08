@@ -302,12 +302,12 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 #### 10b — Remove old bus tests
 
-- [ ] **`P10b1`** — Delete `test/busses/test_light_bus/`.
-- [ ] **`P10b2`** — Delete `test/busses/test_reference_light_bus/`.
-- [ ] **`P10b3`** — Delete `test/busses/test_static_bus_driver_pixel_bus/`.
-- [ ] **`P10b4`** — Delete `test/busses/test_reference_bus/`.
-- [ ] **`P10b5`** — Delete `test/busses/test_composite_bus/`.
-- [ ] **`P10b6`** — Delete `test/busses/test_aggregate_bus/` (aggregate functionality replaced by multi-run `Bus`).
+- [x] **`P10b1`** — Delete `test/busses/test_light_bus/`.
+- [x] **`P10b2`** — Delete `test/busses/test_reference_light_bus/`.
+- [x] **`P10b3`** — Delete `test/busses/test_static_bus_driver_pixel_bus/`.
+- [x] **`P10b4`** — Delete `test/busses/test_reference_bus/`.
+- [x] **`P10b5`** — Delete `test/busses/test_composite_bus/`.
+- [x] **`P10b6`** — Delete `test/busses/test_aggregate_bus/` (aggregate functionality replaced by multi-run `Bus`).
 
 #### 10c — Update remaining tests
 
