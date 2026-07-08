@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-8 complete.** All old bus types deleted. `IOutputPipeline` seam in `src/core/`. `Bus` class with `PipelineRun` multi-run support. `LumaWave.h` updated — old aliases removed, `Bus` exported, `namespace Driver` deleted. `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` removed from `Compat.h`. Phases 9+ pending.
+**Phases 1-9 complete.** `Bus` class with `PipelineRun`. Public surface updated. `fillPixels`/`fillPixelsIndexed` reimplemented for `span<Color>`. Phases 10+ pending.
 
 ## Motivation
 
@@ -283,12 +283,12 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 - [x] **`P8d`** — Remove the `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` conditional compilation guards and all references.
 - [x] **`P8e`** — Remove dead `TColor` default parameters on `ReferenceLight<>` and `Driver::PlatformDefault<>` aliases (these go away with alias removal anyway).
 
-### Phase 9 — Update `fillPixels` / `fillPixelsIndexed`
+### Phase 9 — Update `fillPixels` / `fillPixelsIndexed` — ✅ DONE
 
-- [ ] **`P9a`** — Add/update `fillPixels(span<Color>, const Color&)` overload.
-- [ ] **`P9b`** — Add/update `fillPixelsIndexed(span<Color>, TGenerator&&)` overload.
-- [ ] **`P9c`** — Remove `PixelView`-based overloads.
-- [ ] **`P9d`** — Verify palette infrastructure works with `span<Color>` (it accepts `TOutputRange&&`, which `span<Color>` satisfies).
+- [x] **`P9a`** — Add/update `fillPixels(span<Color>, const Color&)` overload.
+- [x] **`P9b`** — Add/update `fillPixelsIndexed(span<Color>, TGenerator&&)` overload.
+- [x] **`P9c`** — Remove `PixelView`-based overloads.
+- [x] **`P9d`** — Verify palette infrastructure works with `span<Color>` (it accepts `TOutputRange&&`, which `span<Color>` satisfies).
 
 ### Phase 10 — Update tests
 
