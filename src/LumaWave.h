@@ -14,7 +14,7 @@ using Color = lw::colors::Color;
 using lw::fillPixels;
 using lw::fillPixelsIndexed;
 
-using Bus = lw::busses::Bus;
+using Bus = lw::buses::Bus;
 
 using Palette = lw::colors::palettes::Palette;
 using IPalette = lw::colors::palettes::IPalette;
@@ -96,11 +96,11 @@ inline constexpr lw::colors::palettes::WrapMode Blackout = lw::colors::palettes:
 namespace Protocols
 {
 
-using APA102 = lw::protocols::DotStar< lw::ChannelOrder::BGR>;
+using APA102 = lw::protocols::DotStar<lw::ChannelOrder::BGR>;
 
 using HD107S = APA102;
 
-using HD108 = lw::protocols::Hd108< lw::ChannelOrder::BGR>;
+using HD108 = lw::protocols::Hd108<lw::ChannelOrder::BGR>;
 
 using Lpd6803 = lw::protocols::Lpd6803ProtocolT;
 using Sm16716 = lw::protocols::Sm16716ProtocolT;
@@ -116,42 +116,42 @@ using Ws2812 = Ws2812x;
 using Apa107 = Ws2812;
 using Hc2912 = Ws2812;
 
-using Ws2811 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Ws2811, false>;
+using Ws2811 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Ws2811, false>;
 
-using Ws2813 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Ws2813, false>;
+using Ws2813 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Ws2813, false>;
 
-using Ws2813Rgbw = lw::protocols::Ws2812x< lw::ChannelOrder::GRBW, &lw::transports::timing::Ws2813, false>;
+using Ws2813Rgbw = lw::protocols::Ws2812x<lw::ChannelOrder::GRBW, &lw::transports::timing::Ws2813, false>;
 
 // Ws2805 removed (RGBCW 5-channel chip, no longer supported)
 
-using Sk6812 = lw::protocols::Ws2812x< lw::ChannelOrder::GRB, &lw::transports::timing::Sk6812, false>;
-using Sk6812White = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Sk6812, false>;
+using Sk6812 = lw::protocols::Ws2812x<lw::ChannelOrder::GRB, &lw::transports::timing::Sk6812, false>;
+using Sk6812White = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Sk6812, false>;
 using Sk6813 = Sk6812;
 
-using Lc8812 = lw::protocols::Ws2812x< lw::ChannelOrder::GRB, &lw::transports::timing::Lc8812, false>;
+using Lc8812 = lw::protocols::Ws2812x<lw::ChannelOrder::GRB, &lw::transports::timing::Lc8812, false>;
 
-using Tm1829 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Tm1829, true>;
+using Tm1829 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Tm1829, true>;
 
 using Tm1814 = lw::protocols::Tm1814;
 
 using Tm1914 = lw::protocols::Tm1914;
 
-using Ws2814 = lw::protocols::Ws2812x< lw::ChannelOrder::RGBW, &lw::transports::timing::Ws2814, false>;
-using Ws2814A = lw::protocols::Ws2812x< lw::ChannelOrder::WRGB, &lw::transports::timing::Ws2814, false>;
+using Ws2814 = lw::protocols::Ws2812x<lw::ChannelOrder::RGBW, &lw::transports::timing::Ws2814, false>;
+using Ws2814A = lw::protocols::Ws2812x<lw::ChannelOrder::WRGB, &lw::transports::timing::Ws2814, false>;
 
 using Ws2815 = Ws2812;
 
-using Ws2816 = lw::protocols::Ws2812x< lw::ChannelOrder::GRB, &lw::transports::timing::Ws2816, false>;
+using Ws2816 = lw::protocols::Ws2812x<lw::ChannelOrder::GRB, &lw::transports::timing::Ws2816, false>;
 
-using Ws2818 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Generic800, false>;
+using Ws2818 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Generic800, false>;
 
-using Apa106 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Apa106, false>;
+using Apa106 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Apa106, false>;
 
-using Tx1812 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Tx1812, false>;
+using Tx1812 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Tx1812, false>;
 
-using Gs1903 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Gs1903, false>;
+using Gs1903 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Gs1903, false>;
 
-using Tm1803 = lw::protocols::Ws2812x< lw::ChannelOrder::RGB, &lw::transports::timing::Generic400, false>;
+using Tm1803 = lw::protocols::Ws2812x<lw::ChannelOrder::RGB, &lw::transports::timing::Generic400, false>;
 using Tm1804 = Tm1803;
 using Tm1809 = Tm1803;
 

@@ -45,7 +45,7 @@ template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::
   }
 };
 
-template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public IOutputPipeline
+template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;

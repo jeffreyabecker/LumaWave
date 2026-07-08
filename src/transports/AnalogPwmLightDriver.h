@@ -44,7 +44,7 @@ struct AnalogPwmLightDriverSettings
   }
 };
 
-class AnalogPwmLightDriver : public IOutputPipeline
+class AnalogPwmLightDriver : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;

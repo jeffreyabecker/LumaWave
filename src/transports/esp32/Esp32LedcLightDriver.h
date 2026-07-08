@@ -68,7 +68,7 @@ struct Esp32LedcLightDriverSettings
   }
 };
 
-class Esp32LedcLightDriver : public IOutputPipeline
+class Esp32LedcLightDriver : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;

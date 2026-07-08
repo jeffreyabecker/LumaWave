@@ -10,7 +10,7 @@
 #include "core/IOutputPipeline.h"
 #include "colors/Color.h"
 
-namespace lw::busses
+namespace lw::buses
 {
 
 struct PipelineRun
@@ -102,4 +102,4 @@ private:
   bool _dirty{true};
 };
 
-} // namespace lw::busses
+} // namespace lw::buses

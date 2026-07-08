@@ -12,14 +12,14 @@
 namespace
 {
 
-class MockPipeline : public lw::busses::IOutputPipeline
+class MockPipeline : public lw::buses::IOutputPipeline
 {
 public:
   void begin() override { began = true; }
   bool isReadyToUpdate() const override { return ready; }
   bool alwaysUpdate() const override { return always; }
 
-  void write(lw::span<const lw::colors::Color> colors, lw::busses::IOutputPipeline::BrightnessType brightness) override
+  void write(lw::span<const lw::colors::Color> colors, lw::buses::IOutputPipeline::BrightnessType brightness) override
   {
     ++writeCount;
     lastBrightness = brightness;
@@ -35,7 +35,7 @@ public:
   bool always{false};
   size_t writeCount{0};
   lw::colors::Color lastColor{};
-  lw::busses::IOutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::busses::IOutputPipeline::BrightnessType>::max()};
+  lw::buses::IOutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::buses::IOutputPipeline::BrightnessType>::max()};
   size_t lastSpanSize{0};
 };
 
@@ -45,8 +45,9 @@ void test_bus_single_run_writes_on_show(void)
   auto mock = std::make_unique<MockPipeline>();
   auto* mockPtr = mock.get();
 
-  lw::busses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
 
+  bus.begin();
   bus.pixels()[0] = lw::Color{10, 20, 30};
   bus.show();
 
@@ -64,7 +65,7 @@ void test_bus_dirty_guard_prevents_double_write(void)
   auto mock = std::make_unique<MockPipeline>();
   auto* mockPtr = mock.get();
 
-  lw::busses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
 
   bus.pixels()[0] = lw::Color{1, 2, 3};
   bus.show();
@@ -81,7 +82,7 @@ void test_bus_respects_pipeline_readiness(void)
   auto* mockPtr = mock.get();
   mockPtr->ready = false;
 
-  lw::busses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
 
   TEST_ASSERT_FALSE(bus.isReadyToUpdate());
 
@@ -102,7 +103,7 @@ void test_bus_passes_brightness_to_pipeline(void)
   auto mock = std::make_unique<MockPipeline>();
   auto* mockPtr = mock.get();
 
-  lw::busses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
+  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, {{std::move(mock), 1}});
 
   bus.setBrightness(64);
   bus.pixels()[0] = lw::Color{100, 100, 100};
@@ -119,7 +120,7 @@ void test_bus_multi_run_zero_copy_subspans(void)
   auto* m1 = mock1.get();
   auto* m2 = mock2.get();
 
-  lw::busses::Bus bus(lw::span<lw::Color>{buf}, {{std::move(mock1), 2}, {std::move(mock2), 3}});
+  lw::buses::Bus bus(lw::span<lw::Color>{buf}, {{std::move(mock1), 2}, {std::move(mock2), 3}});
 
   buf[0] = lw::Color{1, 0, 0};
   buf[1] = lw::Color{2, 0, 0};
@@ -142,7 +143,7 @@ void test_bus_writes_go_to_caller_buffer(void)
   std::array<lw::Color, 3> buf{};
   auto mock = std::make_unique<MockPipeline>();
 
-  lw::busses::Bus bus(lw::span<lw::Color>{buf}, {{std::move(mock), 3}});
+  lw::buses::Bus bus(lw::span<lw::Color>{buf}, {{std::move(mock), 3}});
 
   bus.pixels()[1] = lw::Color{42, 0, 0};
 

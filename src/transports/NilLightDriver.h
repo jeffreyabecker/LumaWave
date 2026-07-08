@@ -10,7 +10,7 @@ struct NilLightDriverSettings
   static NilLightDriverSettings normalize(NilLightDriverSettings settings) { return settings; }
 };
 
-class NilLightDriver : public IOutputPipeline
+class NilLightDriver : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;

@@ -52,7 +52,7 @@ struct Esp32SigmaDeltaLightDriverSettings
   }
 };
 
-class Esp32SigmaDeltaLightDriver : public IOutputPipeline
+class Esp32SigmaDeltaLightDriver : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;

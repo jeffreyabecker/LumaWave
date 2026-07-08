@@ -46,7 +46,7 @@ struct RpPwmLightDriverSettings
   }
 };
 
-class RpPwmLightDriver : public IOutputPipeline
+class RpPwmLightDriver : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
