@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-9 complete.** `Bus` class with `PipelineRun`. Public surface updated. `fillPixels`/`fillPixelsIndexed` reimplemented for `span<Color>`. Phases 10+ pending.
+**Phases 1-10 complete.** `Bus` class with `PipelineRun`. Tests created, old tests deleted. Phases 11+ pending.
 
 ## Motivation
 
@@ -294,11 +294,11 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 #### 10a — New tests for `Bus` and pipelines
 
-- [ ] **`P10a1`** — Create `test/busses/test_bus/`: test `Bus` with a mock `IOutputPipeline` (light path: write+show, dirty guard, readiness, brightness passthrough).
-- [ ] **`P10a2`** — Test `Bus` with `ProtocolTransportPipeline` (multi-pixel write+show, brightness scaling applied by pipeline, protocol encoding, transport transmission).
-- [ ] **`P10a3`** — Test `Bus` span-based storage: writes through `pixels()` go to caller's buffer (zero-copy).
-- [ ] **`P10a4`** — Test `ProtocolTransportPipeline`: brightness applied on-the-fly, protocol receives dimmed colors.
-- [ ] **`P10a5`** — Test concrete light driver as `IOutputPipeline`: driver receives `colors[0]` and brightness correctly.
+- [x] **`P10a1`** — Create `test/busses/test_bus/`: test `Bus` with a mock `IOutputPipeline` (light path: write+show, dirty guard, readiness, brightness passthrough).
+- [x] **`P10a2`** — Test `Bus` with `ProtocolTransportPipeline` (multi-pixel write+show, brightness scaling applied by pipeline, protocol encoding, transport transmission).
+- [x] **`P10a3`** — Test `Bus` span-based storage: writes through `pixels()` go to caller's buffer (zero-copy).
+- [x] **`P10a4`** — Test `ProtocolTransportPipeline`: brightness applied on-the-fly, protocol receives dimmed colors.
+- [x] **`P10a5`** — Test concrete light driver as `IOutputPipeline`: driver receives `colors[0]` and brightness correctly.
 
 #### 10b — Remove old bus tests
 
@@ -311,9 +311,9 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 
 #### 10c — Update remaining tests
 
-- [ ] **`P10c1`** — Update any contract tests referencing deleted types.
-- [ ] **`P10c2`** — Update any transport tests that reference `TransportBrightness`.
-- [ ] **`P10c3`** — Update `test/CMakeLists.txt`: remove deleted test targets, add new ones.
+- [x] **`P10c1`** — Update any contract tests referencing deleted types.
+- [x] **`P10c2`** — Update any transport tests that reference `TransportBrightness`.
+- [x] **`P10c3`** — Update `test/CMakeLists.txt`: remove deleted test targets, add new ones.
 
 ### Phase 11 — Update examples
 
