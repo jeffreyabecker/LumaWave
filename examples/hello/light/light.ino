@@ -4,8 +4,7 @@
 /*
 Target: Arduino platforms with platform-default light driver support.
 Requires: Platform default light driver pin assignment.
-Namespace mode: Explicit-safe (`lw::...`).
-API assumptions: Uses `lw::busses::LightBus<lw::Color, Driver>` with default-constructed driver settings.
+API: Direct Bus construction with single PipelineRun.
 */
 
 constexpr int redPin = 2;
@@ -14,8 +13,13 @@ constexpr int bluePin = 4;
 constexpr int warmPin = 5;
 constexpr int coolPin = 6;
 
-Light<lw::Color, Driver::PlatformDefault<lw::Color>> light({.pins = {redPin, greenPin, bluePin, warmPin, coolPin},
-                                                                  .invert = false});
+lw::Color pixel;
+lw::busses::Bus light(lw::span<lw::Color>{&pixel, 1}, {
+    {std::make_unique<lw::transports::PlatformDefaultLightDriver>(
+         lw::transports::PlatformDefaultLightDriver::LightDriverSettingsType{
+             .pins = {redPin, greenPin, bluePin, warmPin, coolPin},
+             .invert = false}), 1}
+});
 uint16_t phase = 0;
 lw::Color rampColor()
 {
@@ -32,10 +36,7 @@ void loop()
 {
     while (true)
     {
-        auto& pixel = light.pixel();
-
-        pixel = rampColor();
-
+        light.pixels()[0] = rampColor();
         light.show();
         ++phase;
         delay(12);

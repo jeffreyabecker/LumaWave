@@ -4,14 +4,22 @@
 /*
 Target: Arduino platforms with SPI support.
 Requires: `LW_HAS_SPI_TRANSPORT` and valid SPI pins.
-Namespace mode: Explicit-safe (`lw::...`).
-API assumptions: Uses `lw::transports::SpiTransport` settings with `SPI` instance.
+API: Direct Bus construction with ProtocolTransportPipeline.
 */
 
 constexpr pixel_count_t ledCount = 60;
 constexpr int clockPin = 18;
 constexpr int dataPin = 23;
-Strip<Protocols::APA102> strip(ledCount, Transport::DefaultSettings{{false, 8000000UL, lw::transports::BitOrderMsbFirst, lw::transports::SpiMode0, clockPin, dataPin}});
+
+lw::Color pixels[60];
+lw::busses::Bus strip(lw::span<lw::Color>{pixels}, {
+    {std::make_unique<lw::busses::ProtocolTransportPipeline>(
+         std::make_unique<Protocols::APA102::ProtocolType>(ledCount, Protocols::APA102::defaultSettings()),
+         std::make_unique<lw::transports::SpiTransport>(
+             lw::transports::SpiTransportSettings{{false, 8000000UL, lw::transports::BitOrderMsbFirst,
+                                                    lw::transports::SpiMode0, clockPin, dataPin}})),
+     ledCount}
+});
 uint16_t frame = 0;
 
 void setup()

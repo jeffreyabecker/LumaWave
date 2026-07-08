@@ -2,7 +2,12 @@
 #include <LumaWave.h>
 
 constexpr pixel_count_t ledCount = 30;
-Strip<Protocols::Ws2812> strip(ledCount, Transport::DefaultSettings{{.dataPin = 2}});
+lw::Color pixels[30];
+lw::busses::Bus strip(lw::span<lw::Color>{pixels}, {
+    {std::make_unique<lw::busses::ProtocolTransportPipeline>(
+         std::make_unique<Protocols::Ws2812::ProtocolType>(ledCount, Protocols::Ws2812::defaultSettings()),
+         std::make_unique<lw::transports::NilTransport>()), ledCount}
+});
 uint16_t frame = 0;
 
 void setup()
