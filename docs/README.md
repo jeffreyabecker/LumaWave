@@ -42,7 +42,7 @@ Architecture, contracts, references, and technical notes:
 
 - [Platform Library Split Backlog](backlog/task-lists/001-platform-library-split-backlog.md)
 - [External Lifetime Management Backlog](backlog/task-lists/008-external-lifetime-management-backlog.md)
-- [Runtime Settings & Shader Reintroduction Backlog](backlog/task-lists/009-runtime-settings-shader-reintroduction-backlog.md)
+- [Runtime Settings & Shader Reintroduction Backlog](backlog/task-lists/011-runtime-settings-shader-reintroduction-backlog.md)
 - [Internal Backlog](internal/backlog/todo.md)
 - [Arduino Examples TODO](internal/backlog/arduino-examples-authoring-todo.md)
 - [Typed Settings Access Surface (Design)](internal/backlog/typed-settings-access-surface-design.md)
