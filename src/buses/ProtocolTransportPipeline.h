@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <memory>
 #include <limits>
 
 #include "core/Compat.h"
@@ -20,49 +19,27 @@ class ProtocolTransportPipeline : public IOutputPipeline
 public:
   using BrightnessType = IOutputPipeline::BrightnessType;
 
-  ProtocolTransportPipeline(std::unique_ptr<protocols::IProtocol> protocol, std::unique_ptr<transports::ITransport> transport) : _protocol(std::move(protocol)), _transport(std::move(transport)) {}
+  ProtocolTransportPipeline(protocols::IProtocol& protocol, transports::ITransport& transport) : _protocol(protocol), _transport(transport) {}
 
   void begin() override
   {
-    if (_transport)
-    {
-      _transport->begin();
-    }
+    _transport.begin();
 
-    if (_protocol)
-    {
-      _protocol->begin();
-    }
+    _protocol.begin();
   }
 
-  bool isReadyToUpdate() const override
-  {
-    if (!_transport)
-    {
-      return false;
-    }
+  bool isReadyToUpdate() const override { return _transport.isReadyToUpdate(); }
 
-    return _transport->isReadyToUpdate();
-  }
-
-  bool alwaysUpdate() const override
-  {
-    if (!_protocol)
-    {
-      return false;
-    }
-
-    return _protocol->alwaysUpdate();
-  }
+  bool alwaysUpdate() const override { return _protocol.alwaysUpdate(); }
 
   void write(span<const lw::colors::Color> colors, BrightnessType brightness) override
   {
-    if (!_protocol || !_transport || colors.empty())
+    if (colors.empty())
     {
       return;
     }
 
-    const size_t requiredSize = _protocol->requiredBufferSizeBytes();
+    const size_t requiredSize = _protocol.requiredBufferSizeBytes();
     if (requiredSize == 0)
     {
       return;
@@ -100,22 +77,22 @@ public:
       }
 
       span<uint8_t> protocolBytes{_protocolBuffer.data(), _protocolBuffer.size()};
-      _protocol->update(span<const lw::colors::Color>{_scratchPixel.data(), _scratchPixel.size()}, protocolBytes);
+      _protocol.update(span<const lw::colors::Color>{_scratchPixel.data(), _scratchPixel.size()}, protocolBytes);
     }
     else
     {
       span<uint8_t> protocolBytes{_protocolBuffer.data(), _protocolBuffer.size()};
-      _protocol->update(colors, protocolBytes);
+      _protocol.update(colors, protocolBytes);
     }
 
-    _transport->beginTransaction();
-    _transport->transmitBytes(span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()});
-    _transport->endTransaction();
+    _transport.beginTransaction();
+    _transport.transmitBytes(span<uint8_t>{_protocolBuffer.data(), _protocolBuffer.size()});
+    _transport.endTransaction();
   }
 
 private:
-  std::unique_ptr<protocols::IProtocol> _protocol;
-  std::unique_ptr<transports::ITransport> _transport;
+  protocols::IProtocol& _protocol;
+  transports::ITransport& _transport;
   std::vector<uint8_t> _protocolBuffer;
   std::vector<lw::colors::Color> _scratchPixel;
 };
