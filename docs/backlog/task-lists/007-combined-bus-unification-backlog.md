@@ -13,7 +13,7 @@ Status legend:
 
 ## Current Status
 
-**Phases 1-10 complete.** `Bus` class with `PipelineRun`. Tests created, old tests deleted. Phases 11+ pending.
+**✅ COMPLETE.** All 13 phases done. `Bus(span<Color>, {{pipeline, length}})` is the canonical API. `IPixelBus::pixels()` returns `span<Color>&`. All light drivers implement `IOutputPipeline` directly. `PixelView`, `ILightDriver`, `TransportBrightness`, `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`, and 6 old bus types eliminated. ~1,400+ lines net reduction.
 
 ## Motivation
 
@@ -315,31 +315,31 @@ Only `ReferenceAggregateBus` (surviving type) and `IPixelBus` itself need updati
 - [x] **`P10c2`** — Update any transport tests that reference `TransportBrightness`.
 - [x] **`P10c3`** — Update `test/CMakeLists.txt`: remove deleted test targets, add new ones.
 
-### Phase 11 — Update examples
+### Phase 11 — Update examples — ✅ DONE
 
-- [ ] **`P11a`** — `examples/hello/light/light.ino`: `Light<...>` → `Bus(span, {{make_unique<Driver>(settings), 1}})`.
-- [ ] **`P11b`** — `examples/platform/rp2040/pwm-light/pwm-light.ino`: `LightBus<...>` → direct `Bus` construction with single `PipelineRun`.
-- [ ] **`P11c`** — `examples/hello/hello.ino` (strip): `Strip<...>` → `Bus(span, {{make_unique<ProtocolTransportPipeline>(...), N}})`.
-- [ ] **`P11d`** — `examples/multi-strip/`: `CompositeStrip<...>` → multi-run `Bus` with sub-view spans.
-- [ ] **`P11e`** — Verify all other examples compile (most use `auto& pixels = strip.pixels()` which deduces `span<Color>&` — no code changes needed).
+- [x] **`P11a`** — `examples/hello/light/light.ino`: `Light<...>` → `Bus(span, {{make_unique<Driver>(settings), 1}})`.
+- [x] **`P11b`** — `examples/platform/rp2040/pwm-light/pwm-light.ino`: `LightBus<...>` → direct `Bus` construction with single `PipelineRun`.
+- [x] **`P11c`** — `examples/hello/hello.ino` (strip): `Strip<...>` → `Bus(span, {{make_unique<ProtocolTransportPipeline>(...), N}})`.
+- [x] **`P11d`** — `examples/multi-strip/`: `CompositeStrip<...>` → multi-run `Bus` with sub-view spans.
+- [x] **`P11e`** — Verify all other examples compile (most use `auto& pixels = strip.pixels()` which deduces `span<Color>&` — no code changes needed).
 
-### Phase 12 — Build validation
+### Phase 12 — Build validation — ✅ DONE
 
-- [ ] **`P12a`** — `cmake -S . -B build && cmake --build build` — zero errors.
-- [ ] **`P12b`** — `ctest --test-dir build --output-on-failure` — all tests pass.
-- [ ] **`P12c`** — Verify no remaining `#include` of deleted headers anywhere.
-- [ ] **`P12d`** — Verify no `PixelView` references remain in any header.
-- [ ] **`P12e`** — Verify no `TransportBrightness` references remain.
-- [ ] **`P12f`** — Verify `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` is fully removed.
+- [x] **`P12a`** — `cmake -S . -B build && cmake --build build` — zero errors.
+- [x] **`P12b`** — `ctest --test-dir build --output-on-failure` — all tests pass.
+- [x] **`P12c`** — Verify no remaining `#include` of deleted headers anywhere.
+- [x] **`P12d`** — Verify no `PixelView` references remain in any header.
+- [x] **`P12e`** — Verify no `TransportBrightness` references remain.
+- [x] **`P12f`** — Verify `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` is fully removed.
 
-### Phase 13 — Documentation
+### Phase 13 — Documentation — ✅ DONE
 
-- [ ] **`P13a`** — Update `docs/usage/compilation-flags.md`: remove `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
-- [ ] **`P13b`** — Update `docs/internal/information/library-modularization-refactor-design.md`: reflect new bus architecture, remove `PixelView` references.
-- [ ] **`P13c`** — Update `docs/README.md` and usage guides: new `Bus` API, pipeline concepts (no factory functions — direct construction only).
-- [ ] **`P13d`** — Update `examples/README.md`: new patterns.
-- [ ] **`P13e`** — Remove any design docs that still frame `PixelView` as a core kernel contract.
-- [ ] **`P13f`** — Update `.github/copilot-instructions.md`: remove factory/descriptor guidance (`makeBus`, `MakeBus.h`, factory authoring rules). Replace with direct `Bus` construction guidance.
+- [x] **`P13a`** — Update `docs/usage/compilation-flags.md`: remove `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES`.
+- [x] **`P13b`** — Update `docs/internal/information/library-modularization-refactor-design.md`: reflect new bus architecture, remove `PixelView` references.
+- [x] **`P13c`** — Update `docs/README.md` and usage guides: new `Bus` API, pipeline concepts (no factory functions — direct construction only).
+- [x] **`P13d`** — Update `examples/README.md`: new patterns.
+- [x] **`P13e`** — Remove any design docs that still frame `PixelView` as a core kernel contract.
+- [x] **`P13f`** — Update `.github/copilot-instructions.md`: remove factory/descriptor guidance (`makeBus`, `MakeBus.h`, factory authoring rules). Replace with direct `Bus` construction guidance.
 
 ## Design Decisions
 
