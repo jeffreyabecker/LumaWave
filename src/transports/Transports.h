@@ -2,6 +2,7 @@
 
 #include "transports/ITransport.h"
 #include "core/IOutputPipeline.h"
+#include "transports/AnalogPwmLightDriver.h"
 #include "transports/NilTransport.h"
 #include "transports/NilLightDriver.h"
 #include "transports/OneWireEncoding.h"
@@ -26,7 +27,6 @@
 #endif
 
 #ifdef ARDUINO_ARCH_ESP8266
-#include "transports/AnalogPwmLightDriver.h"
 #include "transports/esp8266/Esp8266DmaI2sTransport.h"
 #include "transports/esp8266/Esp8266DmaUartTransport.h"
 #include "transports/esp8266/Esp8266LedcLightDriver.h"
@@ -44,7 +44,7 @@ using PlatformDefaultLightDriver = lw::transports::rp2040::RpPwmLightDriver;
 #elif defined(ARDUINO_ARCH_ESP32)
 using PlatformDefaultLightDriver = lw::transports::esp32::Esp32SigmaDeltaLightDriver;
 #elif defined(ARDUINO_ARCH_ESP8266)
-using PlatformDefaultLightDriver = lw::transports::AnalogPwmLightDriver;
+using PlatformDefaultLightDriver = lw::transports::esp8266::Esp8266LedcLightDriver;
 #else
 using PlatformDefaultLightDriver = lw::transports::NilLightDriver;
 #endif

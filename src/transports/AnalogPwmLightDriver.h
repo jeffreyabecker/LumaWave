@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef ARDUINO
-#include <Arduino.h>
-
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -47,6 +43,12 @@ struct AnalogPwmLightDriverSettings
 class AnalogPwmLightDriver : public lw::buses::IOutputPipeline
 {
 public:
+  enum class PinMode : int
+  {
+    Input = 0,
+    Output = 1
+  };
+
   using ColorType = lw::Color;
   using BrightnessType = lw::colors::ColorComponent;
   using LightDriverSettingsType = AnalogPwmLightDriverSettings;
@@ -65,8 +67,8 @@ public:
       const int pin = _settings.pins[channel];
       if (pin >= 0)
       {
-        analogWrite(pin, 0);
-        pinMode(pin, INPUT);
+        platformAnalogWrite(pin, 0);
+        platformPinMode(pin, PinMode::Input);
       }
     }
   }
@@ -78,8 +80,8 @@ public:
       return;
     }
 
-    analogWriteFreq(_settings.pwmFrequencyHz);
-    analogWriteRange(_settings.pwmRange);
+    platformAnalogWriteFreq(_settings.pwmFrequencyHz);
+    platformAnalogWriteRange(_settings.pwmRange);
 
     for (size_t channel = 0; channel < 4 && channel < _settings.pins.size(); ++channel)
     {
@@ -89,8 +91,8 @@ public:
         continue;
       }
 
-      pinMode(pin, OUTPUT);
-      analogWrite(pin, 0);
+      platformPinMode(pin, PinMode::Output);
+      platformAnalogWrite(pin, 0);
     }
 
     _begun = true;
@@ -135,9 +137,15 @@ public:
         level = pwmMax - level;
       }
 
-      analogWrite(pin, static_cast<uint16_t>(level));
+      platformAnalogWrite(pin, static_cast<uint16_t>(level));
     }
   }
+
+protected:
+  virtual void platformAnalogWrite(int pin, uint16_t value) = 0;
+  virtual void platformPinMode(int pin, PinMode mode) = 0;
+  virtual void platformAnalogWriteFreq(uint32_t freq) = 0;
+  virtual void platformAnalogWriteRange(uint16_t range) = 0;
 
 private:
   LightDriverSettingsType _settings;
@@ -145,5 +153,3 @@ private:
 };
 
 } // namespace lw::transports
-
-#endif
