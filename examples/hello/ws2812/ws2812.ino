@@ -8,7 +8,7 @@ lw::Color pixels[30];
 
 // Caller-owned protocol and transport
 lw::protocols::Ws2812xProtocol ws2812proto(ledCount, {lw::ChannelOrder::GRB, lw::protocols::timing::Ws2812x});
-lw::transports::Transport nilTransport;
+lw::transports::NilTransport nilTransport;
 
 // Caller-owned buffers
 constexpr size_t protocolBufferSize = decltype(ws2812proto)::requiredBufferSize(ledCount, {lw::ChannelOrder::GRB, lw::protocols::timing::Ws2812x});

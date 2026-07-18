@@ -1,6 +1,7 @@
 #pragma once
 
 #include "transports/Transport.h"
+#include "transports/NilTransport.h"
 #include "core/OutputPipeline.h"
 #include "transports/PwmOutputPipeline.h"
 #include "transports/PrintOutputPipeline.h"

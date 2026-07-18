@@ -28,7 +28,7 @@ public:
 
       for (char channel : {'R', 'G', 'B', 'W'})
       {
-        dest[i][channel] = static_cast<lw::ColorComponent>(lw::applyBrightness(source[i][channel], _brightnessValue));
+        lw::setColorComponentByTag(dest[i], channel, static_cast<lw::ColorComponent>(lw::applyBrightness(lw::colorComponentByTag(source[i], channel), _brightnessValue)));
       }
     }
   }

@@ -28,7 +28,7 @@ public:
 
       for (char channel : {'R', 'G', 'B', 'W'})
       {
-        d[channel] = gamma8(static_cast<uint8_t>(s[channel]));
+        lw::setColorComponentByTag(d, channel, gamma8(static_cast<uint8_t>(lw::colorComponentByTag(s, channel))));
       }
     }
   }
