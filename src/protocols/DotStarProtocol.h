@@ -95,7 +95,17 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint8_t toStripComponent(lw::ColorComponent value) { return static_cast<uint8_t>(value); }
+  static constexpr uint8_t toStripComponent(lw::ColorComponent value)
+  {
+    if constexpr (sizeof(lw::ColorComponent) > 1)
+    {
+      return static_cast<uint8_t>(value >> 8);
+    }
+    else
+    {
+      return static_cast<uint8_t>(value);
+    }
+  }
 
   SettingsType _settings;
   size_t _requiredBufferSize{0};

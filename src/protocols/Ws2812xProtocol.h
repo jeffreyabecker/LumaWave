@@ -25,6 +25,13 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
   uint8_t suffixResetMultiplier = 1;
   bool idleHigh = false;
 
+  Ws2812xProtocolSettings() = default;
+
+  Ws2812xProtocolSettings(const char* co, protocols::OneWireTiming t = protocols::timing::Ws2812x, uint8_t prefixMult = 0, uint8_t suffixMult = 1, bool idle = false)
+      : channelOrder(co), timing(t), prefixResetMultiplier(prefixMult), suffixResetMultiplier(suffixMult), idleHigh(idle)
+  {
+  }
+
   static Ws2812xProtocolSettings normalizeForColor(Ws2812xProtocolSettings settings, const char* defaultChannelOrder = ChannelOrder::GRB::value)
   {
     settings.channelOrder = lw::detail::normalizeChannelOrder(settings.channelOrder, defaultChannelOrder);
@@ -78,7 +85,7 @@ public:
   {
   }
 
-  Ws2812xProtocol(PixelCount pixelCount, const char* channelOrder) : Ws2812xProtocol{pixelCount, Ws2812xProtocolSettings{{}, channelOrder, protocols::timing::Ws2812x}} {}
+  Ws2812xProtocol(PixelCount pixelCount, const char* channelOrder) : Ws2812xProtocol{pixelCount, Ws2812xProtocolSettings(channelOrder)} {}
 
   ~Ws2812xProtocol() override = default;
 
@@ -135,7 +142,7 @@ public:
     serialize(_frameData, colors);
 
     const size_t encodedSize = protocols::OneWireEncoding::encodeWithResets(_frameData.data(), _rawSizeData, _frameData.data(), _frameData.size(), _settings.timing, 0, _settings.prefixResetMultiplier,
-                                                                             _settings.suffixResetMultiplier, ProtocolIdleHigh);
+                                                                            _settings.suffixResetMultiplier, ProtocolIdleHigh);
     if (encodedSize == 0)
     {
       return;
