@@ -14,7 +14,7 @@
 #include "protocols/Tlc59711Protocol.h"
 #include "protocols/Tm1814Protocol.h"
 #include "protocols/Tm1914Protocol.h"
-#include "transports/OneWireEncoding.h"
+#include "protocols/OneWireEncoding.h"
 
 namespace
 {
@@ -45,14 +45,14 @@ std::vector<uint8_t> slice_bytes(const std::vector<uint8_t>& value, size_t offse
   return std::vector<uint8_t>{value.begin() + offset, value.begin() + offset + length};
 }
 
-std::vector<uint8_t> encode_onewire_payload(const std::vector<uint8_t>& raw, const lw::transports::OneWireTiming& timing, bool protocolIdleHigh = false, uint8_t prefixResetMultiplier = 1, uint8_t suffixResetMultiplier = 1)
+std::vector<uint8_t> encode_onewire_payload(const std::vector<uint8_t>& raw, const lw::protocols::OneWireTiming& timing, bool protocolIdleHigh = false, uint8_t prefixResetMultiplier = 1, uint8_t suffixResetMultiplier = 1)
 {
   std::vector<uint8_t> source = raw;
-  const size_t payloadBytes = lw::transports::OneWireEncoding::expandedPayloadSizeBytes(raw.size(), timing.bitPattern());
-  const size_t prefixResetBytes = lw::transports::OneWireEncoding::computeResetBytes(timing, 0, prefixResetMultiplier);
-  const size_t suffixResetBytes = lw::transports::OneWireEncoding::computeResetBytes(timing, 0, suffixResetMultiplier);
+  const size_t payloadBytes = lw::protocols::OneWireEncoding::expandedPayloadSizeBytes(raw.size(), timing.bitPattern());
+  const size_t prefixResetBytes = lw::protocols::OneWireEncoding::computeResetBytes(timing, 0, prefixResetMultiplier);
+  const size_t suffixResetBytes = lw::protocols::OneWireEncoding::computeResetBytes(timing, 0, suffixResetMultiplier);
   std::vector<uint8_t> encoded(payloadBytes + prefixResetBytes + suffixResetBytes, 0);
-  const size_t encodedSize = lw::transports::OneWireEncoding::encodeWithResets(source.data(), source.size(), encoded.data(), encoded.size(), timing, 0, prefixResetMultiplier, suffixResetMultiplier, protocolIdleHigh);
+  const size_t encodedSize = lw::protocols::OneWireEncoding::encodeWithResets(source.data(), source.size(), encoded.data(), encoded.size(), timing, 0, prefixResetMultiplier, suffixResetMultiplier, protocolIdleHigh);
   encoded.resize(encodedSize);
   return encoded;
 }
@@ -280,7 +280,7 @@ void test_1_12_1_1_12_2_1_12_3_tm1814_currents_inversion_and_payload_order(void)
   protocol.update(std::array<lw::Color, 1>{lw::Color{1, 2, 3, 4}}, as_span(protocolBuffer));
 
   const std::vector<uint8_t> expectedRaw{63, 0, 25, 63, static_cast<uint8_t>(~63), static_cast<uint8_t>(~0), static_cast<uint8_t>(~25), static_cast<uint8_t>(~63), 4, 1, 2, 3};
-  assert_bytes_equal(protocolBuffer, encode_onewire_payload(expectedRaw, lw::transports::timing::Tm1814, true));
+  assert_bytes_equal(protocolBuffer, encode_onewire_payload(expectedRaw, lw::protocols::timing::Tm1814, true));
 }
 
 void test_1_12_4_tm1814_oversized_and_order_safety(void)
@@ -293,7 +293,7 @@ void test_1_12_4_tm1814_oversized_and_order_safety(void)
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Color, 2>{lw::Color{1, 2, 3, 4}, lw::Color{5, 6, 7, 8}}, as_span(protocolBuffer));
 
-    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{63, 63, 63, 63, 192, 192, 192, 192, 4, 1, 2, 3}, lw::transports::timing::Tm1814, true).size()),
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{63, 63, 63, 63, 192, 192, 192, 192, 4, 1, 2, 3}, lw::protocols::timing::Tm1814, true).size()),
                              static_cast<uint32_t>(protocolBuffer.size()));
   }
 
@@ -305,7 +305,7 @@ void test_1_12_4_tm1814_oversized_and_order_safety(void)
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Color, 1>{lw::Color{9, 10, 11, 12}}, as_span(protocolBuffer));
 
-    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{63, 63, 63, 63, 192, 192, 192, 192, 10, 9, 11, 0}, lw::transports::timing::Tm1814, true).size()),
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{63, 63, 63, 63, 192, 192, 192, 192, 10, 9, 11, 0}, lw::protocols::timing::Tm1814, true).size()),
                              static_cast<uint32_t>(protocolBuffer.size()));
   }
 }
@@ -323,7 +323,7 @@ void test_1_13_1_and_1_13_2_tm1914_mode_matrix_inversion_and_payload_order(void)
     protocol.update(std::array<lw::Color, 1>{lw::Color{1, 2, 3}}, as_span(protocolBuffer));
 
     const std::vector<uint8_t> expectedRaw{0xFF, 0xFF, expectedMode, static_cast<uint8_t>(~0xFF), static_cast<uint8_t>(~0xFF), static_cast<uint8_t>(~expectedMode), 2, 1, 3};
-    assert_bytes_equal(protocolBuffer, encode_onewire_payload(expectedRaw, lw::transports::timing::Tm1914, true));
+    assert_bytes_equal(protocolBuffer, encode_onewire_payload(expectedRaw, lw::protocols::timing::Tm1914, true));
   };
 
   run_mode(lw::protocols::Tm1914Mode::DinFdinAutoSwitch, 0xFF);
@@ -341,7 +341,7 @@ void test_1_13_3_tm1914_oversized_and_order_safety(void)
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Color, 2>{lw::Color{1, 2, 3}, lw::Color{4, 5, 6}}, as_span(protocolBuffer));
 
-    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{0xFF, 0xFF, 0xF5, 0x00, 0x00, 0x0A, 2, 1, 3}, lw::transports::timing::Tm1914, true).size()),
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{0xFF, 0xFF, 0xF5, 0x00, 0x00, 0x0A, 2, 1, 3}, lw::protocols::timing::Tm1914, true).size()),
                              static_cast<uint32_t>(protocolBuffer.size()));
   }
 
@@ -353,7 +353,7 @@ void test_1_13_3_tm1914_oversized_and_order_safety(void)
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.update(std::array<lw::Color, 1>{lw::Color{7, 8, 9}}, as_span(protocolBuffer));
 
-    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{0xFF, 0xFF, 0xF5, 0x00, 0x00, 0x0A, 8, 7, 9}, lw::transports::timing::Tm1914, true).size()),
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(encode_onewire_payload(std::vector<uint8_t>{0xFF, 0xFF, 0xF5, 0x00, 0x00, 0x0A, 8, 7, 9}, lw::protocols::timing::Tm1914, true).size()),
                              static_cast<uint32_t>(protocolBuffer.size()));
   }
 }

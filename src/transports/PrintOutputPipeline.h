@@ -21,19 +21,19 @@ namespace lw::transports
 {
 
 #if LW_HAS_ARDUINO
-using DefaultPrintLightDriverWritable = Print;
+using DefaultPrintOutputPipelineWritable = Print;
 #else
-using DefaultPrintLightDriverWritable = lw::detail::NullWritable;
+using DefaultPrintOutputPipelineWritable = lw::detail::NullWritable;
 #endif
 
-template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::enable_if_t<Writable<TWritable>>> struct PrintLightDriverSettingsT
+template <typename TWritable = DefaultPrintOutputPipelineWritable, typename = std::enable_if_t<Writable<TWritable>>> struct PrintOutputPipelineSettings
 {
   TWritable* output = nullptr;
   bool asciiOutput = false;
   bool debugOutput = false;
   const char* identifier = nullptr;
 
-  static PrintLightDriverSettingsT<TWritable> normalize(PrintLightDriverSettingsT<TWritable> settings)
+  static PrintOutputPipelineSettings<TWritable> normalize(PrintOutputPipelineSettings<TWritable> settings)
   {
 #if defined(ARDUINO)
     if (settings.output == nullptr)
@@ -45,16 +45,16 @@ template <typename TWritable = DefaultPrintLightDriverWritable, typename = std::
   }
 };
 
-template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintLightDriverT : public lw::buses::IOutputPipeline
+template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintOutputPipeline : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
   using BrightnessType = lw::colors::ColorComponent;
-  using LightDriverSettingsType = PrintLightDriverSettingsT<TWritable>;
+  using LightDriverSettingsType = PrintOutputPipelineSettings<TWritable>;
 
-  explicit PrintLightDriverT(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }
+  explicit PrintOutputPipeline(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }
 
-  explicit PrintLightDriverT(TWritable& output) : _settings{.output = &output} { captureIdentifier(); }
+  explicit PrintOutputPipeline(TWritable& output) : _settings{.output = &output} { captureIdentifier(); }
 
   void begin() override
   {
@@ -76,8 +76,6 @@ public:
       return;
     }
 
-    const auto& color = colors[0];
-
     if (_settings.debugOutput)
     {
       writeDebugPrefix();
@@ -86,13 +84,17 @@ public:
       writeNewline();
     }
 
-    if (_settings.asciiOutput)
+    for (const auto& color : colors)
     {
-      writeColorAscii(color);
-      return;
+      if (_settings.asciiOutput)
+      {
+        writeColorAscii(color);
+      }
+      else
+      {
+        writeColorBinary(color);
+      }
     }
-
-    writeColorBinary(color);
   }
 
 private:
@@ -218,8 +220,8 @@ private:
 };
 
 #if LW_HAS_ARDUINO
-using PrintLightDriverSettings = PrintLightDriverSettingsT<Print>;
-using PrintLightDriver = PrintLightDriverT<lw::Color, Print>;
+using DefaultPrintOutputPipelineSettings = PrintOutputPipelineSettings<Print>;
+using DefaultPrintOutputPipeline = PrintOutputPipeline<lw::Color, Print>;
 #endif
 
 } // namespace lw::transports

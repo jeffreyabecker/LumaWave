@@ -10,7 +10,7 @@
 #include "protocols/PixieProtocol.h"
 #include "protocols/Ws2801Protocol.h"
 #include "protocols/Ws2812xProtocol.h"
-#include "transports/OneWireEncoding.h"
+#include "protocols/OneWireEncoding.h"
 
 namespace
 {
@@ -43,12 +43,12 @@ std::vector<uint8_t> slice_bytes(const std::vector<uint8_t>& value, size_t offse
 
 std::vector<uint8_t> encode_ws2812x_payload(const std::vector<uint8_t>& raw)
 {
-  const size_t payloadSize = lw::transports::OneWireEncoding::expandedPayloadSizeBytes(raw.size(), lw::transports::timing::Ws2812x.bitPattern());
-  const size_t resetSize = lw::transports::OneWireEncoding::computeResetBytes(lw::transports::timing::Ws2812x, 0, 1);
+  const size_t payloadSize = lw::protocols::OneWireEncoding::expandedPayloadSizeBytes(raw.size(), lw::protocols::timing::Ws2812x.bitPattern());
+  const size_t resetSize = lw::protocols::OneWireEncoding::computeResetBytes(lw::protocols::timing::Ws2812x, 0, 1);
 
   std::vector<uint8_t> output(payloadSize + resetSize, 0);
   std::vector<uint8_t> source = raw;
-  const size_t actualSize = lw::transports::OneWireEncoding::encodeWithResets(source.data(), source.size(), output.data(), output.size(), lw::transports::timing::Ws2812x, 0, 0, 1, false);
+  const size_t actualSize = lw::protocols::OneWireEncoding::encodeWithResets(source.data(), source.size(), output.data(), output.size(), lw::protocols::timing::Ws2812x, 0, 0, 1, false);
   TEST_ASSERT_GREATER_THAN_UINT32(0U, static_cast<uint32_t>(actualSize));
   output.resize(actualSize);
   return output;

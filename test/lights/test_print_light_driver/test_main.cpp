@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "colors/Color.h"
-#include "transports/PrintLightDriver.h"
+#include "transports/PrintOutputPipeline.h"
 
 namespace
 {
@@ -25,8 +25,8 @@ public:
   std::vector<uint8_t> bytes{};
 };
 
-using TestSettings = lw::transports::PrintLightDriverSettingsT<MockWritable>;
-using TestDriver = lw::transports::PrintLightDriverT<MockWritable>;
+using TestSettings = lw::transports::PrintOutputPipelineSettings<MockWritable>;
+using TestDriver = lw::transports::PrintOutputPipeline<MockWritable>;
 
 void test_print_light_driver_writes_binary_by_default(void)
 {

@@ -11,8 +11,8 @@
 
 #include "IProtocol.h"
 #include "colors/Color.h"
-#include "transports/OneWireEncoding.h"
-#include "transports/OneWireTiming.h"
+#include "protocols/OneWireEncoding.h"
+#include "protocols/OneWireTiming.h"
 
 namespace lw::protocols
 {
@@ -20,7 +20,7 @@ namespace lw::protocols
 struct Ws2812xProtocolSettings : public ProtocolSettings
 {
   const char* channelOrder = ChannelOrder::GRB::value;
-  transports::OneWireTiming timing = transports::timing::Ws2812x;
+  protocols::OneWireTiming timing = protocols::timing::Ws2812x;
   uint8_t prefixResetMultiplier = 0;
   uint8_t suffixResetMultiplier = 1;
   bool idleHigh = false;
@@ -41,7 +41,7 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
 
   template <typename TTransportSettings> static void applyTransportDefaults(const Ws2812xProtocolSettings& settings, TTransportSettings& transportSettings)
   {
-    transports::normalizeOneWireTransportClockDataBitRate(settings.timing, transportSettings);
+    protocols::normalizeOneWireTransportClockDataBitRate(settings.timing, transportSettings);
     if constexpr (TransportHasInvert<TTransportSettings>::value)
     {
       transportSettings.invert = settings.idleHigh;
@@ -59,15 +59,15 @@ public:
     const char* channelOrder = resolveChannelOrder(settings.channelOrder);
     const size_t channelCount = resolveChannelCount(channelOrder);
     const size_t rawBytes = pixelCount * channelCount;
-    const size_t payloadBytes = transports::OneWireEncoding::expandedPayloadSizeBytes(rawBytes, settings.timing.bitPattern());
-    const size_t prefixResetBytes = transports::OneWireEncoding::computeResetBytes(settings.timing, 0, settings.prefixResetMultiplier);
-    const size_t suffixResetBytes = transports::OneWireEncoding::computeResetBytes(settings.timing, 0, settings.suffixResetMultiplier);
+    const size_t payloadBytes = protocols::OneWireEncoding::expandedPayloadSizeBytes(rawBytes, settings.timing.bitPattern());
+    const size_t prefixResetBytes = protocols::OneWireEncoding::computeResetBytes(settings.timing, 0, settings.prefixResetMultiplier);
+    const size_t suffixResetBytes = protocols::OneWireEncoding::computeResetBytes(settings.timing, 0, settings.suffixResetMultiplier);
     return prefixResetBytes + payloadBytes + suffixResetBytes;
   }
 
   template <typename TTransportSettings> static void normalizeTransportSettings(uint16_t, const SettingsType& settings, TTransportSettings& transportSettings)
   {
-    transports::normalizeOneWireTransportClockDataBitRate(settings.timing, transportSettings);
+    protocols::normalizeOneWireTransportClockDataBitRate(settings.timing, transportSettings);
   }
 
   static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
@@ -78,7 +78,7 @@ public:
   {
   }
 
-  Ws2812xProtocol(PixelCount pixelCount, const char* channelOrder) : Ws2812xProtocol{pixelCount, Ws2812xProtocolSettings{{}, channelOrder, transports::timing::Ws2812x}} {}
+  Ws2812xProtocol(PixelCount pixelCount, const char* channelOrder) : Ws2812xProtocol{pixelCount, Ws2812xProtocolSettings{{}, channelOrder, protocols::timing::Ws2812x}} {}
 
   ~Ws2812xProtocol() override = default;
 
@@ -134,7 +134,7 @@ public:
 
     serialize(_frameData, colors);
 
-    const size_t encodedSize = transports::OneWireEncoding::encodeWithResets(_frameData.data(), _rawSizeData, _frameData.data(), _frameData.size(), _settings.timing, 0, _settings.prefixResetMultiplier,
+    const size_t encodedSize = protocols::OneWireEncoding::encodeWithResets(_frameData.data(), _rawSizeData, _frameData.data(), _frameData.size(), _settings.timing, 0, _settings.prefixResetMultiplier,
                                                                              _settings.suffixResetMultiplier, ProtocolIdleHigh);
     if (encodedSize == 0)
     {

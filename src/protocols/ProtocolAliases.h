@@ -9,7 +9,7 @@
 #include "protocols/Tm1814Protocol.h"
 #include "protocols/Tm1914Protocol.h"
 #include "protocols/Ws2812xProtocol.h"
-#include "transports/OneWireEncoding.h"
+#include "protocols/OneWireEncoding.h"
 
 namespace lw::protocols
 {
@@ -115,7 +115,7 @@ struct Tm1914
   static SettingsType normalizeSettings(SettingsType settings) { return SettingsType::normalizeForColor(std::move(settings), lw::ChannelOrder::GRB::value); }
 };
 
-template <typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transports::OneWireTiming* TDefaultTiming = &lw::transports::timing::Generic800, bool TIdleHigh = false> struct Ws2812x
+template <typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const protocols::OneWireTiming* TDefaultTiming = &lw::protocols::timing::Generic800, bool TIdleHigh = false> struct Ws2812x
 {
   using DefaultChannelOrder = TDefaultChannelOrder;
 
@@ -123,7 +123,7 @@ template <typename TDefaultChannelOrder = lw::ChannelOrder::GRB, const transport
   using SettingsType = typename ProtocolType::SettingsType;
   using ColorType = typename ProtocolType::ColorType;
 
-  static constexpr transports::OneWireTiming defaultTiming() { return (TDefaultTiming != nullptr) ? *TDefaultTiming : lw::transports::timing::Ws2812x; }
+  static constexpr protocols::OneWireTiming defaultTiming() { return (TDefaultTiming != nullptr) ? *TDefaultTiming : lw::protocols::timing::Ws2812x; }
 
   static SettingsType defaultSettings()
   {
