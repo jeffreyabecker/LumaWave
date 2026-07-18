@@ -57,7 +57,7 @@
 - `PipelineRun` = `{IOutputPipeline*, size_t length}`. Single light: length=1. Strip: length=N.
 - Multi-strip uses multiple `PipelineRun` entries in a caller-owned array with sub-view spans.
 - `ProtocolTransportPipeline` constructor: `(IProtocol&, ITransport&, span<uint8_t> protocolBuffer, span<Color> scratchPixels)`.
-- Protocol buffer size: use `protocol.requiredBufferSizeBytes()` to determine the minimum buffer size. An empty `scratchPixels` span disables the brightness/shader scratch path.
+- Protocol buffer size: use `ConcreteProtocol::requiredBufferSize(pixelCount, settings)` (static method) to determine the minimum buffer size at compile time. An empty `scratchPixels` span disables the brightness/shader scratch path.
 - No factory functions, no descriptor system, no template aliases.
 - No `std::make_unique`, `std::unique_ptr`, or `std::initializer_list` in Bus/PipelineRun construction.
 

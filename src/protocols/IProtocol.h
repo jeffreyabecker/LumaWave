@@ -45,7 +45,6 @@ public:
   virtual void begin() = 0;
   virtual void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) = 0;
   virtual ProtocolSettings& settings() = 0;
-  virtual size_t requiredBufferSizeBytes() const { return 0; }
   virtual bool alwaysUpdate() const = 0;
 
 protected:

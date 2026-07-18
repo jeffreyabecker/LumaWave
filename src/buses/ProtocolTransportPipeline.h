@@ -43,14 +43,6 @@ public:
       return;
     }
 
-    const size_t requiredSize = _protocol.requiredBufferSizeBytes();
-    if (requiredSize == 0)
-    {
-      return;
-    }
-
-    assert(_protocolBuffer.size() >= requiredSize);
-
     const bool applyBrightness = (brightness != std::numeric_limits<BrightnessType>::max());
 
     if (applyBrightness)

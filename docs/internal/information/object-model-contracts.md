@@ -40,7 +40,6 @@ Current optional/default virtual behavior:
 
 - `setBuffer(span<uint8_t>)` (default no-op)
 - `bindTransport(ITransport*)` (default no-op)
-- `requiredBufferSizeBytes() const` (default `0`)
 
 Contract metadata and markers:
 
@@ -176,7 +175,7 @@ Implications:
 `StaticBus::bindProtocolBuffers()` then:
 
 - calls `protocol.bindTransport(transport)` for each strand,
-- computes total required bytes from `protocol.requiredBufferSizeBytes()`,
+- computes total required bytes from `ConcreteProtocol::requiredBufferSize(pixelCount, settings)`,
 - slices/binds protocol arena via `protocol.setBuffer(...)`.
 
 ### 3.3 Transport-binding ownership decision (2026-03-02)
@@ -217,7 +216,6 @@ When adding a protocol:
 - Define `using ColorType`, `using SettingsType`, `using TransportCategory`.
 - Keep `RequiresExternalBuffer == true` unless deliberately changing global protocol-buffer policy.
 - Implement static `requiredBufferSize(uint16_t, const SettingsType&)`.
-- Implement runtime `requiredBufferSizeBytes() const` consistently with configured state.
 - Implement `setBuffer(...)` and `bindTransport(...)` if the protocol needs external byte arena and transport injection.
 - Provide either `(uint16_t, SettingsType)` or `(uint16_t, SettingsType, TTransport&)` constructor path.
 - Add/update compile assertions in `test/contracts/` suites.

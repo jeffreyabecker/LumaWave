@@ -25,10 +25,9 @@ struct Ws2801ProtocolSettings : public ProtocolSettings
 class Ws2801ProtocolT : public IProtocol
 {
 public:
-    using SettingsType = Ws2801ProtocolSettings;
+  using SettingsType = Ws2801ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Ws2801Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Ws2801Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 
@@ -60,8 +59,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::RGB::length;

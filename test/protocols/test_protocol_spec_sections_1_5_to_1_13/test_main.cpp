@@ -22,7 +22,8 @@ using namespace fakeit;
 
 template <typename TProtocol> std::vector<uint8_t> bind_protocol_buffer(TProtocol& protocol)
 {
-  return std::vector<uint8_t>(protocol.requiredBufferSizeBytes(), 0);
+  const auto& settings = static_cast<const typename TProtocol::SettingsType&>(protocol.settings());
+  return std::vector<uint8_t>(TProtocol::requiredBufferSize(protocol.pixelCount(), settings), 0);
 }
 
 template <typename T> lw::span<T> as_span(std::vector<T>& value)

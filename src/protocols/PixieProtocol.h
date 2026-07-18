@@ -18,10 +18,9 @@ struct PixieProtocolSettings : public ProtocolSettings
 class PixieProtocolT : public IProtocol
 {
 public:
-    using SettingsType = PixieProtocolSettings;
+  using SettingsType = PixieProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "PixieProtocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "PixieProtocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 
@@ -53,8 +52,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return true; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::RGB::length;

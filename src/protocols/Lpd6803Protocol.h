@@ -33,15 +33,13 @@ struct Lpd6803ProtocolSettings : public ProtocolSettings
 class Lpd6803ProtocolT : public IProtocol
 {
 public:
-    using SettingsType = Lpd6803ProtocolSettings;
+  using SettingsType = Lpd6803ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + ((static_cast<size_t>(pixelCount) + 7u) / 8u); }
 
-  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
+  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
   {
   }
 
@@ -80,8 +78,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr size_t BytesPerPixel = 2;

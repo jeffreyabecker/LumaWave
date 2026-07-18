@@ -43,10 +43,9 @@ struct Tm1914ProtocolSettings : public ProtocolSettings
 class Tm1914ProtocolT : public IProtocol
 {
 public:
-    using SettingsType = Tm1914ProtocolSettings;
+  using SettingsType = Tm1914ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Tm1914Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Tm1914Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings)
   {
@@ -87,8 +86,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr bool ProtocolIdleHigh = true;

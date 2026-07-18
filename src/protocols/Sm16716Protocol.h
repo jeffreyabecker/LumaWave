@@ -33,10 +33,9 @@ struct Sm16716ProtocolSettings : public ProtocolSettings
 class Sm16716ProtocolT : public IProtocol
 {
 public:
-    using SettingsType = Sm16716ProtocolSettings;
+  using SettingsType = Sm16716ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Sm16716Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Sm16716Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (StartFrameBits + (static_cast<size_t>(pixelCount) * BitsPerPixel) + 7u) / 8u; }
 
@@ -60,8 +59,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr size_t StartFrameBits = 50;

@@ -52,7 +52,7 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
 class Ws2812xProtocol : public IProtocol
 {
 public:
-    using SettingsType = Ws2812xProtocolSettings;
+  using SettingsType = Ws2812xProtocolSettings;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings)
   {
@@ -70,12 +70,11 @@ public:
     transports::normalizeOneWireTransportClockDataBitRate(settings.timing, transportSettings);
   }
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
 
   Ws2812xProtocol(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)},
-        _rawSizeData{pixelCount * _channelCount}, _sizeData{requiredBufferSize(pixelCount, _settings)}
+      : IProtocol(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)}, _rawSizeData{pixelCount * _channelCount},
+        _sizeData{requiredBufferSize(pixelCount, _settings)}
   {
   }
 
@@ -86,8 +85,8 @@ public:
   Ws2812xProtocol(const Ws2812xProtocol&) = delete;
   Ws2812xProtocol& operator=(const Ws2812xProtocol&) = delete;
   Ws2812xProtocol(Ws2812xProtocol&& other) noexcept
-      : IProtocol(other._pixelCount), _settings{std::move(other._settings)}, _channelOrder{other._channelOrder}, _channelCount{other._channelCount}, _rawSizeData{other._rawSizeData},
-        _sizeData{other._sizeData}, _frameData{other._frameData}
+      : IProtocol(other._pixelCount), _settings{std::move(other._settings)}, _channelOrder{other._channelOrder}, _channelCount{other._channelCount}, _rawSizeData{other._rawSizeData}, _sizeData{other._sizeData},
+        _frameData{other._frameData}
   {
     other._pixelCount = 0;
     other._channelOrder = ChannelOrder::GRB::value;
@@ -146,8 +145,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _sizeData; }
 
 protected:
   size_t frameSize() const { return _sizeData; }

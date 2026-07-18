@@ -80,8 +80,6 @@ public:
 
   bool alwaysUpdate() const override { return false; }
 
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
-
 private:
   static constexpr uint8_t MaxGain = 0x1f;
   static constexpr size_t StripChannelCount = 3; // APA102 wire format: RGB (no white)
@@ -144,8 +142,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr uint8_t MaxGain = 0x1f;

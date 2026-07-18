@@ -67,10 +67,9 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 class Tlc59711ProtocolT : public IProtocol, public IHaveGain
 {
 public:
-    using SettingsType = Tlc59711ProtocolSettings;
+  using SettingsType = Tlc59711ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -103,8 +102,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
   void updateSettings(const Tlc59711Settings& settings) { encodeHeader(settings); }
 

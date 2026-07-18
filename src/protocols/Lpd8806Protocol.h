@@ -28,10 +28,9 @@ struct Lpd8806ProtocolSettings : public ProtocolSettings
 class Lpd8806ProtocolT : public IProtocol
 {
 public:
-    using SettingsType = Lpd8806ProtocolSettings;
+  using SettingsType = Lpd8806ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>),
-                "Lpd8806Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Lpd8806Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -39,10 +38,7 @@ public:
     return (frameSize * 2u) + (static_cast<size_t>(pixelCount) * BytesPerPixel);
   }
 
-  Lpd8806ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _frameSize{(pixelCount + 31u) / 32u}
-  {
-  }
+  Lpd8806ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _frameSize{(pixelCount + 31u) / 32u} {}
 
   void begin() override {}
 
@@ -74,8 +70,6 @@ public:
   ProtocolSettings& settings() override { return _settings; }
 
   bool alwaysUpdate() const override { return false; }
-
-  size_t requiredBufferSizeBytes() const override { return _requiredBufferSize; }
 
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::GRB::length;
