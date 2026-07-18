@@ -15,11 +15,15 @@ public:
 
   virtual ~IOutputPipeline() = default;
 
-  virtual void begin() = 0;
+  virtual void begin() {}
 
-  virtual bool isReadyToUpdate() const = 0;
+  virtual bool isReadyToUpdate() const { return true; }
 
-  virtual void write(span<const lw::colors::Color> colors, BrightnessType brightness) = 0;
+  virtual void write(span<const lw::colors::Color> colors, BrightnessType brightness)
+  {
+    (void)colors;
+    (void)brightness;
+  }
 
   virtual bool alwaysUpdate() const { return false; }
 };

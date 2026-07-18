@@ -3,7 +3,6 @@
 #include "transports/ITransport.h"
 #include "core/IOutputPipeline.h"
 #include "transports/PwmOutputPipeline.h"
-#include "transports/NilOutputPipeline.h"
 #include "transports/OneWireEncoding.h"
 #include "transports/OneWireTiming.h"
 #include "transports/PrintLightDriver.h"
@@ -45,7 +44,7 @@ using PlatformDefaultLightDriver = lw::transports::esp32::Esp32SigmaDeltaLightDr
 #elif defined(ARDUINO_ARCH_ESP8266)
 using PlatformDefaultLightDriver = lw::transports::esp8266::Esp8266LedcLightDriver;
 #else
-using PlatformDefaultLightDriver = lw::transports::NilOutputPipeline;
+using PlatformDefaultLightDriver = lw::buses::IOutputPipeline;
 #endif
 
 } // namespace lw::transports
