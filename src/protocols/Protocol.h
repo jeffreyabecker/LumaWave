@@ -20,7 +20,7 @@ class Protocol
 {
 public:
   using ColorType = lw::Color;
-  using SettingsType = void;
+  using SettingsType = ProtocolSettings;
   static constexpr bool RequiresExternalBuffer = true;
   explicit Protocol(PixelCount pixelCount = 0) : _pixelCount{pixelCount} {}
 

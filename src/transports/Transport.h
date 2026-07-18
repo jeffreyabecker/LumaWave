@@ -34,6 +34,8 @@ struct TransportSettingsBase
 class Transport
 {
 public:
+  using TransportSettingsType = TransportSettingsBase;
+
   virtual ~Transport() = default;
 
   virtual void begin() {}
