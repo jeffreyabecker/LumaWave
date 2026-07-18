@@ -17,7 +17,8 @@ struct ProtocolSettings
 
 enum class RuntimeConfig : uint8_t
 {
-  Gain = 0x01,
+  Brightness = 0x00,
+  Gamma = 0x02,
 };
 
 class IProtocol

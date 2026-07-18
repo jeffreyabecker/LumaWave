@@ -15,8 +15,13 @@ constexpr size_t protocolBufferSize = decltype(ws2812proto)::requiredBufferSize(
 uint8_t protocolBuffer[protocolBufferSize];
 lw::Color scratchPixels[ledCount];
 
+// Shader chain with brightness
+lw::protocols::BrightnessShader brightnessShader;
+lw::protocols::IShader* shaders[] = {&brightnessShader};
+lw::protocols::ShaderProtocol shaderProto(ws2812proto, shaders, scratchPixels);
+
 // Caller-owned pipeline and run array
-lw::busses::ProtocolTransportPipeline pipeline(ws2812proto, nilTransport, protocolBuffer, scratchPixels);
+lw::busses::ProtocolTransportPipeline pipeline(shaderProto, nilTransport, protocolBuffer);
 lw::busses::PipelineRun runs[] = {{&pipeline, ledCount}};
 
 // Bus: non-owning view over caller-managed resources

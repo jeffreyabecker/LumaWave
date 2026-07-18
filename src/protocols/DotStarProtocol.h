@@ -78,7 +78,7 @@ public:
 
   void setRuntimeConfig(RuntimeConfig type, void* value) override
   {
-    if (type == RuntimeConfig::Gain && value != nullptr)
+    if (type == RuntimeConfig::Brightness && value != nullptr)
     {
       _gainValue = *static_cast<uint8_t*>(value);
     }
@@ -86,7 +86,7 @@ public:
 
   void* getRuntimeConfig(RuntimeConfig type) override
   {
-    if (type == RuntimeConfig::Gain)
+    if (type == RuntimeConfig::Brightness)
     {
       return &_gainValue;
     }
@@ -157,7 +157,7 @@ public:
 
   void setRuntimeConfig(RuntimeConfig type, void* value) override
   {
-    if (type == RuntimeConfig::Gain && value != nullptr)
+    if (type == RuntimeConfig::Brightness && value != nullptr)
     {
       _gainValue = *static_cast<uint8_t*>(value);
     }
@@ -165,7 +165,7 @@ public:
 
   void* getRuntimeConfig(RuntimeConfig type) override
   {
-    if (type == RuntimeConfig::Gain)
+    if (type == RuntimeConfig::Brightness)
     {
       return &_gainValue;
     }

@@ -23,8 +23,13 @@ constexpr size_t protocolBufferSize = decltype(apa102proto)::requiredBufferSize(
 uint8_t protocolBuffer[protocolBufferSize];
 lw::Color scratchPixels[ledCount];
 
+// Shader chain with brightness
+lw::protocols::BrightnessShader brightnessShader;
+lw::protocols::IShader* shaders[] = {&brightnessShader};
+lw::protocols::ShaderProtocol shaderProto(apa102proto, shaders, scratchPixels);
+
 // Caller-owned pipeline and run array
-lw::busses::ProtocolTransportPipeline pipeline(apa102proto, spiTransport, protocolBuffer, scratchPixels);
+lw::busses::ProtocolTransportPipeline pipeline(shaderProto, spiTransport, protocolBuffer);
 lw::busses::PipelineRun runs[] = {{&pipeline, ledCount}};
 
 // Bus: non-owning view over caller-managed resources

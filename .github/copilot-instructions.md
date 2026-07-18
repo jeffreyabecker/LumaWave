@@ -56,7 +56,9 @@
 - Pipelines: `ProtocolTransportPipeline` (protocol + transport pair) or a concrete light driver implementing `IOutputPipeline`.
 - `PipelineRun` = `{IOutputPipeline*, size_t length}`. Single light: length=1. Strip: length=N.
 - Multi-strip uses multiple `PipelineRun` entries in a caller-owned array with sub-view spans.
-- `ProtocolTransportPipeline` constructor: `(IProtocol&, ITransport&, span<uint8_t> protocolBuffer, span<Color> scratchPixels)`.
+- `ProtocolTransportPipeline` constructor: `(IProtocol&, ITransport&, span<uint8_t> protocolBuffer)`.
+- Wrap protocols with `ShaderProtocol` for brightness/shader support: `ShaderProtocol(IProtocol&, span<IShader*>, span<Color> scratchPixels)`.
+- Use `BrightnessShader` for brightness: add it to the shader chain and set via `setRuntimeConfig(RuntimeConfig::Brightness, &value)` on the pipeline protocol.
 - Protocol buffer size: use `ConcreteProtocol::requiredBufferSize(pixelCount, settings)` (static method) to determine the minimum buffer size at compile time. An empty `scratchPixels` span disables the brightness/shader scratch path.
 - No factory functions, no descriptor system, no template aliases.
 - No `std::make_unique`, `std::unique_ptr`, or `std::initializer_list` in Bus/PipelineRun construction.
