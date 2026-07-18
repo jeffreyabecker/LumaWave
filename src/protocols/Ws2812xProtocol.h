@@ -144,8 +144,6 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
-  bool alwaysUpdate() const override { return false; }
-
 protected:
   size_t frameSize() const { return _sizeData; }
 

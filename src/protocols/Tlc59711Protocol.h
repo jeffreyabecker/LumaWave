@@ -101,8 +101,6 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
-  bool alwaysUpdate() const override { return false; }
-
   void updateSettings(const Tlc59711Settings& settings) { encodeHeader(settings); }
 
   void setGain(uint8_t gain) override

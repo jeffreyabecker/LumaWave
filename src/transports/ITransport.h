@@ -37,11 +37,11 @@ class ITransport
 public:
   virtual ~ITransport() = default;
 
-  virtual void begin() = 0;
+  virtual void begin() {}
 
   virtual void beginTransaction() {}
 
-  virtual void transmitBytes(span<uint8_t> data) = 0;
+  virtual void transmitBytes(span<uint8_t> data) {}
 
   virtual void endTransaction() {}
 

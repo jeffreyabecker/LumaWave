@@ -8,7 +8,7 @@ lw::Color pixels[30];
 
 // Caller-owned protocol and transport
 Protocols::Ws2812::ProtocolType ws2812proto(ledCount, Protocols::Ws2812::defaultSettings());
-lw::transports::NilTransport nilTransport;
+lw::transports::ITransport nilTransport;
 
 // Caller-owned buffers
 uint8_t protocolBuffer[4096]; // generous size for 30 WS2812 LEDs

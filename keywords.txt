@@ -19,8 +19,6 @@ HslColor	KEYWORD1
 HsbColor	KEYWORD1
 HtmlColor	KEYWORD1
 NeoNoSettings	KEYWORD1
-NilTransport	KEYWORD1
-NilTransportSettings	KEYWORD1
 NeoTm1814Settings	KEYWORD1
 NeoTm1914Settings	KEYWORD1
 NeoSm16803pbSettings	KEYWORD1

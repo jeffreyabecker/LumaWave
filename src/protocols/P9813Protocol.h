@@ -38,8 +38,6 @@ public:
 
   P9813ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void begin() override {}
-
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
@@ -73,8 +71,6 @@ public:
   }
 
   ProtocolSettings& settings() override { return _settings; }
-
-  bool alwaysUpdate() const override { return false; }
 
 private:
   static constexpr size_t BytesPerPixel = 4;

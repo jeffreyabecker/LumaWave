@@ -4,17 +4,17 @@
 
 #include <Arduino.h>
 
-#include "transports/AnalogPwmLightDriver.h"
+#include "transports/PwmOutputPipeline.h"
 
 namespace lw::transports::esp8266
 {
 
-using Esp8266LedcLightDriverSettings = lw::transports::AnalogPwmLightDriverSettings;
+using Esp8266LedcLightDriverSettings = lw::transports::PwmOutputPipelineSettings;
 
-class Esp8266LedcLightDriver : public lw::transports::AnalogPwmLightDriver
+class Esp8266LedcLightDriver : public lw::transports::PwmOutputPipeline
 {
 public:
-  using AnalogPwmLightDriver::AnalogPwmLightDriver;
+  using PwmOutputPipeline::PwmOutputPipeline;
 
 protected:
   void platformAnalogWrite(int pin, uint16_t value) override { analogWrite(pin, value); }

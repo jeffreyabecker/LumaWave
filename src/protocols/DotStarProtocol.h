@@ -46,8 +46,6 @@ public:
 
   Apa102Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
 
-  void begin() override {}
-
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
@@ -78,8 +76,6 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
-  bool alwaysUpdate() const override { return false; }
-
 private:
   static constexpr uint8_t MaxGain = 0x1f;
   static constexpr size_t StripChannelCount = 3; // APA102 wire format: RGB (no white)
@@ -105,8 +101,6 @@ public:
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
   Hd108Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
-
-  void begin() override {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
@@ -140,8 +134,6 @@ public:
   }
 
   ProtocolSettings& settings() override { return _settings; }
-
-  bool alwaysUpdate() const override { return false; }
 
 private:
   static constexpr uint8_t MaxGain = 0x1f;

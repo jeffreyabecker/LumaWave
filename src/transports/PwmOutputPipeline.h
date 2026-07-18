@@ -12,7 +12,7 @@
 namespace lw::transports
 {
 
-struct AnalogPwmLightDriverSettings
+struct PwmOutputPipelineSettings
 {
   static constexpr size_t MaxChannels = 4;
   using PinsMap = ChannelMap<int>;
@@ -24,7 +24,7 @@ struct AnalogPwmLightDriverSettings
   uint32_t pwmFrequencyHz{DefaultPwmFrequencyHz};
   bool invert{false};
 
-  static AnalogPwmLightDriverSettings normalize(AnalogPwmLightDriverSettings settings)
+  static PwmOutputPipelineSettings normalize(PwmOutputPipelineSettings settings)
   {
     if (settings.pwmRange == 0)
     {
@@ -40,7 +40,7 @@ struct AnalogPwmLightDriverSettings
   }
 };
 
-class AnalogPwmLightDriver : public lw::buses::IOutputPipeline
+class PwmOutputPipeline : public lw::buses::IOutputPipeline
 {
 public:
   enum class PinMode : int
@@ -51,11 +51,11 @@ public:
 
   using ColorType = lw::Color;
   using BrightnessType = lw::colors::ColorComponent;
-  using LightDriverSettingsType = AnalogPwmLightDriverSettings;
+  using LightDriverSettingsType = PwmOutputPipelineSettings;
 
-  explicit AnalogPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
+  explicit PwmOutputPipeline(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
 
-  ~AnalogPwmLightDriver() override
+  ~PwmOutputPipeline() override
   {
     if (!_begun)
     {

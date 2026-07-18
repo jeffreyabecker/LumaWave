@@ -5,19 +5,19 @@
 namespace lw::transports
 {
 
-struct NilLightDriverSettings
+struct NilOutputPipelineSettings
 {
-  static NilLightDriverSettings normalize(NilLightDriverSettings settings) { return settings; }
+  static NilOutputPipelineSettings normalize(NilOutputPipelineSettings settings) { return settings; }
 };
 
-class NilLightDriver : public lw::buses::IOutputPipeline
+class NilOutputPipeline : public lw::buses::IOutputPipeline
 {
 public:
   using ColorType = lw::Color;
   using BrightnessType = lw::colors::ColorComponent;
-  using LightDriverSettingsType = NilLightDriverSettings;
+  using LightDriverSettingsType = NilOutputPipelineSettings;
 
-  explicit NilLightDriver(LightDriverSettingsType = {}) {}
+  explicit NilOutputPipeline(LightDriverSettingsType = {}) {}
 
   void begin() override {}
 

@@ -48,8 +48,6 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
-  bool alwaysUpdate() const override { return false; }
-
 private:
   static constexpr size_t SettingsSize = 2;
 

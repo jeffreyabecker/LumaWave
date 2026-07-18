@@ -85,8 +85,6 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
-  bool alwaysUpdate() const override { return false; }
-
 private:
   static constexpr bool ProtocolIdleHigh = true;
   static constexpr size_t ChannelCount = 3;

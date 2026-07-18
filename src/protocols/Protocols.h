@@ -5,7 +5,6 @@
 #include "protocols/ProtocolAliases.h"
 #include "protocols/Lpd6803Protocol.h"
 #include "protocols/Lpd8806Protocol.h"
-#include "protocols/NilProtocol.h"
 #include "protocols/P9813Protocol.h"
 #include "protocols/PixieProtocol.h"
 #include "protocols/Sm16716Protocol.h"

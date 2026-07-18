@@ -42,13 +42,14 @@ public:
 
   PixelCount pixelCount() const { return _pixelCount; }
 
-  virtual void begin() = 0;
-  virtual void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) = 0;
-  virtual ProtocolSettings& settings() = 0;
-  virtual bool alwaysUpdate() const = 0;
+  virtual void begin() {}
+  virtual void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) {}
+  virtual ProtocolSettings& settings() { return _settings; }
+  virtual bool alwaysUpdate() const { return false; }
 
 protected:
   PixelCount _pixelCount;
+  ProtocolSettings _settings{};
 };
 
 template <typename TProtocol, typename = void> struct ProtocolTypeImpl : std::false_type

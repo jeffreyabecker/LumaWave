@@ -76,12 +76,12 @@ template <typename TDefaultChannelOrder = lw::ChannelOrder::BGR> struct Hd108
 
 struct None
 {
-  using ProtocolType = lw::protocols::NilProtocol;
-  using SettingsType = typename ProtocolType::SettingsType;
-  using ColorType = typename ProtocolType::ColorType;
+  using ProtocolType = lw::protocols::IProtocol;
+  using SettingsType = lw::protocols::ProtocolSettings;
+  using ColorType = lw::colors::Color;
 
+  static constexpr size_t requiredBufferSize(uint16_t, const SettingsType&) { return 0; }
   static SettingsType defaultSettings() { return SettingsType{}; }
-
   static SettingsType normalizeSettings(SettingsType settings) { return settings; }
 };
 
