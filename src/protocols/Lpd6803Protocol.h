@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -30,7 +30,7 @@ struct Lpd6803ProtocolSettings : public ProtocolSettings
 //   Pixel data: 2 bytes per pixel
 //   End:   ceil(N / 8) bytes of 0x00  (1 bit per pixel)
 //
-class Lpd6803ProtocolT : public IProtocol
+class Lpd6803ProtocolT : public Protocol
 {
 public:
   using SettingsType = Lpd6803ProtocolSettings;
@@ -39,7 +39,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + ((static_cast<size_t>(pixelCount) + 7u) / 8u); }
 
-  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
+  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
   {
   }
 

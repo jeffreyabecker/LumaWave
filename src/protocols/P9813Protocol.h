@@ -27,7 +27,7 @@ struct P9813ProtocolSettings : public ProtocolSettings
 //   Start: 4 ? 0x00
 //   End:   4 ? 0x00
 //
-class P9813ProtocolT : public IProtocol
+class P9813ProtocolT : public Protocol
 {
 public:
   using SettingsType = P9813ProtocolSettings;
@@ -36,7 +36,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (FrameSize * 2u) + (static_cast<size_t>(pixelCount) * BytesPerPixel); }
 
-  P9813ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
+  P9813ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {

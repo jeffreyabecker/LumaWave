@@ -5,7 +5,7 @@
 - Repository: `NpbNext`.
 - Primary target: PlatformIO + Arduino core, with RP2040/Pico2W as the default workflow.
 - Language standard for active code paths: C++17 (`-std=gnu++17`) in primary and native-test environments.
-- Architecture is virtual-first and centered on explicit seams: `IPixelBus`, `IProtocol`, and `ITransport`.
+- Architecture is virtual-first and centered on explicit seams: `IPixelBus`, `Protocol`, and `Transport`.
 - Project stage is alpha: API compatibility is not preserved by default and public APIs are assumed unstable unless explicitly stated otherwise.
 - Do not introduce compatiblity shims or overloads to preserve old APIs; prefer direct API updates and test/example call site maintenance instead.
 - For API changes, update call sites in tests/examples and remove obsolete APIs rather than introducing compatibility wrappers or alias overloads.
@@ -33,8 +33,8 @@
 - Keep responsibilities separated:
 	- `IPixelBus`: storage/composition + frame lifecycle.
 	- `IShader`: pixel transforms (see backlog 009).
-	- `IProtocol`: chip byte-stream encoding/framing.
-	- `ITransport`: hardware/peripheral transfer behavior.
+	- `Protocol`: chip byte-stream encoding/framing.
+	- `Transport`: hardware/peripheral transfer behavior.
 - External lifetime model: `Bus`, `ProtocolTransportPipeline`, and `PipelineRun` are non-owning. The caller owns and manages protocol instances, transport instances, protocol encoding buffers, scratch pixel buffers, pixel storage, and pipeline run arrays. No heap allocation occurs inside these classes.
 - For transport settings types, maintain required `public bool invert` contract.
 - Use canonical static bus-driver naming already adopted by the codebase:
@@ -53,11 +53,11 @@
 ## Bus Construction Rules
 
 - Use direct `Bus(span<Color>, span<const PipelineRun>)` construction with caller-allocated resources.
-- Pipelines: `ProtocolTransportPipeline` (protocol + transport pair) or a concrete light driver implementing `IOutputPipeline`.
-- `PipelineRun` = `{IOutputPipeline*, size_t length}`. Single light: length=1. Strip: length=N.
+- Pipelines: `ProtocolTransportPipeline` (protocol + transport pair) or a concrete light driver implementing `OutputPipeline`.
+- `PipelineRun` = `{OutputPipeline*, size_t length}`. Single light: length=1. Strip: length=N.
 - Multi-strip uses multiple `PipelineRun` entries in a caller-owned array with sub-view spans.
-- `ProtocolTransportPipeline` constructor: `(IProtocol&, ITransport&, span<uint8_t> protocolBuffer)`.
-- Wrap protocols with `ShaderProtocol` for brightness/shader support: `ShaderProtocol(IProtocol&, span<IShader*>, span<Color> scratchPixels)`.
+- `ProtocolTransportPipeline` constructor: `(Protocol&, Transport&, span<uint8_t> protocolBuffer)`.
+- Wrap protocols with `ShaderProtocol` for brightness/shader support: `ShaderProtocol(Protocol&, span<IShader*>, span<Color> scratchPixels)`.
 - Use `BrightnessShader` for brightness: add it to the shader chain and set via `setRuntimeConfig(RuntimeConfig::Brightness, &value)` on the pipeline protocol.
 - Protocol buffer size: use `ConcreteProtocol::requiredBufferSize(pixelCount, settings)` (static method) to determine the minimum buffer size at compile time. An empty `scratchPixels` span disables the brightness/shader scratch path.
 - No factory functions, no descriptor system, no template aliases.

@@ -32,10 +32,10 @@ struct TransportSettingsBase
   int dataPin = -1;
 };
 
-class ITransport
+class Transport
 {
 public:
-  virtual ~ITransport() = default;
+  virtual ~Transport() = default;
 
   virtual void begin() {}
 
@@ -66,7 +66,7 @@ template <typename TTransport, typename = void> struct TransportLikeImpl : std::
 
 template <typename TTransport>
 struct TransportLikeImpl<TTransport, std::void_t<typename TTransport::TransportSettingsType>>
-    : std::integral_constant<bool, std::is_convertible_v<TTransport*, ITransport*> && TransportSettingsWithInvert<typename TTransport::TransportSettingsType>>
+    : std::integral_constant<bool, std::is_convertible_v<TTransport*, Transport*> && TransportSettingsWithInvert<typename TTransport::TransportSettingsType>>
 {
 };
 

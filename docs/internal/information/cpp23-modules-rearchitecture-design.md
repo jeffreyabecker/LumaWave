@@ -8,8 +8,8 @@ This is not a proposal to mechanically convert every header into an `export modu
 
 - `IPixelBus`
 - `IShader`
-- `IProtocol`
-- `ITransport`
+- `Protocol`
+- `Transport`
 
 ## Goals
 
@@ -133,7 +133,7 @@ The current design already points in this direction. Modules make that separatio
 
 ### Responsibilities
 
-- `IProtocol`
+- `Protocol`
 - protocol aliases
 - framing and encoding policies
 - protocol decorators and protocol-support helpers
@@ -150,7 +150,7 @@ One-wire encoding helpers that are conceptually protocol framing support should 
 
 ### Responsibilities
 
-- `ITransport`
+- `Transport`
 - transport settings contracts
 - generic transports such as no-op, print, and host test transports
 - transport-side buffer submission lifecycle
@@ -370,13 +370,13 @@ The existing seam contracts remain valid, but their packaging changes.
 - moves under `lw.shader`
 - remains a frame-transform seam, not a color-model concern
 
-## `IProtocol`
+## `Protocol`
 
 - lives in `lw.protocol`
 - owns byte-stream and framing policy
 - should absorb protocol-side support logic that is currently misplaced in transport-oriented locations
 
-## `ITransport`
+## `Transport`
 
 - lives in `lw.transport`
 - expresses transport submission behavior only

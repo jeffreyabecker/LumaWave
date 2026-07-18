@@ -5,7 +5,7 @@
 #include <type_traits>
 #include "core/Compat.h"
 
-#include "ITransport.h"
+#include "Transport.h"
 
 #if defined(LW_HAS_SPI_TRANSPORT)
 #if LW_HAS_ARDUINO
@@ -36,7 +36,7 @@ struct SpiTransportSettings : TransportSettingsBase
   }
 };
 
-class SpiTransport : public ITransport
+class SpiTransport : public Transport
 {
 public:
   using TransportSettingsType = SpiTransportSettings;

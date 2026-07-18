@@ -7,7 +7,7 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 
 namespace lw::transports
 {
@@ -40,7 +40,7 @@ struct PwmOutputPipelineSettings
   }
 };
 
-class PwmOutputPipeline : public lw::buses::IOutputPipeline
+class PwmOutputPipeline : public lw::buses::OutputPipeline
 {
 public:
   enum class PinMode : int

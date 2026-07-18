@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -64,7 +64,7 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 //
 // Latch: ~20 ?s guard after transmission.
 //
-class Tlc59711ProtocolT : public IProtocol
+class Tlc59711ProtocolT : public Protocol
 {
 public:
   using SettingsType = Tlc59711ProtocolSettings;
@@ -78,7 +78,7 @@ public:
   }
 
   Tlc59711ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
+      : Protocol(pixelCount), _settings{std::move(settings)}, _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
   {
     encodeHeader(_settings.config);
   }

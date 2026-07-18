@@ -8,12 +8,12 @@
 namespace lw::buses
 {
 
-class IOutputPipeline
+class OutputPipeline
 {
 public:
   using BrightnessType = lw::colors::ColorComponent;
 
-  virtual ~IOutputPipeline() = default;
+  virtual ~OutputPipeline() = default;
 
   virtual void begin() {}
 

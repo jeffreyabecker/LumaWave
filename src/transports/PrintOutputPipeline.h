@@ -15,7 +15,7 @@
 #endif
 
 #include "core/Writable.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 
 namespace lw::transports
 {
@@ -45,7 +45,7 @@ template <typename TWritable = DefaultPrintOutputPipelineWritable, typename = st
   }
 };
 
-template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintOutputPipeline : public lw::buses::IOutputPipeline
+template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintOutputPipeline : public lw::buses::OutputPipeline
 {
 public:
   using ColorType = lw::Color;

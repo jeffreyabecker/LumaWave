@@ -13,7 +13,7 @@ extern "C"
 #include "esp8266_peri.h"
 }
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 
 namespace lw::transports::esp8266
 {
@@ -34,7 +34,7 @@ struct Esp8266DmaUartTransportSettings : TransportSettingsBase
     }
 };
 
-class Esp8266DmaUartTransport : public ITransport
+class Esp8266DmaUartTransport : public Transport
 {
   public:
     using TransportSettingsType = Esp8266DmaUartTransportSettings;

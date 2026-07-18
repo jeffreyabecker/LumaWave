@@ -5,7 +5,7 @@
 #include <array>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -15,7 +15,7 @@ struct PixieProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-class PixieProtocolT : public IProtocol
+class PixieProtocolT : public Protocol
 {
 public:
   using SettingsType = PixieProtocolSettings;
@@ -24,7 +24,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 
-  PixieProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
+  PixieProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {

@@ -73,7 +73,7 @@ TM1829 remains a legacy chip with low expected demand, but the alias is now kept
 
 **LumaWave status:** **Unsupported**.
 
-`Tlc5947Protocol` headers are intentionally not shipped/exposed. TLC5947 remains unsupported because deterministic latch/OE sequencing is transport-dependent and not represented in the current `ITransport` contract.
+`Tlc5947Protocol` headers are intentionally not shipped/exposed. TLC5947 remains unsupported because deterministic latch/OE sequencing is transport-dependent and not represented in the current `Transport` contract.
 
 **Why unsupported:**
 
@@ -170,7 +170,7 @@ These are platform/method gaps, not chip gaps. LumaWave supports these platforms
 
 **Why not yet ported:**
 
-Parallel output requires a single transport to multiplex multiple strands' data simultaneously into one DMA buffer. LumaWave's current `ITransport` contract is single-strand (`transmitBytes()` sends one contiguous byte stream). Supporting parallel output would require either:
+Parallel output requires a single transport to multiplex multiple strands' data simultaneously into one DMA buffer. LumaWave's current `Transport` contract is single-strand (`transmitBytes()` sends one contiguous byte stream). Supporting parallel output would require either:
 1. A multi-strand transport variant that accepts interleaved or parallel byte streams, or
 2. A compositor that pre-interleaves strand data and feeds a single DMA transport.
 
@@ -184,7 +184,7 @@ This is an architectural decision that needs design work and is tracked as a fut
 |----------------|----------|----------|--------|------------|
 | SM168x one-wire (PB/E variants) | Protocol gap | Low | Medium — new protocol class (`Sm168xOneWireProtocol`) | Deferred prioritisation + implementation/validation work |
 | TM1829 descriptor | Convenience alias | Complete | Complete | Delivered (`Tm1829` descriptor alias) |
-| TLC5947 | Protocol/transport contract gap | Medium | Medium — transport contract + validation | Latch/OE control not modeled in `ITransport` |
+| TLC5947 | Protocol/transport contract gap | Medium | Medium — transport contract + validation | Latch/OE control not modeled in `Transport` |
 | Intertek | Niche chip | Very low | Low — just a timing profile | No demand |
 | MBI6033 | Niche SPI chip | Very low | Medium — custom reset pattern | No demand |
 | DMX512 / WS2821 | Scope exclusion | N/A | N/A | Deliberate scope boundary |
@@ -192,7 +192,7 @@ This is an architectural decision that needs design work and is tracked as a fut
 | AVR / MegaAVR platform | Platform gap | N/A | Very high — C++17/STL incompatible | Fundamental C++ standard requirement |
 | ARM bit-bang platform | Platform gap | Low | Medium — per-platform ASM transport | Architecture preference for DMA paths |
 | NRF52840 platform | Platform gap | Medium | Medium — PWM DMA transport | Not yet prioritised |
-| Parallel multi-channel | Transport gap | Medium-High | High — transport architecture extension | `ITransport` contract design |
+| Parallel multi-channel | Transport gap | Medium-High | High — transport architecture extension | `Transport` contract design |
 
 ---
 
@@ -225,4 +225,4 @@ This is an architectural decision that needs design work and is tracked as a fut
 - **NRF52840 PWM-DMA path**
 	- Deferred until after primary target priorities; current policy is won't-fix.
 - **Parallel multi-channel output**
-	- Deferred pending `ITransport` multi-strand contract design; current policy is won't-fix.
+	- Deferred pending `Transport` multi-strand contract design; current policy is won't-fix.

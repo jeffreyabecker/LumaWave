@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "ITransport.h"
+#include "Transport.h"
 #include "core/Compat.h"
 #include "core/Writable.h"
 
@@ -43,7 +43,7 @@ template <typename TWritable = DefaultPrintTransportWritable, typename = std::en
   }
 };
 
-template <typename TWritable = DefaultPrintTransportWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintTransportT : public ITransport
+template <typename TWritable = DefaultPrintTransportWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintTransportT : public Transport
 {
 public:
   using TransportSettingsType = PrintTransportSettingsT<TWritable>;

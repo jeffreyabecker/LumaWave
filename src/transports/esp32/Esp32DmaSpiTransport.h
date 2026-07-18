@@ -9,7 +9,7 @@
 #include "driver/spi_master.h"
 #include "esp_heap_caps.h"
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 
 namespace lw::transports::esp32
 {
@@ -47,7 +47,7 @@ struct Esp32DmaSpiTransportSettings : TransportSettingsBase
     }
 };
 
-class Esp32DmaSpiTransport : public ITransport
+class Esp32DmaSpiTransport : public Transport
 {
   public:
     using TransportSettingsType = Esp32DmaSpiTransportSettings;

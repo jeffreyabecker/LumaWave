@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -25,7 +25,7 @@ struct Lpd8806ProtocolSettings : public ProtocolSettings
 //   Pixel data: 3 bytes per pixel
 //   End:   ceil(N / 32) bytes of 0xFF
 //
-class Lpd8806ProtocolT : public IProtocol
+class Lpd8806ProtocolT : public Protocol
 {
 public:
   using SettingsType = Lpd8806ProtocolSettings;
@@ -38,7 +38,7 @@ public:
     return (frameSize * 2u) + (static_cast<size_t>(pixelCount) * BytesPerPixel);
   }
 
-  Lpd8806ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _frameSize{(pixelCount + 31u) / 32u} {}
+  Lpd8806ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _frameSize{(pixelCount + 31u) / 32u} {}
 
   void begin() override {}
 

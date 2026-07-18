@@ -41,7 +41,7 @@ This means:
 - Remove the inline brightness loop from `ProtocolTransportPipeline::write()`. All pixel transforms go through shaders.
 - `ProtocolTransportPipeline` owns `vector<unique_ptr<IShader>>` and runs them in order. No auto-injection, no brightness knowledge.
 - `Bus` stores `BrightnessType _brightness` (as today). `setBrightness()` updates it. A `BrightnessShader` can reference `bus.brightnessRef()` if desired.
-- `IOutputPipeline::write()` takes `span<const Color>` — no brightness, no params. The pipeline is a pure shader → encode → transmit engine.
+- `OutputPipeline::write()` takes `span<const Color>` — no brightness, no params. The pipeline is a pure shader → encode → transmit engine.
 - Keep the zero-shader fast path: when `_shaders` is empty, no scratch buffer is allocated.
 - `IPixelBus` and `Bus` contracts remain backward compatible.
 
@@ -127,15 +127,15 @@ private:
   - Static/global: `BrightnessShader(g_brightness)`
   - Heap-allocated config struct: `BrightnessShader(config->brightness)`
 
-### 3. `IOutputPipeline` — Simplified (`src/core/IOutputPipeline.h`)
+### 3. `OutputPipeline` — Simplified (`src/core/OutputPipeline.h`)
 
 Remove the `BrightnessType` parameter from `write()`. The pipeline doesn't know about brightness at all.
 
 ```cpp
-class IOutputPipeline
+class OutputPipeline
 {
 public:
-    virtual ~IOutputPipeline() = default;
+    virtual ~OutputPipeline() = default;
     virtual void begin() = 0;
     virtual bool isReadyToUpdate() const = 0;
     virtual void write(span<const lw::colors::Color> colors) = 0;
@@ -143,7 +143,7 @@ public:
 };
 ```
 
-**Impact:** All `IOutputPipeline` implementations lose their `BrightnessType` parameter. Light drivers become simpler. `ProtocolTransportPipeline` becomes pure shader → encode → transmit.
+**Impact:** All `OutputPipeline` implementations lose their `BrightnessType` parameter. Light drivers become simpler. `ProtocolTransportPipeline` becomes pure shader → encode → transmit.
 
 ### 4. `IPixelBus` and `Bus` — Minimal Change
 
@@ -202,18 +202,18 @@ No brightness knowledge. No inline brightness loop. Just shader → encode → t
 namespace lw::buses
 {
 
-class ProtocolTransportPipeline : public IOutputPipeline
+class ProtocolTransportPipeline : public OutputPipeline
 {
 public:
     // No-shader constructor.
     ProtocolTransportPipeline(
-        std::unique_ptr<protocols::IProtocol> protocol,
-        std::unique_ptr<transports::ITransport> transport);
+        std::unique_ptr<protocols::Protocol> protocol,
+        std::unique_ptr<transports::Transport> transport);
 
     // Shader constructor — one or more shaders.
     ProtocolTransportPipeline(
-        std::unique_ptr<protocols::IProtocol> protocol,
-        std::unique_ptr<transports::ITransport> transport,
+        std::unique_ptr<protocols::Protocol> protocol,
+        std::unique_ptr<transports::Transport> transport,
         std::vector<std::unique_ptr<IShader>> shaders);
 
     void begin() override;
@@ -222,8 +222,8 @@ public:
     void write(span<const lw::colors::Color> colors) override;
 
 private:
-    std::unique_ptr<protocols::IProtocol>  _protocol;
-    std::unique_ptr<transports::ITransport> _transport;
+    std::unique_ptr<protocols::Protocol>  _protocol;
+    std::unique_ptr<transports::Transport> _transport;
     std::vector<std::unique_ptr<IShader>>  _shaders;
     std::vector<uint8_t>                   _protocolBuffer;
     std::vector<lw::colors::Color>         _scratchPixel;
@@ -365,12 +365,12 @@ No pipeline knows about brightness. If you want brightness, add a `BrightnessSha
 |---|---|---|
 | `IShader` (new) | `apply(span<Color>)` — pure pixels, no config params | New seam |
 | `BrightnessShader` (new) | Binds to external `const BrightnessType&` at construction | Reference-based config |
-| `IOutputPipeline` | `write(colors)` — no brightness parameter | Breaking change to all impls |
+| `OutputPipeline` | `write(colors)` — no brightness parameter | Breaking change to all impls |
 | `IPixelBus` | No change | |
 | `Bus` | Keeps `_brightness`. Adds `brightnessRef()`. `setBrightness()` unchanged. | Backward compatible |
 | `ProtocolTransportPipeline` | `_shaders` list. No inline brightness. `write(colors)` only. | Core integration point |
-| `IProtocol` | No change | |
-| `ITransport` | No change | |
+| `Protocol` | No change | |
+| `Transport` | No change | |
 | Light drivers | `write()` loses brightness param — mechanical change only | |
 
 ---
@@ -380,8 +380,8 @@ No pipeline knows about brightness. If you want brightness, add a `BrightnessSha
 ### Phase 1 — IShader Interface + Pipeline Signature
 
 1. Create `src/core/IShader.h` with `IShader` class.
-2. Update `IOutputPipeline.h`: remove `BrightnessType` from `write()`. Signature becomes `write(span<const Color>)`.
-3. Update all `IOutputPipeline` implementations (light drivers + `ProtocolTransportPipeline`): match new signature.
+2. Update `OutputPipeline.h`: remove `BrightnessType` from `write()`. Signature becomes `write(span<const Color>)`.
+3. Update all `OutputPipeline` implementations (light drivers + `ProtocolTransportPipeline`): match new signature.
 4. Create `src/core/BrightnessShader.h` with `BrightnessShader`.
 5. Update `LumaWave.h`: add includes and `using` declarations for `IShader`, `BrightnessShader`.
 6. Build and run tests.

@@ -6,7 +6,7 @@
 #include <memory>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -22,7 +22,7 @@ struct Ws2801ProtocolSettings : public ProtocolSettings
 // No start or end frame.
 // Latch: 500 ?s clock-low after last byte.
 //
-class Ws2801ProtocolT : public IProtocol
+class Ws2801ProtocolT : public Protocol
 {
 public:
   using SettingsType = Ws2801ProtocolSettings;
@@ -31,7 +31,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 
-  Ws2801ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
+  Ws2801ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {

@@ -12,7 +12,7 @@
 
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
-| Primary model | Hybrid: template-instantiated chipset/platform controllers attached to runtime `fl::CLEDController` linked list | Virtual-first seam model (`IPixelBus`, `IProtocol`, `ITransport`) |
+| Primary model | Hybrid: template-instantiated chipset/platform controllers attached to runtime `fl::CLEDController` linked list | Virtual-first seam model (`IPixelBus`, `Protocol`, `Transport`) |
 | User-facing construction | `FastLED.addLeds<CHIPSET, ...>(...)` compile-time selection | `makeBus(...)` / descriptor-driven factory (static + dynamic paths) |
 | Runtime polymorphism | Yes at controller list level (`virtual show()/showColor()`) | Yes across all seam boundaries |
 | Runtime reconfiguration | Limited (enable/disable controllers, selected runtime controls on some platforms) | Core design goal via descriptors + `DynamicBusBuilder`/INI |
@@ -29,8 +29,8 @@ LumaWave places explicit architectural seams at bus/protocol/transport boundarie
 | Concern | FastLED | LumaWave |
 |---------|---------|----------|
 | Pixel container | Caller-owned `CRGB[]` (or span wrappers in newer internals) | Bus-owned/accessor-managed typed color buffers |
-| Protocol encoding | Typically embedded in chipset/controller templates | Isolated in `IProtocol::update()` implementations |
-| Hardware transfer | Platform controller classes (RMT/SPI/clockless/etc.) | Isolated in `ITransport` |
+| Protocol encoding | Typically embedded in chipset/controller templates | Isolated in `Protocol::update()` implementations |
+| Hardware transfer | Platform controller classes (RMT/SPI/clockless/etc.) | Isolated in `Transport` |
 | Color transforms | Global brightness/dither/correction pipeline + utility functions | Shader pipeline (`IShader`, `AggregateShader`) |
 | Public composition seam | Primarily through `FastLED` global API and controller registration | Explicit interface seams intended for composition/testing |
 
@@ -79,7 +79,7 @@ FastLED’s C++11 baseline helps maintain very broad hardware compatibility. Lum
 |--------|---------|----------|
 | Automated tests | Extensive `tests/` tree and CI workflows | Extensive spec-driven tests under `test/` |
 | Contract compile tests | Implicit through broad compile matrix + targeted suites | Explicit contract test suites for factory/protocol/transport seams |
-| Testability seams | Controller-level + platform stubs/mocks | Explicit seam-level tests (`IProtocol`, `ITransport`, shader, factory) |
+| Testability seams | Controller-level + platform stubs/mocks | Explicit seam-level tests (`Protocol`, `Transport`, shader, factory) |
 
 ---
 
@@ -118,7 +118,7 @@ FastLED’s C++11 baseline helps maintain very broad hardware compatibility. Lum
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
 | Timing strategy | Centralized timing definitions plus platform-specialized controllers | Protocol descriptors + shared one-wire timing/encoding abstractions |
-| Protocol/transport separability | Varies by controller family; often coupled in controller implementation | First-class separation (`IProtocol` + `ITransport`) |
+| Protocol/transport separability | Varies by controller family; often coupled in controller implementation | First-class separation (`Protocol` + `Transport`) |
 | New chipset onboarding shape | Usually add/extend chipset/controller templates and platform paths | Usually add protocol descriptor/protocol class; reuse transport seam |
 
 ### 4.2  Runtime Driver Selection

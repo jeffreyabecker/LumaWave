@@ -9,7 +9,7 @@
 #include <utility>
 #include <algorithm>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 #include "colors/Color.h"
 #include "protocols/OneWireEncoding.h"
 #include "protocols/OneWireTiming.h"
@@ -49,7 +49,7 @@ struct Ws2812xProtocolSettings : public ProtocolSettings
   }
 };
 
-class Ws2812xProtocol : public IProtocol
+class Ws2812xProtocol : public Protocol
 {
 public:
   using SettingsType = Ws2812xProtocolSettings;
@@ -73,7 +73,7 @@ public:
   static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
 
   Ws2812xProtocol(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)}, _rawSizeData{pixelCount * _channelCount},
+      : Protocol(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)}, _rawSizeData{pixelCount * _channelCount},
         _sizeData{requiredBufferSize(pixelCount, _settings)}
   {
   }
@@ -85,7 +85,7 @@ public:
   Ws2812xProtocol(const Ws2812xProtocol&) = delete;
   Ws2812xProtocol& operator=(const Ws2812xProtocol&) = delete;
   Ws2812xProtocol(Ws2812xProtocol&& other) noexcept
-      : IProtocol(other._pixelCount), _settings{std::move(other._settings)}, _channelOrder{other._channelOrder}, _channelCount{other._channelCount}, _rawSizeData{other._rawSizeData}, _sizeData{other._sizeData},
+      : Protocol(other._pixelCount), _settings{std::move(other._settings)}, _channelOrder{other._channelOrder}, _channelCount{other._channelCount}, _rawSizeData{other._rawSizeData}, _sizeData{other._sizeData},
         _frameData{other._frameData}
   {
     other._pixelCount = 0;

@@ -9,7 +9,7 @@
 #include "driver/rmt.h"
 #include "soc/rmt_struct.h"
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 #include "protocols/OneWireTiming.h"
 
 namespace lw::transports::esp32
@@ -40,7 +40,7 @@ struct Esp32RmtTransportSettings : TransportSettingsBase
   }
 };
 
-class Esp32RmtTransport : public ITransport
+class Esp32RmtTransport : public Transport
 {
 public:
   using TransportSettingsType = Esp32RmtTransportSettings;

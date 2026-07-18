@@ -39,14 +39,14 @@ Power budgeting (limiting total current draw based on per-channel milliamps) is 
 
 - `IShader` in `src/core/IShader.h` — `virtual void apply(span<Color>) = 0`. No configuration parameters in `apply()`. Config is bound via constructor references.
 - `BrightnessShader` in `src/core/BrightnessShader.h` — binds to external `const BrightnessType&` at construction. No-op when value is max.
-- `IOutputPipeline::write(span<Color>)` — no brightness parameter, no params. Pure shader → encode → transmit.
+- `OutputPipeline::write(span<Color>)` — no brightness parameter, no params. Pure shader → encode → transmit.
 - `IPixelBus` unchanged.
 - `Bus` keeps `_brightness`, adds `brightnessRef()`. `setBrightness()` unchanged.
 - `ProtocolTransportPipeline` owns `vector<unique_ptr<IShader>>`. No auto-injection. No inline brightness loop.
 - `AggregateShader` in `src/buses/AggregateShader.h` — dynamic shader chain composition.
 - `CurrentLimiterShader` in `src/core/CurrentLimiterShader.h` — reference-bound settings, power-budgeting logic.
 - Zero-copy fast path: when `_shaders` is empty, pixels go directly to `protocol->update()`.
-- `IProtocol` and `ITransport` have zero changes.
+- `Protocol` and `Transport` have zero changes.
 
 ## Non-Goals
 
@@ -60,11 +60,11 @@ Power budgeting (limiting total current draw based on per-channel milliamps) is 
 
 ## Task List
 
-### Phase 1 — IShader Interface + IOutputPipeline Cleanup
+### Phase 1 — IShader Interface + OutputPipeline Cleanup
 
 - [ ] **`P1a`** — Create `src/core/IShader.h` with `IShader` class: `virtual void apply(span<colors::Color> pixels) = 0`.
-- [ ] **`P1b`** — Update `IOutputPipeline.h`: remove `BrightnessType` from `write()`. Signature becomes `virtual void write(span<const Color> colors)`.
-- [ ] **`P1c`** — Update all `IOutputPipeline` implementations (all light drivers + `ProtocolTransportPipeline`): match new `write(span<const Color>)` signature. Remove any brightness-related code.
+- [ ] **`P1b`** — Update `OutputPipeline.h`: remove `BrightnessType` from `write()`. Signature becomes `virtual void write(span<const Color> colors)`.
+- [ ] **`P1c`** — Update all `OutputPipeline` implementations (all light drivers + `ProtocolTransportPipeline`): match new `write(span<const Color>)` signature. Remove any brightness-related code.
 - [ ] **`P1d`** — Update `LumaWave.h`: add `#include "core/IShader.h"` and `using IShader = lw::IShader;`.
 - [ ] **`P1e`** — Build and run native tests.
 
@@ -134,7 +134,7 @@ Power budgeting (limiting total current draw based on per-channel milliamps) is 
 ## Dependencies Between Phases
 
 ```text
-Phase 1 (IShader + IOutputPipeline) ──► Phase 2 (BrightnessShader)
+Phase 1 (IShader + OutputPipeline) ──► Phase 2 (BrightnessShader)
                                                │
                                                ▼
                                         Phase 3 (PTP integration) ──► Phase 4 (Bus ref)

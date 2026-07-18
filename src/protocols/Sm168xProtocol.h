@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <algorithm>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -16,7 +16,7 @@ struct Sm168xProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-class Sm168xProtocol : public IProtocol
+class Sm168xProtocol : public Protocol
 {
 public:
   using SettingsType = Sm168xProtocolSettings;
@@ -26,7 +26,7 @@ public:
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings) { return (static_cast<size_t>(pixelCount) * resolveChannelCount(settings.channelOrder)) + SettingsSize; }
 
   Sm168xProtocol(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _channelCount{resolveChannelCount(_settings.channelOrder)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
+      : Protocol(pixelCount), _settings{std::move(settings)}, _channelCount{resolveChannelCount(_settings.channelOrder)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
   {
   }
 

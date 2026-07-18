@@ -12,7 +12,7 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 
 #if __has_include("driver/sdm.h")
 #include "driver/sdm.h"
@@ -52,7 +52,7 @@ struct Esp32SigmaDeltaLightDriverSettings
   }
 };
 
-class Esp32SigmaDeltaLightDriver : public lw::buses::IOutputPipeline
+class Esp32SigmaDeltaLightDriver : public lw::buses::OutputPipeline
 {
 public:
   using ColorType = lw::Color;

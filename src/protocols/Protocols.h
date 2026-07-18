@@ -3,7 +3,7 @@
 #include "protocols/BrightnessShader.h"
 #include "protocols/DotStarProtocol.h"
 #include "protocols/GammaShader.h"
-#include "protocols/IProtocol.h"
+#include "protocols/Protocol.h"
 #include "protocols/IShader.h"
 #include "protocols/Lpd6803Protocol.h"
 #include "protocols/Lpd8806Protocol.h"

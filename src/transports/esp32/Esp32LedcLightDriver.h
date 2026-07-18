@@ -20,7 +20,7 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 
 namespace lw::transports::esp32
 {
@@ -68,7 +68,7 @@ struct Esp32LedcLightDriverSettings
   }
 };
 
-class Esp32LedcLightDriver : public lw::buses::IOutputPipeline
+class Esp32LedcLightDriver : public lw::buses::OutputPipeline
 {
 public:
   using ColorType = lw::Color;

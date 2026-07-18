@@ -5,20 +5,20 @@
 #include <cstddef>
 
 #include "core/Compat.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 #include "colors/Color.h"
-#include "protocols/IProtocol.h"
-#include "transports/ITransport.h"
+#include "protocols/Protocol.h"
+#include "transports/Transport.h"
 
 namespace lw::buses
 {
 
-class ProtocolTransportPipeline : public IOutputPipeline
+class ProtocolTransportPipeline : public OutputPipeline
 {
 public:
-  using BrightnessType = IOutputPipeline::BrightnessType;
+  using BrightnessType = OutputPipeline::BrightnessType;
 
-  ProtocolTransportPipeline(protocols::IProtocol& protocol, transports::ITransport& transport, span<uint8_t> protocolBuffer) : _protocol(protocol), _transport(transport), _protocolBuffer(protocolBuffer) {}
+  ProtocolTransportPipeline(protocols::Protocol& protocol, transports::Transport& transport, span<uint8_t> protocolBuffer) : _protocol(protocol), _transport(transport), _protocolBuffer(protocolBuffer) {}
 
   void begin() override
   {
@@ -47,8 +47,8 @@ public:
   }
 
 private:
-  protocols::IProtocol& _protocol;
-  transports::ITransport& _transport;
+  protocols::Protocol& _protocol;
+  transports::Transport& _transport;
   span<uint8_t> _protocolBuffer;
 };
 

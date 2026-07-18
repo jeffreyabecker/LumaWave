@@ -17,7 +17,7 @@ Status legend:
 
 ### Problem
 
-Currently `ProtocolTransportPipeline` internally owns its protocol and transport via `std::unique_ptr`, and manages two internal buffers (`_protocolBuffer` as `std::vector<uint8_t>`, `_scratchPixel` as `std::vector<lw::colors::Color>`) that are allocated on the heap. Similarly, `Bus` owns a `std::vector<PipelineRun>`, which in turn owns `std::unique_ptr<IOutputPipeline>` entries.
+Currently `ProtocolTransportPipeline` internally owns its protocol and transport via `std::unique_ptr`, and manages two internal buffers (`_protocolBuffer` as `std::vector<uint8_t>`, `_scratchPixel` as `std::vector<lw::colors::Color>`) that are allocated on the heap. Similarly, `Bus` owns a `std::vector<PipelineRun>`, which in turn owns `std::unique_ptr<OutputPipeline>` entries.
 
 This creates several issues:
 
@@ -36,22 +36,22 @@ Externalize all ownership. `ProtocolTransportPipeline` accepts:
 `Bus` accepts:
 - A `span<lw::colors::Color>` for pixel storage (already a span, unchanged).
 - A `span<PipelineRun>` for run definitions — the caller owns the array and the pipelines within it.
-- `PipelineRun` itself changes: instead of `std::unique_ptr<IOutputPipeline>`, it holds an `IOutputPipeline*` (non-owning pointer).
+- `PipelineRun` itself changes: instead of `std::unique_ptr<OutputPipeline>`, it holds an `OutputPipeline*` (non-owning pointer).
 
 ## Target Shape After This Backlog
 
 ### ProtocolTransportPipeline
 
 ```cpp
-class ProtocolTransportPipeline : public IOutputPipeline
+class ProtocolTransportPipeline : public OutputPipeline
 {
 public:
   // protocol, transport: caller-owned, lifetime must exceed pipeline
   // protocolBuffer: caller-allocated span for encoding output
   // scratchPixels: caller-allocated span for brightness/shader scratch (empty = no scratch)
   ProtocolTransportPipeline(
-    protocols::IProtocol& protocol,
-    transports::ITransport& transport,
+    protocols::Protocol& protocol,
+    transports::Transport& transport,
     span<uint8_t> protocolBuffer,
     span<lw::colors::Color> scratchPixels);
 
@@ -61,8 +61,8 @@ public:
   void write(span<const lw::colors::Color> colors, BrightnessType brightness) override;
 
 private:
-  protocols::IProtocol& _protocol;
-  transports::ITransport& _transport;
+  protocols::Protocol& _protocol;
+  transports::Transport& _transport;
   span<uint8_t> _protocolBuffer;
   span<lw::colors::Color> _scratchPixels;
 };
@@ -80,7 +80,7 @@ Key changes:
 ```cpp
 struct PipelineRun
 {
-  IOutputPipeline* pipeline;  // was unique_ptr
+  OutputPipeline* pipeline;  // was unique_ptr
   size_t length;
 };
 ```
@@ -136,8 +136,8 @@ Bus bus{span{pixels}, span{runs}};
 
 ## Non-Goals
 
-- Do not change `IPixelBus` or `IOutputPipeline` interfaces (except `PipelineRun` struct if referenced).
-- Do not change `IProtocol` or `ITransport` interfaces.
+- Do not change `IPixelBus` or `OutputPipeline` interfaces (except `PipelineRun` struct if referenced).
+- Do not change `Protocol` or `Transport` interfaces.
 - Do not introduce factory functions, descriptor systems, or builder patterns.
 - Do not add template parameters to `Bus` or `ProtocolTransportPipeline`.
 - Do not change the `PipelineRun` storage model beyond the pointer change.
@@ -149,7 +149,7 @@ Bus bus{span{pixels}, span{runs}};
 
 ### Phase 1 — PipelineRun Pointer Conversion
 
-- [ ] **`P1a`** — Change `PipelineRun::pipeline` from `std::unique_ptr<IOutputPipeline>` to `IOutputPipeline*` in `src/buses/Bus.h`.
+- [ ] **`P1a`** — Change `PipelineRun::pipeline` from `std::unique_ptr<OutputPipeline>` to `OutputPipeline*` in `src/buses/Bus.h`.
 - [ ] **`P1b`** — Update `Bus` constructor: remove the `const_cast` + `std::move` workaround for initializer_list; iterate over `span` of runs.
 - [ ] **`P1c`** — Update `Bus::_runs` member type from `std::vector<PipelineRun>` to `span<const PipelineRun>`.
 - [ ] **`P1d`** — Update `Bus::runs()` accessor return type to `span<const PipelineRun>`.
@@ -157,9 +157,9 @@ Bus bus{span{pixels}, span{runs}};
 
 ### Phase 2 — ProtocolTransportPipeline Reference Conversion
 
-- [ ] **`P2a`** — Change `_protocol` from `std::unique_ptr<protocols::IProtocol>` to `protocols::IProtocol&` in `ProtocolTransportPipeline.h`.
-- [ ] **`P2b`** — Change `_transport` from `std::unique_ptr<transports::ITransport>` to `transports::ITransport&` in `ProtocolTransportPipeline.h`.
-- [ ] **`P2c** — Update constructor to accept references: `ProtocolTransportPipeline(IProtocol& protocol, ITransport& transport, ...)`.
+- [ ] **`P2a`** — Change `_protocol` from `std::unique_ptr<protocols::Protocol>` to `protocols::Protocol&` in `ProtocolTransportPipeline.h`.
+- [ ] **`P2b`** — Change `_transport` from `std::unique_ptr<transports::Transport>` to `transports::Transport&` in `ProtocolTransportPipeline.h`.
+- [ ] **`P2c** — Update constructor to accept references: `ProtocolTransportPipeline(Protocol& protocol, Transport& transport, ...)`.
 - [ ] **`P2d`** — Update `begin()` to call `_transport.begin()` and `_protocol.begin()` (`.` not `->`).
 - [ ] **`P2e`** — Update `isReadyToUpdate()` to call `_transport.isReadyToUpdate()` (`.` not `->`).
 - [ ] **`P2f`** — Update `alwaysUpdate()` to call `_protocol.alwaysUpdate()` (`.` not `->`).
@@ -169,7 +169,7 @@ Bus bus{span{pixels}, span{runs}};
 
 - [ ] **`P3a`** — Replace `std::vector<uint8_t> _protocolBuffer` with `span<uint8_t> _protocolBuffer` member.
 - [ ] **`P3b`** — Replace `std::vector<lw::colors::Color> _scratchPixel` with `span<lw::colors::Color> _scratchPixels` member.
-- [ ] **`P3c`** — Add buffer parameters to constructor: `ProtocolTransportPipeline(IProtocol& protocol, ITransport& transport, span<uint8_t> protocolBuffer, span<lw::colors::Color> scratchPixels)`.
+- [ ] **`P3c`** — Add buffer parameters to constructor: `ProtocolTransportPipeline(Protocol& protocol, Transport& transport, span<uint8_t> protocolBuffer, span<lw::colors::Color> scratchPixels)`.
 - [ ] **`P3d`** — Rewrite `write()`:
   - Remove all `_protocolBuffer.size() != requiredSize` resizing logic.
   - Remove all `_scratchPixel.resize()` / `assign()` logic.

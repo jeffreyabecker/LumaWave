@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 
 namespace lw::protocols
 {
@@ -30,7 +30,7 @@ struct Sm16716ProtocolSettings : public ProtocolSettings
 //
 // No end frame. Entire stream transmitted as bytes via transmitBytes().
 //
-class Sm16716ProtocolT : public IProtocol
+class Sm16716ProtocolT : public Protocol
 {
 public:
   using SettingsType = Sm16716ProtocolSettings;
@@ -39,7 +39,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (StartFrameBits + (static_cast<size_t>(pixelCount) * BitsPerPixel) + 7u) / 8u; }
 
-  Sm16716ProtocolT(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
+  Sm16716ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {

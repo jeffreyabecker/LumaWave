@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "protocols/IProtocol.h"
-#include "transports/ITransport.h"
+#include "protocols/Protocol.h"
+#include "transports/Transport.h"
 
 namespace lw
 {

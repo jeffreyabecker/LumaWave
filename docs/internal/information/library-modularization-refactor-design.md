@@ -25,8 +25,8 @@ The codebase already exposes four important seam contracts:
 
 - `IPixelBus<TColor>`
 - `IShader<TColor>`
-- `IProtocol<TColor>`
-- `ITransport`
+- `Protocol<TColor>`
+- `Transport`
 
 Those contracts are sound, but the current umbrella layout in `src/LumaWave.h` flattens them into a single include surface. The internal directories are already close to a modular architecture:
 
@@ -145,7 +145,7 @@ This library owns conversion from colors to protocol byte streams.
 
 ### Candidate contents
 
-- `src/protocols/IProtocol.h`
+- `src/protocols/Protocol.h`
 - `src/protocols/ProtocolAliases.h`
 - `src/protocols/ProtocolDecoratorBase.h`
 - concrete protocol implementations in `src/protocols/`
@@ -179,7 +179,7 @@ Responsibilities:
 
 Candidate contents:
 
-- `src/transports/ITransport.h`
+- `src/transports/Transport.h`
 - `src/transports/ILightDriver.h`
 - `src/transports/NilTransport.h`
 - `src/transports/NilLightDriver.h`

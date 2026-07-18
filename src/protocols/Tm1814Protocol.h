@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 #include "protocols/OneWireEncoding.h"
 #include "protocols/OneWireTiming.h"
 
@@ -41,7 +41,7 @@ struct Tm1814ProtocolSettings : public ProtocolSettings
   }
 };
 
-class Tm1814ProtocolT : public IProtocol
+class Tm1814ProtocolT : public Protocol
 {
 public:
   using SettingsType = Tm1814ProtocolSettings;
@@ -58,7 +58,7 @@ public:
   }
 
   Tm1814ProtocolT(PixelCount pixelCount, SettingsType settings)
-      : IProtocol(pixelCount), _settings{std::move(settings)}, _rawDataSize(SettingsSize + (static_cast<size_t>(pixelCount) * ChannelCount)), _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
+      : Protocol(pixelCount), _settings{std::move(settings)}, _rawDataSize(SettingsSize + (static_cast<size_t>(pixelCount) * ChannelCount)), _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
   {
   }
 

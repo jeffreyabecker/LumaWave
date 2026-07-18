@@ -14,7 +14,7 @@
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 #include "RpDmaManager.h"
 
 namespace lw::transports::rp2040
@@ -40,7 +40,7 @@ struct RpUartTransportSettings : TransportSettingsBase
   }
 };
 
-class RpUartTransport : public ITransport
+class RpUartTransport : public Transport
 {
 public:
   using TransportSettingsType = RpUartTransportSettings;

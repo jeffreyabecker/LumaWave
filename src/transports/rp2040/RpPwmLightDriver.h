@@ -15,7 +15,7 @@
 
 #include "colors/ChannelMap.h"
 #include "colors/ColorMath.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 
 namespace lw::transports::rp2040
 {
@@ -46,7 +46,7 @@ struct RpPwmLightDriverSettings
   }
 };
 
-class RpPwmLightDriver : public lw::buses::IOutputPipeline
+class RpPwmLightDriver : public lw::buses::OutputPipeline
 {
 public:
   using ColorType = lw::Color;

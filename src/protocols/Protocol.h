@@ -21,15 +21,15 @@ enum class RuntimeConfig : uint8_t
   Gamma = 0x02,
 };
 
-class IProtocol
+class Protocol
 {
 public:
   using ColorType = lw::colors::Color;
   using SettingsType = void;
   static constexpr bool RequiresExternalBuffer = true;
-  explicit IProtocol(PixelCount pixelCount = 0) : _pixelCount{pixelCount} {}
+  explicit Protocol(PixelCount pixelCount = 0) : _pixelCount{pixelCount} {}
 
-  virtual ~IProtocol() = default;
+  virtual ~Protocol() = default;
 
   PixelCount pixelCount() const { return _pixelCount; }
 

@@ -7,7 +7,7 @@ This document defines the current object-model contracts enforced by the virtual
 - Keep protocol/transport compatibility explicit and compile-time enforced.
 - Keep bus runtime behavior focused on frame flow, not runtime type validation.
 - Keep protocol frame-buffer ownership outside protocol implementations.
-- Keep seam contracts (`IPixelBus`, `IProtocol`, `ITransport`) minimal and stable.
+- Keep seam contracts (`IPixelBus`, `Protocol`, `Transport`) minimal and stable.
 
 ---
 
@@ -25,9 +25,9 @@ This document defines the current object-model contracts enforced by the virtual
 
 Concrete bus implementations may expose additional helpers (for example pixel-count or buffer-assignment helpers), but these are not part of the virtual seam contract.
 
-### 1.2 `IProtocol<TColor>`
+### 1.2 `Protocol<TColor>`
 
-`IProtocol<TColor>` is the protocol seam and owns canonical protocol pixel count via the base constructor.
+`Protocol<TColor>` is the protocol seam and owns canonical protocol pixel count via the base constructor.
 
 Required virtual behavior:
 
@@ -39,7 +39,7 @@ Required virtual behavior:
 Current optional/default virtual behavior:
 
 - `setBuffer(span<uint8_t>)` (default no-op)
-- `bindTransport(ITransport*)` (default no-op)
+- `bindTransport(Transport*)` (default no-op)
 
 Contract metadata and markers:
 
@@ -53,9 +53,9 @@ External frame-buffer contract (current implementation):
 - Protocol byte buffers are externally supplied through `setBuffer(...)`.
 - `StaticBus`/`UnifiedStaticBus` bind protocol transport and byte slices before normal updates.
 
-### 1.3 `ITransport`
+### 1.3 `Transport`
 
-`ITransport` is the hardware/peripheral transfer seam.
+`Transport` is the hardware/peripheral transfer seam.
 
 Required virtual behavior:
 
@@ -117,7 +117,7 @@ The codebase enforces the following constexpr trait contracts.
   - Requires aliases:
     - `TransportCategory`
     - `TransportSettingsType`
-  - Requires `TTransport*` convertible to `ITransport*`.
+  - Requires `TTransport*` convertible to `Transport*`.
   - Requires `TransportSettingsType` to satisfy `TransportSettingsWithInvert`.
 
 - `TaggedTransportLike<TTransport, TTag>`
@@ -154,7 +154,7 @@ Implications:
 `FactoryTypeConstraints.h` enforces:
 
 - `FactoryProtocolLike<TProtocol>`
-  - Requires protocol to derive from `IProtocol<typename TProtocol::ColorType>`.
+  - Requires protocol to derive from `Protocol<typename TProtocol::ColorType>`.
 
 - `FactoryProtocolSettingsConstructible<TProtocol, TTransport>`
   - Accepts either:
@@ -180,7 +180,7 @@ Implications:
 
 ### 3.3 Transport-binding ownership decision (2026-03-02)
 
-Current decision: keep transport binding protocol-owned via `IProtocol::bindTransport(ITransport*)`.
+Current decision: keep transport binding protocol-owned via `Protocol::bindTransport(Transport*)`.
 
 Rationale:
 
@@ -212,7 +212,7 @@ Recommended targeted run:
 
 When adding a protocol:
 
-- Inherit from `IProtocol<TColor>`.
+- Inherit from `Protocol<TColor>`.
 - Define `using ColorType`, `using SettingsType`, `using TransportCategory`.
 - Keep `RequiresExternalBuffer == true` unless deliberately changing global protocol-buffer policy.
 - Implement static `requiredBufferSize(uint16_t, const SettingsType&)`.
@@ -222,7 +222,7 @@ When adding a protocol:
 
 When adding a transport:
 
-- Make `TTransport*` convertible to `ITransport*`.
+- Make `TTransport*` convertible to `Transport*`.
 - Define `using TransportCategory`, `using TransportSettingsType`.
 - Ensure `TransportSettingsType` exposes `public bool invert`.
 - Support `(TransportSettingsType)` construction for descriptor/factory paths.

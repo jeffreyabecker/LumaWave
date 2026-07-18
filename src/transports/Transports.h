@@ -1,7 +1,7 @@
 #pragma once
 
-#include "transports/ITransport.h"
-#include "core/IOutputPipeline.h"
+#include "transports/Transport.h"
+#include "core/OutputPipeline.h"
 #include "transports/PwmOutputPipeline.h"
 #include "transports/PrintOutputPipeline.h"
 #include "transports/PrintTransport.h"
@@ -42,7 +42,7 @@ using PlatformDefaultLightDriver = lw::transports::esp32::Esp32SigmaDeltaLightDr
 #elif defined(ARDUINO_ARCH_ESP8266)
 using PlatformDefaultLightDriver = lw::transports::esp8266::Esp8266LedcLightDriver;
 #else
-using PlatformDefaultLightDriver = lw::buses::IOutputPipeline;
+using PlatformDefaultLightDriver = lw::buses::OutputPipeline;
 #endif
 
 } // namespace lw::transports

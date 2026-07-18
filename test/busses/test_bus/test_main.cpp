@@ -5,20 +5,20 @@
 
 #include "buses/Bus.h"
 #include "buses/ProtocolTransportPipeline.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 #include "colors/Color.h"
 
 namespace
 {
 
-class MockPipeline : public lw::buses::IOutputPipeline
+class MockPipeline : public lw::buses::OutputPipeline
 {
 public:
   void begin() override { began = true; }
   bool isReadyToUpdate() const override { return ready; }
   bool alwaysUpdate() const override { return always; }
 
-  void write(lw::span<const lw::colors::Color> colors, lw::buses::IOutputPipeline::BrightnessType brightness) override
+  void write(lw::span<const lw::colors::Color> colors, lw::buses::OutputPipeline::BrightnessType brightness) override
   {
     ++writeCount;
     lastBrightness = brightness;
@@ -34,7 +34,7 @@ public:
   bool always{false};
   size_t writeCount{0};
   lw::colors::Color lastColor{};
-  lw::buses::IOutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::buses::IOutputPipeline::BrightnessType>::max()};
+  lw::buses::OutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::buses::OutputPipeline::BrightnessType>::max()};
   size_t lastSpanSize{0};
 };
 

@@ -14,7 +14,7 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 #include "RpDmaManager.h"
 
 namespace lw::transports::rp2040
@@ -37,7 +37,7 @@ struct RpSpiTransportSettings : TransportSettingsBase
   }
 };
 
-class RpSpiTransport : public ITransport
+class RpSpiTransport : public Transport
 {
 public:
   using TransportSettingsType = RpSpiTransportSettings;

@@ -13,7 +13,7 @@
 #include "hardware/pio.h"
 #include "hardware/gpio.h"
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 #include "RpDmaManager.h"
 #include "RpPioManager.h"
 
@@ -37,7 +37,7 @@ struct RpPioTransportSettings : TransportSettingsBase
   }
 };
 
-class RpPioTransport : public ITransport
+class RpPioTransport : public Transport
 {
 public:
   using TransportSettingsType = RpPioTransportSettings;

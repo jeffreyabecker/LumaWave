@@ -30,7 +30,7 @@
 #include "driver/periph_ctrl.h"
 #endif
 
-#include "transports/ITransport.h"
+#include "transports/Transport.h"
 
 namespace lw::transports::esp32
 {
@@ -40,7 +40,7 @@ struct Esp32I2sTransportSettings : TransportSettingsBase
   uint8_t busNumber = 0;
 };
 
-class Esp32I2sTransport : public ITransport
+class Esp32I2sTransport : public Transport
 {
 public:
   using TransportSettingsType = Esp32I2sTransportSettings;

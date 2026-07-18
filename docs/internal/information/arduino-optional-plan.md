@@ -37,9 +37,9 @@ In practice that means the repository should have a clean split between:
 
 ### 1. Arduino in seam headers
 
-`src/transports/ITransport.h` currently conditionally includes `Arduino.h` to obtain SPI-related constants such as `MSBFIRST` and `SPI_MODE0`.
+`src/transports/Transport.h` currently conditionally includes `Arduino.h` to obtain SPI-related constants such as `MSBFIRST` and `SPI_MODE0`.
 
-This is the wrong layer. `ITransport` is a generic seam and should own its own transport-level defaults.
+This is the wrong layer. `Transport` is a generic seam and should own its own transport-level defaults.
 
 ### 2. Public umbrella pulls in Arduino-bound headers
 
@@ -77,7 +77,7 @@ That is acceptable only at the platform edge, but some of these headers can be m
 These headers should be Arduino-free:
 
 - `src/core/Compat.h`
-- `src/transports/ITransport.h`
+- `src/transports/Transport.h`
 - `src/transports/ILightDriver.h`
 - `src/transports/NilTransport.h`
 - `src/transports/NilLightDriver.h`
@@ -115,7 +115,7 @@ Make `LumaWave.h` and the generic transport umbrella safe for non-Arduino builds
 
 ### Changes
 
-1. Remove Arduino dependency from `src/transports/ITransport.h`.
+1. Remove Arduino dependency from `src/transports/Transport.h`.
 2. Replace Arduino-derived SPI constants with library-owned defaults or enums in the generic transport layer.
 3. Reduce `src/transports/Transports.h` to generic headers only.
 4. Stop including `SpiTransport.h` from the generic transport umbrella.
@@ -267,7 +267,7 @@ This order delivers the highest-value user-facing improvement first: non-Arduino
 ## Design Constraints To Preserve
 
 - Keep the public code path compatible with C++17.
-- Preserve the virtual-first seam model: `IPixelBus`, `IProtocol`, `ITransport`.
+- Preserve the virtual-first seam model: `IPixelBus`, `Protocol`, `Transport`.
 - Do not add compatibility overloads or shims merely to preserve previous accidental include behavior.
 - Keep transport settings types satisfying the required `public bool invert` contract.
 - Keep platform details at the transport/platform edge, not in the generic protocol or bus layers.
@@ -276,7 +276,7 @@ This order delivers the highest-value user-facing improvement first: non-Arduino
 
 The first implementation pass should do only the following:
 
-1. remove Arduino from `src/transports/ITransport.h`
+1. remove Arduino from `src/transports/Transport.h`
 2. split generic versus Arduino transport umbrellas
 3. stop `src/LumaWave.h` from including Arduino-only transport headers transitively
 4. add a native include-only smoke test for `LumaWave.h`

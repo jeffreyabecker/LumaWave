@@ -4,17 +4,17 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 #include "IShader.h"
 #include "colors/Color.h"
 
 namespace lw::protocols
 {
 
-class ShaderProtocol : public IProtocol
+class ShaderProtocol : public Protocol
 {
 public:
-  ShaderProtocol(IProtocol& inner, span<IShader*> shaders, span<lw::colors::Color> scratchPixels) : _inner(inner), _shaders(shaders), _scratchPixels(scratchPixels) {}
+  ShaderProtocol(Protocol& inner, span<IShader*> shaders, span<lw::colors::Color> scratchPixels) : _inner(inner), _shaders(shaders), _scratchPixels(scratchPixels) {}
 
   PixelCount pixelCount() const { return _inner.pixelCount(); }
 
@@ -69,7 +69,7 @@ public:
   }
 
 private:
-  IProtocol& _inner;
+  Protocol& _inner;
   span<IShader*> _shaders;
   span<lw::colors::Color> _scratchPixels;
 };

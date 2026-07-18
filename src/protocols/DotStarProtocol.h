@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <algorithm>
 
-#include "IProtocol.h"
+#include "Protocol.h"
 #include "colors/Color.h"
 
 namespace lw::protocols
@@ -32,7 +32,7 @@ struct Hd108ProtocolSettings : public ProtocolSettings
   }
 };
 
-class Apa102Protocol : public IProtocol
+class Apa102Protocol : public Protocol
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
@@ -44,7 +44,7 @@ public:
     return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameFixedSize + extraEndBytes;
   }
 
-  Apa102Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
+  Apa102Protocol(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
@@ -112,7 +112,7 @@ private:
   uint8_t _gainValue{0xff};
 };
 
-class Hd108Protocol : public IProtocol
+class Hd108Protocol : public Protocol
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
@@ -120,7 +120,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
-  Hd108Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
+  Hd108Protocol(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {

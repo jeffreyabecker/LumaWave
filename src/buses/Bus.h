@@ -5,7 +5,7 @@
 
 #include "core/Compat.h"
 #include "core/IPixelBus.h"
-#include "core/IOutputPipeline.h"
+#include "core/OutputPipeline.h"
 #include "colors/Color.h"
 
 namespace lw::buses
@@ -13,7 +13,7 @@ namespace lw::buses
 
 struct PipelineRun
 {
-  IOutputPipeline* pipeline{nullptr};
+  OutputPipeline* pipeline{nullptr};
   size_t length{0};
 };
 

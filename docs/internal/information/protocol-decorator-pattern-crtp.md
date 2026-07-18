@@ -6,7 +6,7 @@ Decorator protocols are protocol classes that wrap another protocol and enrich b
 
 ## Goals
 
-- Keep decorators protocol-compatible (`IProtocol<TColor>`).
+- Keep decorators protocol-compatible (`Protocol<TColor>`).
 - Avoid per-update virtual fan-out inside decorator internals.
 - Keep settings explicit and composable.
 - Preserve existing protocol construction and factory expectations.
@@ -15,7 +15,7 @@ Decorator protocols are protocol classes that wrap another protocol and enrich b
 
 A protocol decorator must:
 
-- derive from `IProtocol<TColor>`;
+- derive from `Protocol<TColor>`;
 - expose `using SettingsType = ...` where settings derives from `ProtocolSettings`;
 - implement `ProtocolSettings& settings() override`;
 - keep constructor shape `(uint16_t pixelCount, SettingsType settings)`;
@@ -28,7 +28,7 @@ Use CRTP to factor shared decorator plumbing into a reusable base.
 ```cpp
 #pragma once
 
-#include "protocols/IProtocol.h"
+#include "protocols/Protocol.h"
 
 namespace lw
 {
@@ -42,7 +42,7 @@ namespace lw
               typename TWrappedProtocol,
               typename TColor,
               typename TSettings>
-    class ProtocolDecoratorBase : public IProtocol<TColor>
+    class ProtocolDecoratorBase : public Protocol<TColor>
     {
     public:
         using WrappedProtocolType = TWrappedProtocol;
@@ -51,7 +51,7 @@ namespace lw
         ProtocolDecoratorBase(uint16_t pixelCount,
                               WrappedProtocolType wrapped,
                               SettingsType settings)
-            : IProtocol<TColor>(pixelCount)
+            : Protocol<TColor>(pixelCount)
             , _wrapped{std::move(wrapped)}
             , _settings{std::move(settings)}
         {
