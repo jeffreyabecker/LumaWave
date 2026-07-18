@@ -7,11 +7,12 @@ constexpr pixel_count_t ledCount = 30;
 lw::Color pixels[30];
 
 // Caller-owned protocol and transport
-Protocols::Ws2812::ProtocolType ws2812proto(ledCount, Protocols::Ws2812::defaultSettings());
+lw::protocols::Ws2812xProtocol ws2812proto(ledCount, {lw::ChannelOrder::GRB, lw::protocols::timing::Ws2812x});
 lw::transports::ITransport nilTransport;
 
 // Caller-owned buffers
-uint8_t protocolBuffer[4096]; // generous size for 30 WS2812 LEDs
+constexpr size_t protocolBufferSize = decltype(ws2812proto)::requiredBufferSize(ledCount, {lw::ChannelOrder::GRB, lw::protocols::timing::Ws2812x});
+uint8_t protocolBuffer[protocolBufferSize];
 lw::Color scratchPixels[ledCount];
 
 // Caller-owned pipeline and run array

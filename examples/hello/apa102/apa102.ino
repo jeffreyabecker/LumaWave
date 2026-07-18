@@ -15,11 +15,12 @@ constexpr int dataPin = 23;
 lw::Color pixels[60];
 
 // Caller-owned protocol and transport
-Protocols::APA102::ProtocolType apa102proto(ledCount, Protocols::APA102::defaultSettings());
+lw::protocols::Apa102Protocol apa102proto(ledCount, {lw::ChannelOrder::BGR});
 lw::transports::SpiTransport spiTransport(lw::transports::SpiTransportSettings{{false, 8000000UL, lw::transports::BitOrderMsbFirst, lw::transports::SpiMode0, clockPin, dataPin}});
 
 // Caller-owned buffers
-uint8_t protocolBuffer[512]; // generous size for 60 APA102 LEDs
+constexpr size_t protocolBufferSize = decltype(apa102proto)::requiredBufferSize(ledCount, {lw::ChannelOrder::BGR});
+uint8_t protocolBuffer[protocolBufferSize];
 lw::Color scratchPixels[ledCount];
 
 // Caller-owned pipeline and run array

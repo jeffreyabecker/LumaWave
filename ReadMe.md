@@ -67,7 +67,7 @@ It should now show up in the import list when you restart Arduino IDE.
 ```cpp
 #include <LumaWave.h>
 
-using Protocol = lw::protocols::DotStar<>;
+using Protocol = lw::protocols::Apa102Protocol;
 lw::busses::PixelBus<Protocol, lw::transports::ITransport> bus(
     32,
     lw::transports::TransportSettingsBase{});
