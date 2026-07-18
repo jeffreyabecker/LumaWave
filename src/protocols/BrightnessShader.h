@@ -41,15 +41,6 @@ public:
     }
   }
 
-  void* getRuntimeConfig(RuntimeConfig type) override
-  {
-    if (type == RuntimeConfig::Brightness)
-    {
-      return &_brightnessValue;
-    }
-    return nullptr;
-  }
-
 private:
   BrightnessType _brightnessValue{std::numeric_limits<BrightnessType>::max()};
 };

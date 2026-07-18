@@ -50,7 +50,6 @@ public:
   };
 
   using ColorType = lw::Color;
-  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = PwmOutputPipelineSettings;
 
   explicit PwmOutputPipeline(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
@@ -102,14 +101,14 @@ public:
 
   bool alwaysUpdate() const override { return false; }
 
-  void write(span<const ColorType> colors, BrightnessType brightness) override
+  void write(span<const ColorType> colors) override
   {
     if (colors.empty())
     {
       return;
     }
 
-    const auto adjusted = lw::applyBrightness(colors[0], brightness);
+    const auto& color = colors[0];
     if (!_begun)
     {
       begin();
@@ -129,7 +128,7 @@ public:
         continue;
       }
 
-      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(adjusted, channel));
+      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(color, channel));
       WideType level = (component * pwmMax + (componentMax / 2U)) / componentMax;
       if (_settings.invert)
       {

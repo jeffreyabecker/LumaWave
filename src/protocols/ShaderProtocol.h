@@ -55,19 +55,6 @@ public:
     _inner.setRuntimeConfig(type, value);
   }
 
-  void* getRuntimeConfig(RuntimeConfig type) override
-  {
-    for (auto* shader : _shaders)
-    {
-      void* result = shader->getRuntimeConfig(type);
-      if (result != nullptr)
-      {
-        return result;
-      }
-    }
-    return _inner.getRuntimeConfig(type);
-  }
-
 private:
   Protocol& _inner;
   span<IShader*> _shaders;

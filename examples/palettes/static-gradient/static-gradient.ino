@@ -7,7 +7,7 @@ constexpr pixel_count_t ledCount = 30;
 Strip<Protocols::Ws2812> strip(ledCount, Transport::DefaultSettings{{.dataPin = 2}});
 uint16_t frame = 0;
 
-using Stop = lw::colors::palettes::PaletteStop<Color>;
+using Stop = lw::palettes::PaletteStop<Color>;
 
 constexpr std::array<Stop, 5> kStops = {
     Stop{0, Color(255, 0, 0)},   Stop{64, Color(255, 128, 0)},  Stop{128, Color(0, 255, 0)},

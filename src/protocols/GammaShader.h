@@ -41,15 +41,6 @@ public:
     }
   }
 
-  void* getRuntimeConfig(RuntimeConfig type) override
-  {
-    if (type == RuntimeConfig::Gamma)
-    {
-      return &_gammaValue;
-    }
-    return nullptr;
-  }
-
   void setGamma(float gamma)
   {
     _gammaValue = gamma;

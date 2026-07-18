@@ -16,8 +16,6 @@ namespace lw::buses
 class ProtocolTransportPipeline : public OutputPipeline
 {
 public:
-  using BrightnessType = OutputPipeline::BrightnessType;
-
   ProtocolTransportPipeline(protocols::Protocol& protocol, transports::Transport& transport, span<uint8_t> protocolBuffer) : _protocol(protocol), _transport(transport), _protocolBuffer(protocolBuffer) {}
 
   void begin() override
@@ -31,14 +29,13 @@ public:
 
   bool alwaysUpdate() const override { return _protocol.alwaysUpdate(); }
 
-  void write(span<const lw::Color> colors, BrightnessType brightness) override
+  void write(span<const lw::Color> colors) override
   {
     if (colors.empty())
     {
       return;
     }
 
-    _protocol.setRuntimeConfig(protocols::RuntimeConfig::Brightness, &brightness);
     _protocol.update(colors, _protocolBuffer);
 
     _transport.beginTransaction();

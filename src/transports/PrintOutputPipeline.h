@@ -49,7 +49,6 @@ template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> 
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = PrintOutputPipelineSettings<TWritable>;
 
   explicit PrintOutputPipeline(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }
@@ -69,7 +68,7 @@ public:
 
   bool alwaysUpdate() const override { return false; }
 
-  void write(span<const ColorType> colors, BrightnessType brightness) override
+  void write(span<const ColorType> colors) override
   {
     if (_settings.output == nullptr || colors.empty())
     {
@@ -79,8 +78,7 @@ public:
     if (_settings.debugOutput)
     {
       writeDebugPrefix();
-      writeText("write bri=");
-      writeUnsigned(static_cast<unsigned long>(brightness));
+      writeText("write");
       writeNewline();
     }
 

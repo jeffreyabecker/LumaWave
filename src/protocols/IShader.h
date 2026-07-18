@@ -5,9 +5,12 @@
 
 #include "core/Color.h"
 #include "core/Compat.h"
+#include "core/RuntimeConfig.h"
 
 namespace lw::protocols
 {
+
+using lw::RuntimeConfig;
 
 class IShader
 {
@@ -20,11 +23,6 @@ public:
   {
     (void)type;
     (void)value;
-  }
-  virtual void* getRuntimeConfig(RuntimeConfig type)
-  {
-    (void)type;
-    return nullptr;
   }
 };
 

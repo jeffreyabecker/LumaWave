@@ -18,10 +18,9 @@ public:
   bool isReadyToUpdate() const override { return ready; }
   bool alwaysUpdate() const override { return always; }
 
-  void write(lw::span<const lw::Color> colors, lw::OutputPipeline::BrightnessType brightness) override
+  void write(lw::span<const lw::Color> colors) override
   {
     ++writeCount;
-    lastBrightness = brightness;
     if (!colors.empty())
     {
       lastColor = colors[0];
@@ -34,7 +33,6 @@ public:
   bool always{false};
   size_t writeCount{0};
   lw::Color lastColor{};
-  lw::OutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::OutputPipeline::BrightnessType>::max()};
   size_t lastSpanSize{0};
 };
 
@@ -96,21 +94,6 @@ void test_bus_respects_pipeline_readiness(void)
   TEST_ASSERT_EQUAL_UINT32(1U, static_cast<uint32_t>(mock.writeCount));
 }
 
-void test_bus_passes_brightness_to_pipeline(void)
-{
-  lw::Color pixel{};
-  MockPipeline mock;
-
-  lw::buses::PipelineRun runs[] = {{&mock, 1}};
-  lw::buses::Bus bus(lw::span<lw::Color>{&pixel, 1}, lw::span<const lw::buses::PipelineRun>{runs});
-
-  bus.setBrightness(64);
-  bus.pixels()[0] = lw::colorFromRGB(100, 100, 100);
-  bus.show();
-
-  TEST_ASSERT_EQUAL_UINT8(64, mock.lastBrightness);
-}
-
 void test_bus_multi_run_zero_copy_subspans(void)
 {
   std::array<lw::Color, 5> buf{};
@@ -164,7 +147,6 @@ int main(void)
   RUN_TEST(test_bus_single_run_writes_on_show);
   RUN_TEST(test_bus_dirty_guard_prevents_double_write);
   RUN_TEST(test_bus_respects_pipeline_readiness);
-  RUN_TEST(test_bus_passes_brightness_to_pipeline);
   RUN_TEST(test_bus_multi_run_zero_copy_subspans);
   RUN_TEST(test_bus_writes_go_to_caller_buffer);
   return UNITY_END();

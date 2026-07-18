@@ -49,7 +49,6 @@ class RpPwmLightDriver : public lw::OutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = RpPwmLightDriverSettings;
 
   explicit RpPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
@@ -116,14 +115,14 @@ public:
 
   bool alwaysUpdate() const override { return false; }
 
-  void write(span<const ColorType> colors, BrightnessType brightness) override
+  void write(span<const ColorType> colors) override
   {
     if (colors.empty())
     {
       return;
     }
 
-    const auto adjusted = lw::applyBrightness(colors[0], brightness);
+    const auto& color = colors[0];
     if (!_begun)
     {
       begin();
@@ -144,7 +143,7 @@ public:
       }
 
       const char channelTag = "RGBW"[channel];
-      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(adjusted, channel));
+      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(color, channel));
       const WideType scaled = (component * wrap + (componentMax / 2U)) / componentMax;
       const uint16_t level = static_cast<uint16_t>(scaled);
       pwm_set_gpio_level(static_cast<uint>(pin), level);

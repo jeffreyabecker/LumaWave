@@ -55,7 +55,6 @@ class Esp32SigmaDeltaLightDriver : public lw::OutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = Esp32SigmaDeltaLightDriverSettings;
 
   explicit Esp32SigmaDeltaLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}
@@ -136,14 +135,14 @@ public:
 
   bool alwaysUpdate() const override { return false; }
 
-  void write(span<const ColorType> colors, BrightnessType brightness) override
+  void write(span<const ColorType> colors) override
   {
     if (colors.empty())
     {
       return;
     }
 
-    const auto adjusted = lw::applyBrightness(colors[0], brightness);
+    const auto& color = colors[0];
     if (!_begun)
     {
       begin();
@@ -158,7 +157,7 @@ public:
       }
 
       const char channelTag = "RGBW"[channel];
-      const auto scaledComponent = lw::colorComponentByIndex(adjusted, channel);
+      const auto scaledComponent = lw::colorComponentByIndex(color, channel);
       const int8_t duty = mapComponentToDensity(scaledComponent);
 
 #if LW_ESP32_USE_SDM_DRIVER

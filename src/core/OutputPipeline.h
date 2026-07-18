@@ -11,19 +11,13 @@ namespace lw
 class OutputPipeline
 {
 public:
-  using BrightnessType = lw::ColorComponent;
-
   virtual ~OutputPipeline() = default;
 
   virtual void begin() {}
 
   virtual bool isReadyToUpdate() const { return true; }
 
-  virtual void write(span<const lw::Color> colors, BrightnessType brightness)
-  {
-    (void)colors;
-    (void)brightness;
-  }
+  virtual void write(span<const lw::Color> colors) { (void)colors; }
 
   virtual bool alwaysUpdate() const { return false; }
 };

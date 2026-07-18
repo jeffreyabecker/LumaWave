@@ -84,15 +84,6 @@ public:
     }
   }
 
-  void* getRuntimeConfig(RuntimeConfig type) override
-  {
-    if (type == RuntimeConfig::Brightness)
-    {
-      return &_gainValue;
-    }
-    return nullptr;
-  }
-
 private:
   static constexpr uint8_t normalizeGainValue(uint8_t gain, uint8_t maxValue) { return static_cast<uint8_t>((static_cast<uint16_t>(gain) * static_cast<uint16_t>(maxValue) + 127u) / 255u); }
 
@@ -161,15 +152,6 @@ public:
     {
       _gainValue = *static_cast<uint8_t*>(value);
     }
-  }
-
-  void* getRuntimeConfig(RuntimeConfig type) override
-  {
-    if (type == RuntimeConfig::Brightness)
-    {
-      return &_gainValue;
-    }
-    return nullptr;
   }
 
 private:

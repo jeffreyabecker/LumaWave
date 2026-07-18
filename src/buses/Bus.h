@@ -50,7 +50,7 @@ public:
     {
       if (run.pipeline && run.length > 0)
       {
-        run.pipeline->write(span<const lw::Color>{_pixels.data() + offset, run.length}, _brightness);
+        run.pipeline->write(span<const lw::Color>{_pixels.data() + offset, run.length});
       }
       offset += run.length;
     }
@@ -79,16 +79,11 @@ public:
 
   const span<lw::Color>& pixels() const override { return _pixels; }
 
-  void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
-
-  BrightnessType brightness() const override { return _brightness; }
-
   span<const PipelineRun> runs() const { return _runs; }
 
 private:
   span<lw::Color> _pixels;
   span<const PipelineRun> _runs;
-  BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};
 };
 
