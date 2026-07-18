@@ -100,12 +100,12 @@ public:
 private:
   void writeColorBinary(const ColorType& color)
   {
-    using ComponentType = typename ColorType::ComponentType;
+    using ComponentType = ColorComponent;
     using UnsignedComponentType = std::make_unsigned_t<ComponentType>;
 
     for (const char channelTag : {'R', 'G', 'B', 'W'})
     {
-      const UnsignedComponentType component = static_cast<UnsignedComponentType>(color[channelTag]);
+      const UnsignedComponentType component = static_cast<UnsignedComponentType>(lw::colorComponentByTag(color, channelTag));
       for (size_t offset = 0; offset < sizeof(ComponentType); ++offset)
       {
         const size_t shift = (sizeof(ComponentType) - 1U - offset) * 8U;
@@ -117,7 +117,7 @@ private:
 
   void writeColorAscii(const ColorType& color)
   {
-    using ComponentType = typename ColorType::ComponentType;
+    using ComponentType = ColorComponent;
     using UnsignedComponentType = std::make_unsigned_t<ComponentType>;
 
     static constexpr char Hex[] = "0123456789ABCDEF";
@@ -125,7 +125,7 @@ private:
 
     for (const char channelTag : {'R', 'G', 'B', 'W'})
     {
-      UnsignedComponentType component = static_cast<UnsignedComponentType>(color[channelTag]);
+      UnsignedComponentType component = static_cast<UnsignedComponentType>(lw::colorComponentByTag(color, channelTag));
 
       for (size_t nibble = 0; nibble < (sizeof(ComponentType) * 2U); ++nibble)
       {

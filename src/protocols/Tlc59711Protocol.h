@@ -191,9 +191,9 @@ private:
         uint16_t b = 0, g = 0, r = 0;
         if (pixelIdx < colors.size())
         {
-          b = toWireComponent16(colors[pixelIdx]['B']);
-          g = toWireComponent16(colors[pixelIdx]['G']);
-          r = toWireComponent16(colors[pixelIdx]['R']);
+          b = toWireComponent16(lw::colorB(colors[pixelIdx]));
+          g = toWireComponent16(lw::colorG(colors[pixelIdx]));
+          r = toWireComponent16(lw::colorR(colors[pixelIdx]));
         }
 
         // BGR order, big-endian 16-bit each

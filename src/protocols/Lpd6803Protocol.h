@@ -63,9 +63,9 @@ public:
     for (size_t index = 0; index < pixelLimit; ++index)
     {
       const auto& color = colors[index];
-      uint8_t ch1 = toWireComponent8(color[_settings.channelOrder[0]]) & 0xF8;
-      uint8_t ch2 = toWireComponent8(color[_settings.channelOrder[1]]) & 0xF8;
-      uint8_t ch3 = toWireComponent8(color[_settings.channelOrder[2]]) & 0xF8;
+      uint8_t ch1 = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[0])) & 0xF8;
+      uint8_t ch2 = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[1])) & 0xF8;
+      uint8_t ch3 = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[2])) & 0xF8;
 
       // Pack: 1_ccccc_ccccc_ccccc (big-endian)
       uint16_t packed = 0x8000 | (static_cast<uint16_t>(ch1) << 7) | (static_cast<uint16_t>(ch2) << 2) | (static_cast<uint16_t>(ch3) >> 3);

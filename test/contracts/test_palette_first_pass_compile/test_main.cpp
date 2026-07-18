@@ -10,7 +10,7 @@ namespace
 {
 void test_palette_first_pass_compile(void)
 {
-  static_assert(lw::ColorType<lw::Color>, "Color must satisfy ColorType");
+  static_assert(std::is_same_v<lw::Color, uint32_t>, "Color must be uint32_t");
   static_assert(lw::colors::palettes::IsPaletteLike<lw::colors::palettes::Palette>::value, "Palette<Color> must satisfy IsPaletteLike");
   static_assert(lw::colors::palettes::Palette::AllowedSettings.size() == 0u, "Palette<Color> must expose an empty AllowedSettings descriptor");
   static_assert(lw::colors::palettes::blend::Linear == lw::colors::palettes::BlendMode::Linear, "blend::Linear must map to BlendMode::Linear");
@@ -23,12 +23,12 @@ void test_palette_first_pass_compile(void)
 
   lw::colors::palettes::PaletteStop invalidStop{};
   invalidStop.index = 0;
-  invalidStop.color = lw::Color(1, 2, 3);
+  invalidStop.color = lw::colorFromRGB(1, 2, 3);
 
   lw::colors::palettes::Palette invalidPalette(lw::span<const lw::colors::palettes::PaletteStop>(&invalidStop, 1));
   TEST_ASSERT_TRUE(invalidPalette.stops().empty());
 
-  std::array<lw::colors::palettes::PaletteStop, 2> sampleStops = {lw::colors::palettes::PaletteStop{0, lw::Color(0, 0, 0)}, lw::colors::palettes::PaletteStop{255, lw::Color(255, 255, 255)}};
+  std::array<lw::colors::palettes::PaletteStop, 2> sampleStops = {lw::colors::palettes::PaletteStop{0, lw::colorFromRGB(0, 0, 0)}, lw::colors::palettes::PaletteStop{255, lw::colorFromRGB(255, 255, 255)}};
   lw::colors::palettes::Palette samplePaletteLike(lw::span<const lw::colors::palettes::PaletteStop>(sampleStops.data(), sampleStops.size()));
   lw::colors::palettes::Palette ownedPaletteLike(std::vector<lw::colors::palettes::PaletteStop>(sampleStops.begin(), sampleStops.end()));
   std::array<lw::Color, 2> sampledOutput{};

@@ -1,3 +1,5 @@
+**COMPLETED**
+
 # Backlog: Replace Color Class with Packed Integer Type Alias
 
 ## Motivation
@@ -72,30 +74,30 @@ inline void setColorComponentByTag(Color& c, char tag, ColorComponent v)
 ## Phase 1 — Define the New Color Type
 
 ### P1a — Replace Color class with type alias
-- [ ] Replace `class Color` with `using Color = uint32_t` (or `uint64_t` for 16-bit)
-- [ ] Define bit-shift constants: `shiftR`, `shiftG`, `shiftB`, `shiftW`
-- [ ] Define `ColorComponent` accessor functions: `colorR()`, `colorG()`, `colorB()`, `colorW()`
-- [ ] Define `ColorComponent` setter functions: `setColorR()`, `setColorG()`, `setColorB()`, `setColorW()`
-- [ ] Define factory functions: `colorFromRGB()`, `colorFromRGBW()`
-- [ ] Define `colorComponentByTag(char)` for dynamic channel access
-- [ ] Move `Color::parse()` / `Color::tryParse()` to free functions
-- [ ] Remove `Color::ComponentType` (use `ColorComponent` directly)
-- [ ] Remove `Color::MaxComponent` (use `std::numeric_limits<ColorComponent>::max()`)
+- [x] Replace `class Color` with `using Color = uint32_t` (or `uint64_t` for 16-bit)
+- [x] Define bit-shift constants: `shiftR`, `shiftG`, `shiftB`, `shiftW`
+- [x] Define `ColorComponent` accessor functions: `colorR()`, `colorG()`, `colorB()`, `colorW()`
+- [x] Define `ColorComponent` setter functions: `setColorR()`, `setColorG()`, `setColorB()`, `setColorW()`
+- [x] Define factory functions: `colorFromRGB()`, `colorFromRGBW()`
+- [x] Define `colorComponentByTag(char)` for dynamic channel access
+- [x] Move `Color::parse()` / `Color::tryParse()` to free functions
+- [x] Remove `Color::ComponentType` (use `ColorComponent` directly)
+- [x] Remove `Color::MaxComponent` (use `std::numeric_limits<ColorComponent>::max()`)
 
 ### P1b — Update Color comparison usage
-- [ ] Remove `operator==` / `operator!=` / `operator<` etc. (integer comparison works natively)
-- [ ] Verify all comparison sites still compile
+- [x] Remove `operator==` / `operator!=` / `operator<` etc. (integer comparison works natively)
+- [x] Verify all comparison sites still compile
 
 ---
 
 ## Phase 2 — Update Shaders
 
 ### P2a — BrightnessShader
-- [ ] Replace `dest[i][channel] = applyBrightness(source[i][channel], ...)` with
+- [x] Replace `dest[i][channel] = applyBrightness(source[i][channel], ...)` with
   `setColorComponentByTag(dest[i], channel, applyBrightness(colorComponentByTag(source[i], channel), ...))`
 
 ### P2b — GammaShader
-- [ ] Replace `d[channel] = gamma8(s[channel])` with
+- [x] Replace `d[channel] = gamma8(s[channel])` with
   `setColorComponentByTag(d, channel, gamma8(colorComponentByTag(s, channel)))`
 
 ---
@@ -104,97 +106,97 @@ inline void setColorComponentByTag(Color& c, char tag, ColorComponent v)
 
 ### P3a — Simple channel-order protocols (Lpd6803, Lpd8806, Pixie, Ws2801, Ws2812x, Sm16716, Tm1814, Tm1914)
 Pattern: `color[_settings.channelOrder[channel]]` or `toWireComponent8(color[...])`
-- [ ] Replace with `colorComponentByTag<uint8_t>(color, _settings.channelOrder[channel])` when protocol needs 8-bit wire values
-- [ ] Use `colorComponentByTag(color, ...)` (defaults to `ColorComponent`) for full-width access
+- [x] Replace with `colorComponentByTag<uint8_t>(color, _settings.channelOrder[channel])` when protocol needs 8-bit wire values
+- [x] Use `colorComponentByTag(color, ...)` (defaults to `ColorComponent`) for full-width access
 
 ### P3b — P9813Protocol (uses literal channel chars)
-- [ ] Replace `color['R']`, `color['G']`, `color['B']` with `colorR(color)`, `colorG(color)`, `colorB(color)`
+- [x] Replace `color['R']`, `color['G']`, `color['B']` with `colorR(color)`, `colorG(color)`, `colorB(color)`
 
 ### P3c — DotStar protocols (Apa102Protocol, Hd108Protocol)
-- [ ] Replace `color[effectiveChannelOrder[channel]]` with `colorComponentByTag(color, effectiveChannelOrder[channel])`
-- [ ] Verify gain encoding still works (uses `_gainValue`, not Color members)
+- [x] Replace `color[effectiveChannelOrder[channel]]` with `colorComponentByTag(color, effectiveChannelOrder[channel])`
+- [x] Verify gain encoding still works (uses `_gainValue`, not Color members)
 
 ### P3d — Sm168xProtocol, Tlc59711Protocol
-- [ ] Update channel access patterns
+- [x] Update channel access patterns
 
 ---
 
 ## Phase 4 — Update Transport Light Drivers
 
 ### P4a — PwmOutputPipeline (and Esp8266LedcLightDriver)
-- [ ] Replace `color[channelTag]` with `colorComponentByTag(color, channelTag)`
-- [ ] Replace `Color::ComponentType` with `ColorComponent`
+- [x] Replace `color[channelTag]` with `colorComponentByTag(color, channelTag)`
+- [x] Replace `Color::ComponentType` with `ColorComponent`
 
 ### P4b — PrintOutputPipeline
-- [ ] Replace `color[channelTag]` with `colorComponentByTag(color, channelTag)`
-- [ ] Replace `Color::ComponentType` with `ColorComponent`
+- [x] Replace `color[channelTag]` with `colorComponentByTag(color, channelTag)`
+- [x] Replace `Color::ComponentType` with `ColorComponent`
 
 ### P4c — Other light drivers (Esp32LedcLightDriver, Esp32SigmaDeltaLightDriver, RpPwmLightDriver)
-- [ ] Replace `color[channelTag]` with `colorComponentByTag(color, channelTag)`
+- [x] Replace `color[channelTag]` with `colorComponentByTag(color, channelTag)`
 
 ---
 
 ## Phase 5 — Update ColorMath and Palette Code
 
 ### P5a — ColorMath.h
-- [ ] `applyBrightness(color, brightness)` — already takes Color by value, update internal `color[channel]` access
-- [ ] `applyBrightness(component, brightness)` — no change needed
-- [ ] Any other color manipulation functions
+- [x] `applyBrightness(color, brightness)` — already takes Color by value, update internal `color[channel]` access
+- [x] `applyBrightness(component, brightness)` — no change needed
+- [x] Any other color manipulation functions
 
 ### P5b — Palette code (Blends.h, Types.h, Generators.h, Detail.h, WrapModes.h)
-- [ ] Replace `Color{}` default construction (becomes `Color{0}` or just `0`)
-- [ ] Replace `Color(r, g, b)` construction with `colorFromRGB(r, g, b)`
-- [ ] Replace `color[channel]` with `setColorComponentByTag(color, channel, ...)`
-- [ ] Replace `Color::ComponentType` with `ColorComponent`
-- [ ] Replace `Color::MaxComponent` with `std::numeric_limits<ColorComponent>::max()`
+- [x] Replace `Color{}` default construction (becomes `Color{0}` or just `0`)
+- [x] Replace `Color(r, g, b)` construction with `colorFromRGB(r, g, b)`
+- [x] Replace `color[channel]` with `setColorComponentByTag(color, channel, ...)`
+- [x] Replace `Color::ComponentType` with `ColorComponent`
+- [x] Replace `Color::MaxComponent` with `std::numeric_limits<ColorComponent>::max()`
 
 ---
 
 ## Phase 6 — Update Tests
 
 ### P6a — Protocol tests (test_protocol_spec_sections_*)
-- [ ] Replace `Color{r, g, b}` → `colorFromRGB(r, g, b)`
-- [ ] Replace `Color{r, g, b, w}` → `colorFromRGBW(r, g, b, w)`
-- [ ] Replace `mock.lastColor['R']` → `colorR(mock.lastColor)`
-- [ ] Replace `mock.lastColor['G']` / `['B']` / `['W']` similarly
+- [x] Replace `Color{r, g, b}` → `colorFromRGB(r, g, b)`
+- [x] Replace `Color{r, g, b, w}` → `colorFromRGBW(r, g, b, w)`
+- [x] Replace `mock.lastColor['R']` → `colorR(mock.lastColor)`
+- [x] Replace `mock.lastColor['G']` / `['B']` / `['W']` similarly
 
 ### P6b — Bus tests
-- [ ] Replace `Color{10, 20, 30}` → `colorFromRGB(10, 20, 30)`
-- [ ] Update channel accessors in assertions
+- [x] Replace `Color{10, 20, 30}` → `colorFromRGB(10, 20, 30)`
+- [x] Update channel accessors in assertions
 
 ### P6c — Print light driver tests
-- [ ] Replace `Color{0x11, 0x22, 0x33}` → `colorFromRGB(0x11, 0x22, 0x33)`
+- [x] Replace `Color{0x11, 0x22, 0x33}` → `colorFromRGB(0x11, 0x22, 0x33)`
 
 ### P6d — Palette tests
-- [ ] Update Color construction patterns
+- [x] Update Color construction patterns
 
 ---
 
 ## Phase 7 — Update Examples and Docs
 
 ### P7a — Examples (hello/ws2812, hello/apa102)
-- [ ] Replace `Color(...)` construction with factory functions
-- [ ] Update any channel access in example code
+- [x] Replace `Color(...)` construction with factory functions
+- [x] Update any channel access in example code
 
 ### P7b — Documentation
-- [ ] Update copilot-instructions.md
-- [ ] Update object-model-contracts.md
-- [ ] Update ReadMe.md
+- [x] Update copilot-instructions.md
+- [x] Update object-model-contracts.md
+- [x] Update ReadMe.md
 
 ---
 
 ## Phase 8 — Remove Dead Code and Cleanup
 
 ### P8a — Remove Color.h class remnants
-- [ ] Delete `Channels` array storage
-- [ ] Delete variadic template constructor
-- [ ] Delete `operator[]` overloads
-- [ ] Delete `channelAtIndex()`
-- [ ] Delete comparison operators
-- [ ] Delete packing/unpacking `operator=` and conversion operators
-- [ ] Delete `parse()`/`tryParse()` (moved to free functions)
+- [x] Delete `Channels` array storage
+- [x] Delete variadic template constructor
+- [x] Delete `operator[]` overloads
+- [x] Delete `channelAtIndex()`
+- [x] Delete comparison operators
+- [x] Delete packing/unpacking `operator=` and conversion operators
+- [x] Delete `parse()`/`tryParse()` (moved to free functions)
 
 ### P8b — Final verification
-- [ ] `cmake --build build && ctest --test-dir build --output-on-failure`
-- [ ] Verify no remaining `color[...]` patterns (except `ColorComponent` which is fine)
-- [ ] Verify no remaining `Color(...)` constructor calls
+- [x] `cmake --build build && ctest --test-dir build --output-on-failure`
+- [x] Verify no remaining `color[...]` patterns (except `ColorComponent` which is fine)
+- [x] Verify no remaining `Color(...)` constructor calls

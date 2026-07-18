@@ -49,7 +49,7 @@ public:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < BytesPerPixel; ++channel)
       {
-        _byteBuffer[offset++] = toWireByte(color[_settings.channelOrder[channel]]);
+        _byteBuffer[offset++] = toWireByte(lw::colorComponentByTag(color, _settings.channelOrder[channel]));
       }
     }
   }

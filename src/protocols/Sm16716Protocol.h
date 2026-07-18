@@ -100,7 +100,7 @@ private:
       // Channel bytes
       for (size_t channel = 0; channel < ChannelCount; ++channel)
       {
-        packByte(toWireComponent8(color[_settings.channelOrder[channel]]), bitPos);
+        packByte(toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[channel])), bitPos);
       }
     }
   }

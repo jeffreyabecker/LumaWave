@@ -129,7 +129,7 @@ private:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < _channelCount; ++channel)
       {
-        _frameBuffer[offset++] = toWireComponent8(color[_settings.channelOrder[channel]]);
+        _frameBuffer[offset++] = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[channel]));
       }
     }
   }

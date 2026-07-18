@@ -9,7 +9,7 @@
 
 namespace lw::colors::detail
 {
- struct ScalarColorMathBackend
+struct ScalarColorMathBackend
 {
   using ComponentType = lw::colors::ColorComponent;
 
@@ -235,7 +235,7 @@ namespace lw::colors::detail
   {
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      auto& component = color[channel];
+      auto component = lw::colorComponentByTag(color, channel);
       if (component > delta)
       {
         component = static_cast<ComponentType>(component - delta);
@@ -244,6 +244,7 @@ namespace lw::colors::detail
       {
         component = static_cast<ComponentType>(0);
       }
+      lw::setColorComponentByTag(color, channel, component);
     }
   }
 
@@ -251,15 +252,16 @@ namespace lw::colors::detail
   {
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      auto& component = color[channel];
-      if (component < static_cast<ComponentType>(lw::Color::MaxComponent - delta))
+      auto component = lw::colorComponentByTag(color, channel);
+      if (component < static_cast<ComponentType>(std::numeric_limits<ColorComponent>::max() - delta))
       {
         component = static_cast<ComponentType>(component + delta);
       }
       else
       {
-        component = lw::Color::MaxComponent;
+        component = std::numeric_limits<ColorComponent>::max();
       }
+      lw::setColorComponentByTag(color, channel, component);
     }
   }
 
@@ -270,12 +272,12 @@ namespace lw::colors::detail
     lw::Color blended{};
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
-      const UnsignedWide rightValue = static_cast<UnsignedWide>(right[channel]);
+      const UnsignedWide leftValue = static_cast<UnsignedWide>(lw::colorComponentByTag(left, channel));
+      const UnsignedWide rightValue = static_cast<UnsignedWide>(lw::colorComponentByTag(right, channel));
       const UnsignedWide progressWide = static_cast<UnsignedWide>(progress);
       const UnsignedWide inverseProgress = static_cast<UnsignedWide>(256u) - progressWide;
       const UnsignedWide numerator = (leftValue * inverseProgress) + (rightValue * progressWide) + static_cast<UnsignedWide>(1u);
-      blended[channel] = static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(256u));
+      lw::setColorComponentByTag(blended, channel, static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(256u)));
     }
 
     return blended;
@@ -298,12 +300,12 @@ namespace lw::colors::detail
     lw::Color blended;
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      const UnsignedWide leftValue = static_cast<UnsignedWide>(left[channel]);
-      const UnsignedWide rightValue = static_cast<UnsignedWide>(right[channel]);
+      const UnsignedWide leftValue = static_cast<UnsignedWide>(lw::colorComponentByTag(left, channel));
+      const UnsignedWide rightValue = static_cast<UnsignedWide>(lw::colorComponentByTag(right, channel));
       const UnsignedWide progressWide = static_cast<UnsignedWide>(progress);
       const UnsignedWide inverseProgress = static_cast<UnsignedWide>(65535u) - progressWide;
       const UnsignedWide numerator = (leftValue * inverseProgress) + (rightValue * progressWide) + static_cast<UnsignedWide>(32767u);
-      blended[channel] = static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(65535u));
+      lw::setColorComponentByTag(blended, channel, static_cast<ComponentType>(numerator / static_cast<UnsignedWide>(65535u)));
     }
 
     return blended;
@@ -401,16 +403,10 @@ constexpr lw::Color hslToRgb(lw::colors::ColorComponent h, lw::colors::ColorComp
   uint8_t r = 0u;
   uint8_t g = 0u;
   uint8_t b = 0u;
-  detail::ScalarColorMathBackend::hslToRgb8(detail::ScalarColorMathBackend::scaleComponentToByte(h), detail::ScalarColorMathBackend::scaleComponentToByte(s),
-                                                    detail::ScalarColorMathBackend::scaleComponentToByte(l), r, g, b);
+  detail::ScalarColorMathBackend::hslToRgb8(detail::ScalarColorMathBackend::scaleComponentToByte(h), detail::ScalarColorMathBackend::scaleComponentToByte(s), detail::ScalarColorMathBackend::scaleComponentToByte(l), r, g, b);
 
-  lw::Color rgb{};
-  rgb['R'] = detail::ScalarColorMathBackend::scaleByteToComponent(r);
-  rgb['G'] = detail::ScalarColorMathBackend::scaleByteToComponent(g);
-  rgb['B'] = detail::ScalarColorMathBackend::scaleByteToComponent(b);
-  rgb['W'] = static_cast<lw::colors::ColorComponent>(0);
-
-  return rgb;
+  return lw::colorFromRGBW(detail::ScalarColorMathBackend::scaleByteToComponent(r), detail::ScalarColorMathBackend::scaleByteToComponent(g), detail::ScalarColorMathBackend::scaleByteToComponent(b),
+                           static_cast<lw::colors::ColorComponent>(0));
 }
 
 constexpr lw::Color hsbToRgb(lw::colors::ColorComponent h, lw::colors::ColorComponent s, lw::colors::ColorComponent b)
@@ -418,16 +414,11 @@ constexpr lw::Color hsbToRgb(lw::colors::ColorComponent h, lw::colors::ColorComp
   uint8_t r = 0u;
   uint8_t g = 0u;
   uint8_t blue = 0u;
-  detail::ScalarColorMathBackend::hsbToRgb8(detail::ScalarColorMathBackend::scaleComponentToByte(h), detail::ScalarColorMathBackend::scaleComponentToByte(s),
-                                                    detail::ScalarColorMathBackend::scaleComponentToByte(b), r, g, blue);
+  detail::ScalarColorMathBackend::hsbToRgb8(detail::ScalarColorMathBackend::scaleComponentToByte(h), detail::ScalarColorMathBackend::scaleComponentToByte(s), detail::ScalarColorMathBackend::scaleComponentToByte(b), r, g,
+                                            blue);
 
-  lw::Color rgb{};
-  rgb['R'] = detail::ScalarColorMathBackend::scaleByteToComponent(r);
-  rgb['G'] = detail::ScalarColorMathBackend::scaleByteToComponent(g);
-  rgb['B'] = detail::ScalarColorMathBackend::scaleByteToComponent(blue);
-  rgb['W'] = static_cast<lw::colors::ColorComponent>(0);
-
-  return rgb;
+  return lw::colorFromRGBW(detail::ScalarColorMathBackend::scaleByteToComponent(r), detail::ScalarColorMathBackend::scaleByteToComponent(g), detail::ScalarColorMathBackend::scaleByteToComponent(blue),
+                           static_cast<lw::colors::ColorComponent>(0));
 }
 
 constexpr void darken(lw::Color& color, lw::colors::ColorComponent delta)

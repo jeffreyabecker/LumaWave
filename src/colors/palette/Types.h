@@ -75,7 +75,7 @@ using palette_canonical_fixed_t = uint32_t;
 
 struct PaletteSampleOptions
 {
-  lw::colors::Color::ComponentType brightnessScale{std::numeric_limits<lw::colors::Color::ComponentType>::max()};
+  lw::colors::ColorComponent brightnessScale{std::numeric_limits<lw::colors::ColorComponent>::max()};
   lw::Color outOfRangeColor{};
   WrapMode wrapMode{WrapMode::Clamp};
   BlendMode blendMode{BlendMode::Linear};
@@ -93,7 +93,7 @@ struct PaletteStop
     return fromRgb8(index, static_cast<uint8_t>((rgb >> 16U) & 0xFFU), static_cast<uint8_t>((rgb >> 8U) & 0xFFU), static_cast<uint8_t>(rgb & 0xFFU));
   }
 
-  static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, lw::Color{r, g, b}}; }
+  static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, lw::colorFromRGB(r, g, b)}; }
 
   palette_stop_index_t index{0};
   lw::Color color{};
@@ -437,7 +437,7 @@ private:
       return false;
     }
 
-    if (!lw::Color::tryParse(trimmed.first(tokenLength), color))
+    if (!lw::tryParseColor(trimmed.first(tokenLength), color))
     {
       return false;
     }

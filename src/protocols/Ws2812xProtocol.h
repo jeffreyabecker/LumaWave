@@ -185,7 +185,7 @@ private:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < _channelCount; ++channel)
       {
-        appendWireComponent(pixels, offset, color[_channelOrder[channel]]);
+        appendWireComponent(pixels, offset, lw::colorComponentByTag(color, _channelOrder[channel]));
       }
     }
   }

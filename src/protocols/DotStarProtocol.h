@@ -69,7 +69,7 @@ public:
       _byteBuffer[offset++] = encodedGainByte();
       for (size_t channel = 0; channel < StripChannelCount; ++channel)
       {
-        _byteBuffer[offset++] = toStripComponent(color[effectiveChannelOrder[channel]]);
+        _byteBuffer[offset++] = toStripComponent(lw::colorComponentByTag(color, effectiveChannelOrder[channel]));
       }
     }
   }
@@ -146,7 +146,7 @@ public:
 
       for (size_t channel = 0; channel < StripChannelCount; ++channel)
       {
-        const uint16_t value = toStripComponent(color[effectiveChannelOrder[channel]]);
+        const uint16_t value = toStripComponent(lw::colorComponentByTag(color, effectiveChannelOrder[channel]));
         _byteBuffer[offset++] = static_cast<uint8_t>(value >> 8);
         _byteBuffer[offset++] = static_cast<uint8_t>(value & 0xFF);
       }

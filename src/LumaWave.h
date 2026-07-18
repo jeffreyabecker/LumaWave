@@ -11,6 +11,25 @@
 using pixel_count_t = lw::PixelCount;
 using Color = lw::colors::Color;
 
+using lw::colorB;
+using lw::colorCompare;
+using lw::colorComponentByIndex;
+using lw::colorComponentByTag;
+using lw::colorFromRGB;
+using lw::colorFromRGBW;
+using lw::colorG;
+using lw::colorR;
+using lw::colorW;
+using lw::parseColor;
+using lw::serializeColor;
+using lw::setColorB;
+using lw::setColorComponentByIndex;
+using lw::setColorComponentByTag;
+using lw::setColorG;
+using lw::setColorR;
+using lw::setColorW;
+using lw::tryParseColor;
+
 using lw::fillPixels;
 using lw::fillPixelsIndexed;
 

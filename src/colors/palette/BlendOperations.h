@@ -10,9 +10,9 @@
 
 namespace lw::colors::palettes
 {
- lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uint8_t progress, uint8_t levels)
+lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uint8_t progress, uint8_t levels)
 {
-  using Component = lw::colors::Color::ComponentType;
+  using Component = lw::colors::ColorComponent;
   const uint32_t clampedLevels = (levels < 2u) ? 2u : static_cast<uint32_t>(levels);
   constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
   const uint32_t step = maxValue / (clampedLevels - 1u);
@@ -20,19 +20,19 @@ namespace lw::colors::palettes
   lw::Color out = lw::colors::linearBlendProgress8(left, right, progress);
   for (char channel : {'R', 'G', 'B', 'W'})
   {
-    const uint32_t value = static_cast<uint32_t>(out[channel]);
+    const uint32_t value = static_cast<uint32_t>(lw::colorComponentByTag(out, channel));
     uint32_t quantized = ((value + (step / 2u)) / step) * step;
     if (quantized > maxValue)
     {
       quantized = maxValue;
     }
 
-    out[channel] = static_cast<Component>(quantized);
+    lw::setColorComponentByTag(out, channel, static_cast<Component>(quantized));
   }
 
   return out;
 }
- lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::Color& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
+lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::Color& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
 {
   switch (blendMode)
   {
@@ -48,19 +48,19 @@ namespace lw::colors::palettes
       return lw::colors::linearBlendProgress8(left, right, lw::colors::cosineLike8(progress));
     case BlendMode::GammaLinear:
     {
-      using Component = lw::colors::Color::ComponentType;
+      using Component = lw::colors::ColorComponent;
       lw::Color out{};
 
       for (char channel : {'R', 'G', 'B', 'W'})
       {
-        const uint32_t leftValue = static_cast<uint32_t>(left[channel]);
-        const uint32_t rightValue = static_cast<uint32_t>(right[channel]);
+        const uint32_t leftValue = static_cast<uint32_t>(lw::colorComponentByTag(left, channel));
+        const uint32_t rightValue = static_cast<uint32_t>(lw::colorComponentByTag(right, channel));
         const uint32_t leftLinear = leftValue * leftValue;
         const uint32_t rightLinear = rightValue * rightValue;
 
         const uint32_t linear = leftLinear + ((rightLinear - leftLinear) * progress) / lw::colors::palettes::detail::PaletteCanonicalFractionScale;
         const uint32_t gamma = lw::colors::integerSqrt(linear);
-        out[channel] = static_cast<Component>(gamma);
+        lw::setColorComponentByTag(out, channel, static_cast<Component>(gamma));
       }
 
       return out;
@@ -69,21 +69,21 @@ namespace lw::colors::palettes
       return applyQuantizedBlend(left, right, progress, quantizedLevels);
     case BlendMode::DitheredLinear:
     {
-      using Component = lw::colors::Color::ComponentType;
+      using Component = lw::colors::ColorComponent;
       constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
 
       lw::Color out = lw::colors::linearBlendProgress8(left, right, progress);
       uint8_t channelOrdinal = 0;
       for (char channel : {'R', 'G', 'B', 'W'})
       {
-        uint32_t value = static_cast<uint32_t>(out[channel]);
+        uint32_t value = static_cast<uint32_t>(lw::colorComponentByTag(out, channel));
         const uint8_t noise = static_cast<uint8_t>((sampleIndex * 37u) + (channelOrdinal * 97u));
         if (value < maxValue && noise < (progress & 0x3Fu))
         {
           ++value;
         }
 
-        out[channel] = static_cast<Component>(value);
+        lw::setColorComponentByTag(out, channel, static_cast<Component>(value));
         ++channelOrdinal;
       }
 

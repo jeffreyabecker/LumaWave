@@ -91,13 +91,13 @@ namespace detail::palettegen
     lw::Color color{};
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      color[channel] = randomComponent<lw::colors::Color::ComponentType>(state);
+      lw::setColorComponentByTag(color, channel, randomComponent<lw::colors::ColorComponent>(state));
     }
 
     return color;
   }
 
-  template <typename TStops, typename = std::enable_if_t<ColorType<typename TStops::value_type::ColorType>>> void assignDistributedStopIndexes(TStops& stops)
+  template <typename TStops> void assignDistributedStopIndexes(TStops& stops)
   {
     if (stops.empty())
     {
@@ -204,17 +204,18 @@ namespace detail::palettegen
   }
 } // namespace detail::palettegen
 
- class RainbowPaletteGenerator : public IPalette
+class RainbowPaletteGenerator : public IPalette
 {
 public:
-  using ComponentType = lw::colors::Color::ComponentType;
+  using ComponentType = lw::colors::ColorComponent;
   using SettingsView = typename IPalette::SettingsView;
   using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
   static constexpr size_t DefaultStopCount = 16u;
   inline static constexpr auto AllowedSettings = detail::palettegen::RainbowAllowedSettings;
 
-  RainbowPaletteGenerator() : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _saturation(lw::Color::MaxComponent), _brightness(lw::Color::MaxComponent), _hueOffset(0)
+  RainbowPaletteGenerator()
+      : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _saturation(std::numeric_limits<ColorComponent>::max()), _brightness(std::numeric_limits<ColorComponent>::max()), _hueOffset(0)
   {
     detail::palettegen::assignDistributedStopIndexes(_stops);
     rebuild();
@@ -318,23 +319,23 @@ private:
     const size_t stopCount = _stops.size();
     for (size_t i = 0; i < stopCount; ++i)
     {
-      const uint64_t span = static_cast<uint64_t>(lw::Color::MaxComponent) + 1ull;
+      const uint64_t span = static_cast<uint64_t>(std::numeric_limits<ColorComponent>::max()) + 1ull;
       const ComponentType hue = static_cast<ComponentType>(_hueOffset + static_cast<ComponentType>((static_cast<uint64_t>(i) * span) / stopCount));
       _stops[i].color = lw::colors::hsbToRgb(hue, _saturation, _brightness);
     }
   }
 
   std::vector<PaletteStop> _stops{};
-  ComponentType _saturation{lw::Color::MaxComponent};
-  ComponentType _brightness{lw::Color::MaxComponent};
+  ComponentType _saturation{std::numeric_limits<ColorComponent>::max()};
+  ComponentType _brightness{std::numeric_limits<ColorComponent>::max()};
   ComponentType _hueOffset{0};
 };
 
- class TemporalRainbowPaletteGenerator : public IPalette
+class TemporalRainbowPaletteGenerator : public IPalette
 {
 public:
   using SettingsView = typename IPalette::SettingsView;
-  using ComponentType = lw::colors::Color::ComponentType;
+  using ComponentType = lw::colors::ColorComponent;
   using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::TemporalRainbowPaletteGenerator;
   inline static constexpr auto AllowedSettings = detail::palettegen::TemporalRainbowAllowedSettings;
