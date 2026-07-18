@@ -27,7 +27,7 @@
 #endif
 #endif
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 namespace detail::palettegen
 {
@@ -91,7 +91,7 @@ namespace detail::palettegen
     lw::Color color{};
     for (char channel : {'R', 'G', 'B', 'W'})
     {
-      lw::setColorComponentByTag(color, channel, randomComponent<lw::colors::ColorComponent>(state));
+      lw::setColorComponentByTag(color, channel, randomComponent<lw::ColorComponent>(state));
     }
 
     return color;
@@ -110,7 +110,7 @@ namespace detail::palettegen
       return;
     }
 
-    using lw::colors::palettes::detail::PaletteDomainMaxIndex;
+    using lw::palettes::detail::PaletteDomainMaxIndex;
     const size_t stopSpan = stops.size() - 1u;
 
     for (size_t i = 0; i < stops.size(); ++i)
@@ -207,7 +207,7 @@ namespace detail::palettegen
 class RainbowPaletteGenerator : public IPalette
 {
 public:
-  using ComponentType = lw::colors::ColorComponent;
+  using ComponentType = lw::ColorComponent;
   using SettingsView = typename IPalette::SettingsView;
   using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
@@ -321,7 +321,7 @@ private:
     {
       const uint64_t span = static_cast<uint64_t>(std::numeric_limits<ColorComponent>::max()) + 1ull;
       const ComponentType hue = static_cast<ComponentType>(_hueOffset + static_cast<ComponentType>((static_cast<uint64_t>(i) * span) / stopCount));
-      _stops[i].color = lw::colors::hsbToRgb(hue, _saturation, _brightness);
+      _stops[i].color = lw::hsbToRgb(hue, _saturation, _brightness);
     }
   }
 
@@ -335,7 +335,7 @@ class TemporalRainbowPaletteGenerator : public IPalette
 {
 public:
   using SettingsView = typename IPalette::SettingsView;
-  using ComponentType = lw::colors::ColorComponent;
+  using ComponentType = lw::ColorComponent;
   using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::TemporalRainbowPaletteGenerator;
   inline static constexpr auto AllowedSettings = detail::palettegen::TemporalRainbowAllowedSettings;
@@ -343,7 +343,7 @@ public:
   explicit TemporalRainbowPaletteGenerator() : IPalette(TypeCode), _rainbowGenerator()
   {
     _stops[0].index = 0;
-    _stops[1].index = lw::colors::palettes::detail::PaletteDomainMaxIndex;
+    _stops[1].index = lw::palettes::detail::PaletteDomainMaxIndex;
     rebuild();
   }
 
@@ -491,7 +491,7 @@ public:
   {
     const uint32_t step = (progressStep == 0) ? static_cast<uint32_t>(_progressStep) : progressStep;
     const uint32_t nextProgress = static_cast<uint32_t>(_progress) + step;
-    using lw::colors::palettes::detail::PaletteDomainSpan;
+    using lw::palettes::detail::PaletteDomainSpan;
     const uint32_t cycleCount = nextProgress / PaletteDomainSpan;
 
     for (uint32_t cycle = 0; cycle < cycleCount; ++cycle)
@@ -582,7 +582,7 @@ private:
   {
     for (size_t i = 0; i < _stops.size(); ++i)
     {
-      _stops[i].color = lw::colors::linearBlendProgress(_sourceColors[i], _targetColors[i], _progress);
+      _stops[i].color = lw::linearBlendProgress(_sourceColors[i], _targetColors[i], _progress);
     }
   }
 
@@ -633,7 +633,7 @@ public:
   {
     const uint32_t step = (cycleStep == 0) ? static_cast<uint32_t>(_cycleStep) : cycleStep;
     const uint32_t nextPhase = static_cast<uint32_t>(_phase) + step;
-    using lw::colors::palettes::detail::PaletteDomainSpan;
+    using lw::palettes::detail::PaletteDomainSpan;
     const uint32_t cycleCount = nextPhase / PaletteDomainSpan;
 
     for (uint32_t cycle = 0; cycle < cycleCount; ++cycle)
@@ -730,7 +730,7 @@ private:
     for (size_t i = 0; i < stopCount; ++i)
     {
       const size_t next = (i + 1u) % stopCount;
-      _stops[i].color = lw::colors::linearBlendProgress(_colors[i], _colors[next], _phase);
+      _stops[i].color = lw::linearBlendProgress(_colors[i], _colors[next], _phase);
     }
   }
 
@@ -742,4 +742,4 @@ private:
   uint8_t _cycleStep{8};
 };
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

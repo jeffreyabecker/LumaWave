@@ -9,7 +9,7 @@
 #include "palettes/ColorMath.h"
 #include "palettes/Traits.h"
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 namespace samplingtransition
 {
@@ -20,7 +20,7 @@ template < typename TOutputIt, typename = void> class BlendAssignProxy
 
     BlendAssignProxy& operator=(const lw::Color& sampled)
     {
-        *_output = lw::colors::linearBlendProgress(*_output, sampled, _blendProgress);
+        *_output = lw::linearBlendProgress(*_output, sampled, _blendProgress);
         return *this;
     }
 
@@ -105,4 +105,4 @@ inline uint8_t mapTransitionProgressToBlend8(uint8_t transitionProgress, uint8_t
     return static_cast<uint8_t>((static_cast<uint16_t>(clamped) * 255u) / transitionDuration);
 }
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

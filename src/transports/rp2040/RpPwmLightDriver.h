@@ -45,11 +45,11 @@ struct RpPwmLightDriverSettings
   }
 };
 
-class RpPwmLightDriver : public lw::buses::OutputPipeline
+class RpPwmLightDriver : public lw::OutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = RpPwmLightDriverSettings;
 
   explicit RpPwmLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}

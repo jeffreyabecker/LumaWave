@@ -36,7 +36,7 @@ class Apa102Protocol : public Protocol
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
-  using InterfaceColorType = lw::colors::Color;
+  using InterfaceColorType = lw::Color;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -46,7 +46,7 @@ public:
 
   Apa102Protocol(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -104,7 +104,7 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint8_t toStripComponent(lw::colors::ColorComponent value) { return static_cast<uint8_t>(value); }
+  static constexpr uint8_t toStripComponent(lw::ColorComponent value) { return static_cast<uint8_t>(value); }
 
   SettingsType _settings;
   size_t _requiredBufferSize{0};
@@ -116,13 +116,13 @@ class Hd108Protocol : public Protocol
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
-  using InterfaceColorType = lw::colors::Color;
+  using InterfaceColorType = lw::Color;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
   Hd108Protocol(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -183,7 +183,7 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint16_t toStripComponent(lw::colors::ColorComponent value) { return static_cast<uint16_t>(value); }
+  static constexpr uint16_t toStripComponent(lw::ColorComponent value) { return static_cast<uint16_t>(value); }
 
   SettingsType _settings;
   size_t _requiredBufferSize{0};

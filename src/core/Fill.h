@@ -9,7 +9,7 @@
 namespace lw
 {
 
-inline void fillPixels(span<colors::Color> pixels, const colors::Color& color)
+inline void fillPixels(span<Color> pixels, const Color& color)
 {
   for (size_t i = 0; i < pixels.size(); ++i)
   {
@@ -17,7 +17,7 @@ inline void fillPixels(span<colors::Color> pixels, const colors::Color& color)
   }
 }
 
-template <typename TGenerator> inline void fillPixelsIndexed(span<colors::Color> pixels, TGenerator&& generator)
+template <typename TGenerator> inline void fillPixelsIndexed(span<Color> pixels, TGenerator&& generator)
 {
   for (size_t i = 0; i < pixels.size(); ++i)
   {

@@ -20,7 +20,7 @@ struct PipelineRun
 class Bus : public IPixelBus
 {
 public:
-  Bus(span<lw::colors::Color> pixelStorage, span<const PipelineRun> runs) : _pixels(pixelStorage), _runs(runs) {}
+  Bus(span<lw::Color> pixelStorage, span<const PipelineRun> runs) : _pixels(pixelStorage), _runs(runs) {}
 
   void begin() override
   {
@@ -50,7 +50,7 @@ public:
     {
       if (run.pipeline && run.length > 0)
       {
-        run.pipeline->write(span<const lw::colors::Color>{_pixels.data() + offset, run.length}, _brightness);
+        run.pipeline->write(span<const lw::Color>{_pixels.data() + offset, run.length}, _brightness);
       }
       offset += run.length;
     }
@@ -71,13 +71,13 @@ public:
     return true;
   }
 
-  span<lw::colors::Color>& pixels() override
+  span<lw::Color>& pixels() override
   {
     _dirty = true;
     return _pixels;
   }
 
-  const span<lw::colors::Color>& pixels() const override { return _pixels; }
+  const span<lw::Color>& pixels() const override { return _pixels; }
 
   void setBrightness(BrightnessType brightness) override { _brightness = brightness; }
 
@@ -86,7 +86,7 @@ public:
   span<const PipelineRun> runs() const { return _runs; }
 
 private:
-  span<lw::colors::Color> _pixels;
+  span<lw::Color> _pixels;
   span<const PipelineRun> _runs;
   BrightnessType _brightness{std::numeric_limits<BrightnessType>::max()};
   bool _dirty{true};

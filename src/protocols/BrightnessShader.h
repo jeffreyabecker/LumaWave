@@ -13,9 +13,9 @@ namespace lw::protocols
 class BrightnessShader : public IShader
 {
 public:
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
 
-  void apply(span<const lw::colors::Color> source, span<lw::colors::Color> dest) override
+  void apply(span<const lw::Color> source, span<lw::Color> dest) override
   {
     if (_brightnessValue == std::numeric_limits<BrightnessType>::max())
     {
@@ -28,7 +28,7 @@ public:
 
       for (char channel : {'R', 'G', 'B', 'W'})
       {
-        dest[i][channel] = static_cast<lw::colors::ColorComponent>(lw::colors::applyBrightness(source[i][channel], _brightnessValue));
+        dest[i][channel] = static_cast<lw::ColorComponent>(lw::applyBrightness(source[i][channel], _brightnessValue));
       }
     }
   }

@@ -14,13 +14,13 @@ namespace lw::protocols
 class ShaderProtocol : public Protocol
 {
 public:
-  ShaderProtocol(Protocol& inner, span<IShader*> shaders, span<lw::colors::Color> scratchPixels) : _inner(inner), _shaders(shaders), _scratchPixels(scratchPixels) {}
+  ShaderProtocol(Protocol& inner, span<IShader*> shaders, span<lw::Color> scratchPixels) : _inner(inner), _shaders(shaders), _scratchPixels(scratchPixels) {}
 
   PixelCount pixelCount() const { return _inner.pixelCount(); }
 
   void begin() override { _inner.begin(); }
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (_shaders.empty())
     {
@@ -30,8 +30,8 @@ public:
 
     assert(!_scratchPixels.empty() && _scratchPixels.size() >= colors.size());
 
-    span<const lw::colors::Color> src = colors;
-    span<lw::colors::Color> dst = _scratchPixels;
+    span<const lw::Color> src = colors;
+    span<lw::Color> dst = _scratchPixels;
 
     for (size_t i = 0; i < _shaders.size(); ++i)
     {
@@ -71,7 +71,7 @@ public:
 private:
   Protocol& _inner;
   span<IShader*> _shaders;
-  span<lw::colors::Color> _scratchPixels;
+  span<lw::Color> _scratchPixels;
 };
 
 } // namespace lw::protocols

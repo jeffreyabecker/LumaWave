@@ -35,13 +35,13 @@ class Sm16716ProtocolT : public Protocol
 public:
   using SettingsType = Sm16716ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Sm16716Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Sm16716Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (StartFrameBits + (static_cast<size_t>(pixelCount) * BitsPerPixel) + 7u) / 8u; }
 
   Sm16716ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -83,7 +83,7 @@ private:
     bitPos += 8;
   }
 
-  void serialize(span<const lw::colors::Color> colors)
+  void serialize(span<const lw::Color> colors)
   {
     // Clear buffer ? start frame is 50 zero-bits, so zeros are default
     std::fill(_byteBuffer.begin(), _byteBuffer.end(), 0);
@@ -105,9 +105,9 @@ private:
     }
   }
 
-  static constexpr uint8_t toWireComponent8(lw::colors::ColorComponent value)
+  static constexpr uint8_t toWireComponent8(lw::ColorComponent value)
   {
-    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
     {
       return value;
     }

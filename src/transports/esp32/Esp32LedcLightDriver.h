@@ -67,11 +67,11 @@ struct Esp32LedcLightDriverSettings
   }
 };
 
-class Esp32LedcLightDriver : public lw::buses::OutputPipeline
+class Esp32LedcLightDriver : public lw::OutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = Esp32LedcLightDriverSettings;
 
   explicit Esp32LedcLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)), _maxDuty(computeMaxDuty(_settings.resolutionBits)) {}

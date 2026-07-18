@@ -13,7 +13,7 @@
 #include "palettes/Traits.h"
 #include "palettes/WrapModes.h"
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 namespace detail
 {
@@ -29,7 +29,7 @@ namespace detail
       return 255u;
     }
 
-    return static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::colors::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
+    return static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
   }
 
    size_t firstStopAtOrAfter(span<const PaletteStop> stops, palette_stop_index_t sampleIndex)
@@ -273,4 +273,4 @@ namespace blend
   inline constexpr BlendMode DitheredLinear = BlendMode::DitheredLinear;
 } // namespace blend
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

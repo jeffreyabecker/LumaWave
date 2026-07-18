@@ -42,7 +42,7 @@ using PlatformDefaultLightDriver = lw::transports::esp32::Esp32SigmaDeltaLightDr
 #elif defined(ARDUINO_ARCH_ESP8266)
 using PlatformDefaultLightDriver = lw::transports::esp8266::Esp8266LedcLightDriver;
 #else
-using PlatformDefaultLightDriver = lw::buses::OutputPipeline;
+using PlatformDefaultLightDriver = lw::OutputPipeline;
 #endif
 
 } // namespace lw::transports

@@ -45,11 +45,11 @@ template <typename TWritable = DefaultPrintOutputPipelineWritable, typename = st
   }
 };
 
-template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintOutputPipeline : public lw::buses::OutputPipeline
+template <typename TWritable, typename = std::enable_if_t<Writable<TWritable>>> class PrintOutputPipeline : public lw::OutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = PrintOutputPipelineSettings<TWritable>;
 
   explicit PrintOutputPipeline(LightDriverSettingsType settings) : _settings(std::move(settings)) { captureIdentifier(); }

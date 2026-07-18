@@ -7,7 +7,7 @@
 
 #include "core/Color.h"
 
-namespace lw::colors
+namespace lw
 {
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ namespace detail
   }
 } // namespace detail
 
-constexpr lw::Color hsbToRgb(lw::colors::ColorComponent h, lw::colors::ColorComponent s, lw::colors::ColorComponent b)
+constexpr lw::Color hsbToRgb(lw::ColorComponent h, lw::ColorComponent s, lw::ColorComponent b)
 {
   uint8_t r = 0, g = 0, blue = 0;
   detail::hsbToRgb8(static_cast<uint8_t>((static_cast<uint32_t>(h) * 255u + (std::numeric_limits<ColorComponent>::max() / 2u)) / std::numeric_limits<ColorComponent>::max()),
@@ -192,4 +192,4 @@ constexpr TTarget scaleComponent(TSource source)
   return static_cast<TTarget>(((static_cast<ScaleWide>(source) * maxTarget) + (maxSource / 2u)) / maxSource);
 }
 
-} // namespace lw::colors
+} // namespace lw

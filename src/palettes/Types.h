@@ -18,7 +18,7 @@
 #include "palettes/ModeEnums.h"
 #include "palettes/PaletteDomain.h"
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 namespace detail
 {
@@ -45,7 +45,7 @@ namespace detail
       return false;
     }
 
-    using lw::colors::palettes::detail::PaletteDomainMaxIndex;
+    using lw::palettes::detail::PaletteDomainMaxIndex;
     if (stops.front().index != 0u || stops.back().index != PaletteDomainMaxIndex)
     {
       return false;
@@ -75,7 +75,7 @@ using palette_canonical_fixed_t = uint32_t;
 
 struct PaletteSampleOptions
 {
-  lw::colors::ColorComponent brightnessScale{std::numeric_limits<lw::colors::ColorComponent>::max()};
+  lw::ColorComponent brightnessScale{std::numeric_limits<lw::ColorComponent>::max()};
   lw::Color outOfRangeColor{};
   WrapMode wrapMode{WrapMode::Clamp};
   BlendMode blendMode{BlendMode::Linear};
@@ -319,7 +319,7 @@ private:
       return;
     }
 
-    using lw::colors::palettes::detail::PaletteDomainMaxIndex;
+    using lw::palettes::detail::PaletteDomainMaxIndex;
 
     if (parsedStops.size() == 1u)
     {
@@ -358,13 +358,13 @@ private:
 
     if (parsedStops.size() == 1u)
     {
-      using lw::colors::palettes::detail::PaletteDomainMaxIndex;
+      using lw::palettes::detail::PaletteDomainMaxIndex;
       parsedStops[0].index = 0u;
       parsedStops.push_back(PaletteStop{PaletteDomainMaxIndex, parsedStops[0].color});
       return;
     }
 
-    using lw::colors::palettes::detail::PaletteDomainMaxIndex;
+    using lw::palettes::detail::PaletteDomainMaxIndex;
     const size_t stopSpan = parsedStops.size() - 1u;
     for (size_t i = 0; i < parsedStops.size(); ++i)
     {
@@ -470,4 +470,4 @@ private:
   StorageType _stops{};
 };
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

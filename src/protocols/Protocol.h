@@ -24,7 +24,7 @@ enum class RuntimeConfig : uint8_t
 class Protocol
 {
 public:
-  using ColorType = lw::colors::Color;
+  using ColorType = lw::Color;
   using SettingsType = void;
   static constexpr bool RequiresExternalBuffer = true;
   explicit Protocol(PixelCount pixelCount = 0) : _pixelCount{pixelCount} {}
@@ -34,7 +34,7 @@ public:
   PixelCount pixelCount() const { return _pixelCount; }
 
   virtual void begin() {}
-  virtual void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) {}
+  virtual void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) {}
   virtual ProtocolSettings& settings() { return _settings; }
   virtual bool alwaysUpdate() const { return false; }
 

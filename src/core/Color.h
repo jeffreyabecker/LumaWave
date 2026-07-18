@@ -9,7 +9,7 @@
 
 #include "core/Compat.h"
 
-namespace lw::colors
+namespace lw
 {
 
 static constexpr size_t ColorComponentBitDepth = static_cast<size_t>(LW_COLOR_COMPONENT_SIZE);
@@ -316,30 +316,4 @@ inline constexpr Color applyBrightness(Color c, ColorComponent brightness)
   return colorFromRGBW(applyBrightness(colorR(c), brightness), applyBrightness(colorG(c), brightness), applyBrightness(colorB(c), brightness), applyBrightness(colorW(c), brightness));
 }
 
-} // namespace lw::colors
-
-namespace lw
-{
-using ColorComponent = colors::ColorComponent;
-using Color = colors::Color;
-using colors::applyBrightness;
-using colors::colorB;
-using colors::colorCompare;
-using colors::colorComponentByIndex;
-using colors::colorComponentByTag;
-using colors::colorFromRGB;
-using colors::colorFromRGBW;
-using colors::colorG;
-using colors::colorR;
-using colors::colorSerializedLength;
-using colors::colorW;
-using colors::parseColor;
-using colors::serializeColor;
-using colors::setColorB;
-using colors::setColorComponentByIndex;
-using colors::setColorComponentByTag;
-using colors::setColorG;
-using colors::setColorR;
-using colors::setColorW;
-using colors::tryParseColor;
 } // namespace lw

@@ -69,7 +69,7 @@ class Tlc59711ProtocolT : public Protocol
 public:
   using SettingsType = Tlc59711ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Tlc59711Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -85,7 +85,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -168,7 +168,7 @@ private:
     _header[3] = static_cast<uint8_t>((bcG << 7) | bcR);
   }
 
-  void serialize(span<const lw::colors::Color> colors)
+  void serialize(span<const lw::Color> colors)
   {
     // Walk chips in reverse order (last chip first on wire)
     size_t bufOffset = 0;
@@ -207,9 +207,9 @@ private:
     }
   }
 
-  static constexpr uint16_t toWireComponent16(lw::colors::ColorComponent value)
+  static constexpr uint16_t toWireComponent16(lw::ColorComponent value)
   {
-    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint16_t>)
+    if constexpr (std::is_same_v<lw::ColorComponent, uint16_t>)
     {
       return value;
     }

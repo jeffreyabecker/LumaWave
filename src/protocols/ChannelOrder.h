@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <string>
 
-namespace lw::colors
+namespace lw
 {
 
 namespace ChannelOrder
@@ -60,17 +60,5 @@ namespace detail
   }
 
 } // namespace detail
-
-} // namespace lw::colors
-
-namespace lw
-{
-
-namespace ChannelOrder = colors::ChannelOrder;
-
-namespace detail
-{
-  using colors::detail::normalizeChannelOrder;
-}
 
 } // namespace lw

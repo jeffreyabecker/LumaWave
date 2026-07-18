@@ -51,11 +51,11 @@ struct Esp32SigmaDeltaLightDriverSettings
   }
 };
 
-class Esp32SigmaDeltaLightDriver : public lw::buses::OutputPipeline
+class Esp32SigmaDeltaLightDriver : public lw::OutputPipeline
 {
 public:
   using ColorType = lw::Color;
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = Esp32SigmaDeltaLightDriverSettings;
 
   explicit Esp32SigmaDeltaLightDriver(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}

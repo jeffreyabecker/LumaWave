@@ -70,7 +70,7 @@ public:
     protocols::normalizeOneWireTransportClockDataBitRate(settings.timing, transportSettings);
   }
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
+  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Ws2812xProtocol interface color supports uint8_t or uint16_t components.");
 
   Ws2812xProtocol(PixelCount pixelCount, SettingsType settings)
       : Protocol(pixelCount), _settings{std::move(settings)}, _channelOrder{resolveChannelOrder(_settings.channelOrder)}, _channelCount{resolveChannelCount(_channelOrder)}, _rawSizeData{pixelCount * _channelCount},
@@ -123,7 +123,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _sizeData)
     {
@@ -163,9 +163,9 @@ private:
     return std::min(requestedCount, size_t{4});
   }
 
-  static constexpr void appendWireComponent(span<uint8_t> pixels, size_t& offset, lw::colors::ColorComponent value)
+  static constexpr void appendWireComponent(span<uint8_t> pixels, size_t& offset, lw::ColorComponent value)
   {
-    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
     {
       pixels[offset++] = value;
     }
@@ -175,7 +175,7 @@ private:
     }
   }
 
-  void serialize(span<uint8_t> pixels, span<const lw::colors::Color> colors)
+  void serialize(span<uint8_t> pixels, span<const lw::Color> colors)
   {
     size_t offset = 0;
     const size_t pixelLimit = std::min(colors.size(), static_cast<size_t>(this->pixelCount()));

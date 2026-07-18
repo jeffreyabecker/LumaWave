@@ -11,14 +11,14 @@
 namespace
 {
 
-class MockPipeline : public lw::buses::OutputPipeline
+class MockPipeline : public lw::OutputPipeline
 {
 public:
   void begin() override { began = true; }
   bool isReadyToUpdate() const override { return ready; }
   bool alwaysUpdate() const override { return always; }
 
-  void write(lw::span<const lw::colors::Color> colors, lw::buses::OutputPipeline::BrightnessType brightness) override
+  void write(lw::span<const lw::Color> colors, lw::OutputPipeline::BrightnessType brightness) override
   {
     ++writeCount;
     lastBrightness = brightness;
@@ -33,8 +33,8 @@ public:
   bool ready{true};
   bool always{false};
   size_t writeCount{0};
-  lw::colors::Color lastColor{};
-  lw::buses::OutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::buses::OutputPipeline::BrightnessType>::max()};
+  lw::Color lastColor{};
+  lw::OutputPipeline::BrightnessType lastBrightness{std::numeric_limits<lw::OutputPipeline::BrightnessType>::max()};
   size_t lastSpanSize{0};
 };
 

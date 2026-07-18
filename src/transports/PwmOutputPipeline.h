@@ -40,7 +40,7 @@ struct PwmOutputPipelineSettings
   }
 };
 
-class PwmOutputPipeline : public lw::buses::OutputPipeline
+class PwmOutputPipeline : public lw::OutputPipeline
 {
 public:
   enum class PinMode : int
@@ -50,7 +50,7 @@ public:
   };
 
   using ColorType = lw::Color;
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
   using LightDriverSettingsType = PwmOutputPipelineSettings;
 
   explicit PwmOutputPipeline(LightDriverSettingsType settings) : _settings(LightDriverSettingsType::normalize(settings)) {}

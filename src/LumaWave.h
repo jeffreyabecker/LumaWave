@@ -9,7 +9,7 @@
 #ifndef LW_USE_EXPLICIT_NAMESPACES
 
 using pixel_count_t = lw::PixelCount;
-using Color = lw::colors::Color;
+using Color = lw::Color;
 
 using lw::colorB;
 using lw::colorCompare;
@@ -35,12 +35,12 @@ using lw::fillPixelsIndexed;
 
 using Bus = lw::buses::Bus;
 
-using Palette = lw::colors::palettes::Palette;
-using IPalette = lw::colors::palettes::IPalette;
+using Palette = lw::palettes::Palette;
+using IPalette = lw::palettes::IPalette;
 
-using lw::colors::palettes::paletteSamples;
-using lw::colors::palettes::paletteTransitionSamples;
-using lw::colors::palettes::samplePalette;
+using lw::palettes::paletteSamples;
+using lw::palettes::paletteTransitionSamples;
+using lw::palettes::samplePalette;
 
 using IStrip = lw::IPixelBus;
 using TopologySettings = lw::TopologySettings;
@@ -50,65 +50,65 @@ using GridMapping = lw::GridMapping;
 namespace ChannelOrder
 {
 
-using RGB = lw::colors::ChannelOrder::RGB;
-using GRB = lw::colors::ChannelOrder::GRB;
-using BGR = lw::colors::ChannelOrder::BGR;
-using RGBW = lw::colors::ChannelOrder::RGBW;
-using GRBW = lw::colors::ChannelOrder::GRBW;
-using BGRW = lw::colors::ChannelOrder::BGRW;
-using WRGB = lw::colors::ChannelOrder::WRGB;
+using RGB = lw::ChannelOrder::RGB;
+using GRB = lw::ChannelOrder::GRB;
+using BGR = lw::ChannelOrder::BGR;
+using RGBW = lw::ChannelOrder::RGBW;
+using GRBW = lw::ChannelOrder::GRBW;
+using BGRW = lw::ChannelOrder::BGRW;
+using WRGB = lw::ChannelOrder::WRGB;
 
 } // namespace ChannelOrder
 
 namespace Generator
 {
 
-using StaticStops = lw::colors::palettes::Palette;
-using DynamicStops = lw::colors::palettes::Palette;
+using StaticStops = lw::palettes::Palette;
+using DynamicStops = lw::palettes::Palette;
 
-using Rainbow = lw::colors::palettes::RainbowPaletteGenerator;
+using Rainbow = lw::palettes::RainbowPaletteGenerator;
 
-using TemporalRainbow = lw::colors::palettes::TemporalRainbowPaletteGenerator;
+using TemporalRainbow = lw::palettes::TemporalRainbowPaletteGenerator;
 
-using RandomSmooth = lw::colors::palettes::RandomSmoothPaletteGenerator;
+using RandomSmooth = lw::palettes::RandomSmoothPaletteGenerator;
 
-using RandomCycle = lw::colors::palettes::RandomCyclePaletteGenerator;
+using RandomCycle = lw::palettes::RandomCyclePaletteGenerator;
 
 } // namespace Generator
 
 namespace PaletteBlend
 {
 
-inline constexpr lw::colors::palettes::BlendMode Linear = lw::colors::palettes::BlendMode::Linear;
-inline constexpr lw::colors::palettes::BlendMode Step = lw::colors::palettes::BlendMode::Step;
-inline constexpr lw::colors::palettes::BlendMode HoldMidpoint = lw::colors::palettes::BlendMode::HoldMidpoint;
-inline constexpr lw::colors::palettes::BlendMode SmoothStep = lw::colors::palettes::BlendMode::Smoothstep;
-inline constexpr lw::colors::palettes::BlendMode Cubic = lw::colors::palettes::BlendMode::Cubic;
-inline constexpr lw::colors::palettes::BlendMode Cosine = lw::colors::palettes::BlendMode::Cosine;
-inline constexpr lw::colors::palettes::BlendMode GammaLinear = lw::colors::palettes::BlendMode::GammaLinear;
-inline constexpr lw::colors::palettes::BlendMode Quantized = lw::colors::palettes::BlendMode::Quantized;
-inline constexpr lw::colors::palettes::BlendMode DitheredLinear = lw::colors::palettes::BlendMode::DitheredLinear;
+inline constexpr lw::palettes::BlendMode Linear = lw::palettes::BlendMode::Linear;
+inline constexpr lw::palettes::BlendMode Step = lw::palettes::BlendMode::Step;
+inline constexpr lw::palettes::BlendMode HoldMidpoint = lw::palettes::BlendMode::HoldMidpoint;
+inline constexpr lw::palettes::BlendMode SmoothStep = lw::palettes::BlendMode::Smoothstep;
+inline constexpr lw::palettes::BlendMode Cubic = lw::palettes::BlendMode::Cubic;
+inline constexpr lw::palettes::BlendMode Cosine = lw::palettes::BlendMode::Cosine;
+inline constexpr lw::palettes::BlendMode GammaLinear = lw::palettes::BlendMode::GammaLinear;
+inline constexpr lw::palettes::BlendMode Quantized = lw::palettes::BlendMode::Quantized;
+inline constexpr lw::palettes::BlendMode DitheredLinear = lw::palettes::BlendMode::DitheredLinear;
 
 } // namespace PaletteBlend
 
 namespace BlendSampling
 {
 
-inline constexpr lw::colors::palettes::TieBreakPolicy Stable = lw::colors::palettes::TieBreakPolicy::Stable;
-inline constexpr lw::colors::palettes::TieBreakPolicy Left = lw::colors::palettes::TieBreakPolicy::Left;
-inline constexpr lw::colors::palettes::TieBreakPolicy Right = lw::colors::palettes::TieBreakPolicy::Right;
+inline constexpr lw::palettes::TieBreakPolicy Stable = lw::palettes::TieBreakPolicy::Stable;
+inline constexpr lw::palettes::TieBreakPolicy Left = lw::palettes::TieBreakPolicy::Left;
+inline constexpr lw::palettes::TieBreakPolicy Right = lw::palettes::TieBreakPolicy::Right;
 
 } // namespace BlendSampling
 
 namespace BlendWrap
 {
 
-inline constexpr lw::colors::palettes::WrapMode Clamp = lw::colors::palettes::WrapMode::Clamp;
-inline constexpr lw::colors::palettes::WrapMode Circular = lw::colors::palettes::WrapMode::Circular;
-inline constexpr lw::colors::palettes::WrapMode Mirror = lw::colors::palettes::WrapMode::Mirror;
-inline constexpr lw::colors::palettes::WrapMode HoldFirst = lw::colors::palettes::WrapMode::HoldFirst;
-inline constexpr lw::colors::palettes::WrapMode HoldLast = lw::colors::palettes::WrapMode::HoldLast;
-inline constexpr lw::colors::palettes::WrapMode Blackout = lw::colors::palettes::WrapMode::Blackout;
+inline constexpr lw::palettes::WrapMode Clamp = lw::palettes::WrapMode::Clamp;
+inline constexpr lw::palettes::WrapMode Circular = lw::palettes::WrapMode::Circular;
+inline constexpr lw::palettes::WrapMode Mirror = lw::palettes::WrapMode::Mirror;
+inline constexpr lw::palettes::WrapMode HoldFirst = lw::palettes::WrapMode::HoldFirst;
+inline constexpr lw::palettes::WrapMode HoldLast = lw::palettes::WrapMode::HoldLast;
+inline constexpr lw::palettes::WrapMode Blackout = lw::palettes::WrapMode::Blackout;
 
 } // namespace BlendWrap
 

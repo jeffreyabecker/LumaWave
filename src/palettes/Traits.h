@@ -6,7 +6,7 @@
 
 #include "palettes/Types.h"
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 template <typename TRange, typename = void> struct IsBeginEndRange : std::false_type
 {
@@ -29,4 +29,4 @@ struct IsPaletteLike<TPaletteLike, std::void_t<typename TPaletteLike::ColorType,
 
 template <typename TPaletteLike> using EnableIfPaletteLike = std::enable_if_t<IsPaletteLike<TPaletteLike>::value>;
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

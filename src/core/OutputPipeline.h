@@ -5,13 +5,13 @@
 #include "core/Color.h"
 #include "core/Compat.h"
 
-namespace lw::buses
+namespace lw
 {
 
 class OutputPipeline
 {
 public:
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
 
   virtual ~OutputPipeline() = default;
 
@@ -19,7 +19,7 @@ public:
 
   virtual bool isReadyToUpdate() const { return true; }
 
-  virtual void write(span<const lw::colors::Color> colors, BrightnessType brightness)
+  virtual void write(span<const lw::Color> colors, BrightnessType brightness)
   {
     (void)colors;
     (void)brightness;
@@ -28,4 +28,4 @@ public:
   virtual bool alwaysUpdate() const { return false; }
 };
 
-} // namespace lw::buses
+} // namespace lw

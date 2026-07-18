@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <type_traits>
 
 #if defined(ARDUINO)
 #define LW_HAS_ARDUINO 1
@@ -55,8 +54,6 @@ namespace lw
 {
 
 using PixelCount = uint16_t;
-
-using ssize_t = std::ptrdiff_t;
 
 static constexpr std::size_t dynamic_extent = std::dynamic_extent;
 template <typename T, std::size_t Extent = std::dynamic_extent> using span = std::span<T, Extent>;

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace lw::colors::palettes::detail
+namespace lw::palettes::detail
 {
 
 // Canonical palette stop domain constants (configurable via macro)
@@ -17,4 +17,4 @@ inline constexpr uint32_t PaletteCanonicalFractionScale = static_cast<uint32_t>(
 inline constexpr uint32_t PaletteCanonicalMaxFixed = static_cast<uint32_t>(PaletteDomainMaxIndex * PaletteCanonicalFractionScale);
 inline constexpr uint32_t PaletteCanonicalWrapSpan = static_cast<uint32_t>(PaletteDomainSpan * PaletteCanonicalFractionScale);
 
-} // namespace lw::colors::palettes::detail
+} // namespace lw::palettes::detail

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 enum class WrapMode : uint8_t
 {
@@ -35,4 +35,4 @@ enum class TieBreakPolicy : uint8_t
     Right,
 };
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

@@ -8,16 +8,16 @@
 #include "palettes/ModeEnums.h"
 #include "palettes/PaletteDomain.h"
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uint8_t progress, uint8_t levels)
 {
-  using Component = lw::colors::ColorComponent;
+  using Component = lw::ColorComponent;
   const uint32_t clampedLevels = (levels < 2u) ? 2u : static_cast<uint32_t>(levels);
   constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
   const uint32_t step = maxValue / (clampedLevels - 1u);
 
-  lw::Color out = lw::colors::linearBlendProgress(left, right, progress);
+  lw::Color out = lw::linearBlendProgress(left, right, progress);
   for (char channel : {'R', 'G', 'B', 'W'})
   {
     const uint32_t value = static_cast<uint32_t>(lw::colorComponentByTag(out, channel));
@@ -41,14 +41,14 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
     case BlendMode::HoldMidpoint:
       return (progress < 128) ? left : right;
     case BlendMode::Smoothstep:
-      return lw::colors::linearBlendProgress(left, right, lw::colors::smoothstep(progress));
+      return lw::linearBlendProgress(left, right, lw::smoothstep(progress));
     case BlendMode::Cubic:
-      return lw::colors::linearBlendProgress(left, right, lw::colors::cubicEaseInOut(progress));
+      return lw::linearBlendProgress(left, right, lw::cubicEaseInOut(progress));
     case BlendMode::Cosine:
-      return lw::colors::linearBlendProgress(left, right, lw::colors::cosineLike(progress));
+      return lw::linearBlendProgress(left, right, lw::cosineLike(progress));
     case BlendMode::GammaLinear:
     {
-      using Component = lw::colors::ColorComponent;
+      using Component = lw::ColorComponent;
       lw::Color out{};
 
       for (char channel : {'R', 'G', 'B', 'W'})
@@ -58,8 +58,8 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
         const uint32_t leftLinear = leftValue * leftValue;
         const uint32_t rightLinear = rightValue * rightValue;
 
-        const uint32_t linear = leftLinear + ((rightLinear - leftLinear) * progress) / lw::colors::palettes::detail::PaletteCanonicalFractionScale;
-        const uint32_t gamma = lw::colors::integerSqrt(linear);
+        const uint32_t linear = leftLinear + ((rightLinear - leftLinear) * progress) / lw::palettes::detail::PaletteCanonicalFractionScale;
+        const uint32_t gamma = lw::integerSqrt(linear);
         lw::setColorComponentByTag(out, channel, static_cast<Component>(gamma));
       }
 
@@ -69,10 +69,10 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
       return applyQuantizedBlend(left, right, progress, quantizedLevels);
     case BlendMode::DitheredLinear:
     {
-      using Component = lw::colors::ColorComponent;
+      using Component = lw::ColorComponent;
       constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
 
-      lw::Color out = lw::colors::linearBlendProgress(left, right, progress);
+      lw::Color out = lw::linearBlendProgress(left, right, progress);
       uint8_t channelOrdinal = 0;
       for (char channel : {'R', 'G', 'B', 'W'})
       {
@@ -92,8 +92,8 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
     case BlendMode::Nearest:
     case BlendMode::Linear:
     default:
-      return lw::colors::linearBlendProgress(left, right, progress);
+      return lw::linearBlendProgress(left, right, progress);
   }
 }
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

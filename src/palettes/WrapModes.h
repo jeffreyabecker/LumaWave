@@ -7,7 +7,7 @@
 #include "palettes/ModeEnums.h"
 #include "palettes/Types.h"
 #include "palettes/PaletteDomain.h"
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 namespace detail
 {
@@ -167,4 +167,4 @@ namespace detail
   }
 } // namespace detail
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

@@ -8,13 +8,13 @@
 
 #include "palettes/Types.h"
 
-namespace lw::colors::palettes
+namespace lw::palettes
 {
 namespace detail
 {
-  lw::Color applyBrightnessScale(lw::Color color, lw::colors::ColorComponent brightnessScale)
+  lw::Color applyBrightnessScale(lw::Color color, lw::ColorComponent brightnessScale)
   {
-    using Component = lw::colors::ColorComponent;
+    using Component = lw::ColorComponent;
     constexpr uint32_t MaxComponent = static_cast<uint32_t>(std::numeric_limits<Component>::max());
     const uint32_t scale = static_cast<uint32_t>(brightnessScale);
 
@@ -44,7 +44,7 @@ namespace detail
     return written;
   }
 
-  template <typename TOutputIt, typename TSentinel, typename = void> size_t writeScaledSolid(lw::Color color, lw::colors::ColorComponent brightnessScale, TOutputIt output, TSentinel outputEnd)
+  template <typename TOutputIt, typename TSentinel, typename = void> size_t writeScaledSolid(lw::Color color, lw::ColorComponent brightnessScale, TOutputIt output, TSentinel outputEnd)
   {
     const lw::Color scaled = applyBrightnessScale(color, brightnessScale);
     size_t written = 0;
@@ -58,4 +58,4 @@ namespace detail
   }
 } // namespace detail
 
-} // namespace lw::colors::palettes
+} // namespace lw::palettes

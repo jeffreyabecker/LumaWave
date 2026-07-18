@@ -12,7 +12,7 @@ namespace lw
 class IPixelBus
 {
 public:
-  using BrightnessType = lw::colors::ColorComponent;
+  using BrightnessType = lw::ColorComponent;
 
   virtual ~IPixelBus() = default;
 
@@ -25,8 +25,8 @@ public:
   virtual void setBrightness(BrightnessType brightness) = 0;
   virtual BrightnessType brightness() const = 0;
 
-  virtual span<colors::Color>& pixels() = 0;
-  virtual const span<colors::Color>& pixels() const = 0;
+  virtual span<Color>& pixels() = 0;
+  virtual const span<Color>& pixels() const = 0;
 };
 
 } // namespace lw

@@ -32,13 +32,13 @@ class P9813ProtocolT : public Protocol
 public:
   using SettingsType = P9813ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::colors::ColorComponent, uint8_t> || std::is_same_v<lw::colors::ColorComponent, uint16_t>), "P9813Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "P9813Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return (FrameSize * 2u) + (static_cast<size_t>(pixelCount) * BytesPerPixel); }
 
   P9813ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -76,9 +76,9 @@ private:
   static constexpr size_t BytesPerPixel = 4;
   static constexpr size_t FrameSize = 4;
 
-  static constexpr uint8_t toWireComponent8(lw::colors::ColorComponent value)
+  static constexpr uint8_t toWireComponent8(lw::ColorComponent value)
   {
-    if constexpr (std::is_same_v<lw::colors::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
     {
       return value;
     }

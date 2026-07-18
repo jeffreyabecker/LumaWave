@@ -31,7 +31,7 @@ public:
 
   bool alwaysUpdate() const override { return _protocol.alwaysUpdate(); }
 
-  void write(span<const lw::colors::Color> colors, BrightnessType brightness) override
+  void write(span<const lw::Color> colors, BrightnessType brightness) override
   {
     if (colors.empty())
     {
