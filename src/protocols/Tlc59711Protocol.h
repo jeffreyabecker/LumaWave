@@ -64,7 +64,7 @@ struct Tlc59711ProtocolSettings : public ProtocolSettings
 //
 // Latch: ~20 ?s guard after transmission.
 //
-class Tlc59711ProtocolT : public IProtocol, public IHaveGain
+class Tlc59711ProtocolT : public IProtocol
 {
 public:
   using SettingsType = Tlc59711ProtocolSettings;
@@ -80,7 +80,6 @@ public:
   Tlc59711ProtocolT(PixelCount pixelCount, SettingsType settings)
       : IProtocol(pixelCount), _settings{std::move(settings)}, _chipCount{(pixelCount + PixelsPerChip - 1) / PixelsPerChip}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
   {
-    _gainValue = 0xff;
     encodeHeader(_settings.config);
   }
 
@@ -103,13 +102,27 @@ public:
 
   void updateSettings(const Tlc59711Settings& settings) { encodeHeader(settings); }
 
-  void setGain(uint8_t gain) override
+  void setRuntimeConfig(RuntimeConfig type, void* value) override
   {
-    IHaveGain::setGain(gain);
-    encodeHeader(_settings.config);
+    if (type == RuntimeConfig::Gain && value != nullptr)
+    {
+      _gainValue = *static_cast<uint8_t*>(value);
+      encodeHeader(_settings.config);
+    }
+  }
+
+  void* getRuntimeConfig(RuntimeConfig type) override
+  {
+    if (type == RuntimeConfig::Gain)
+    {
+      return &_gainValue;
+    }
+    return nullptr;
   }
 
 private:
+  static constexpr uint8_t normalizeGainValue(uint8_t gain, uint8_t maxValue) { return static_cast<uint8_t>((static_cast<uint16_t>(gain) * static_cast<uint16_t>(maxValue) + 127u) / 255u); }
+
   static constexpr size_t PixelsPerChip = 4;
   static constexpr size_t ChannelsPerChip = 12;
   static constexpr size_t DataBytesPerChip = 24; // 12 ? 2
@@ -119,6 +132,7 @@ private:
   size_t _chipCount;
   size_t _requiredBufferSize{0};
   span<uint8_t> _byteBuffer{};
+  uint8_t _gainValue{0xff};
   std::array<uint8_t, HeaderBytesPerChip> _header{};
 
   void encodeHeader(const Tlc59711Settings& config)

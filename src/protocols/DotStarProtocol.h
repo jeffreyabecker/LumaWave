@@ -32,7 +32,7 @@ struct Hd108ProtocolSettings : public ProtocolSettings
   }
 };
 
-class Apa102Protocol : public IProtocol, public IHaveGain
+class Apa102Protocol : public IProtocol
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
@@ -44,7 +44,7 @@ public:
     return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameFixedSize + extraEndBytes;
   }
 
-  Apa102Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
+  Apa102Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
@@ -76,7 +76,26 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
+  void setRuntimeConfig(RuntimeConfig type, void* value) override
+  {
+    if (type == RuntimeConfig::Gain && value != nullptr)
+    {
+      _gainValue = *static_cast<uint8_t*>(value);
+    }
+  }
+
+  void* getRuntimeConfig(RuntimeConfig type) override
+  {
+    if (type == RuntimeConfig::Gain)
+    {
+      return &_gainValue;
+    }
+    return nullptr;
+  }
+
 private:
+  static constexpr uint8_t normalizeGainValue(uint8_t gain, uint8_t maxValue) { return static_cast<uint8_t>((static_cast<uint16_t>(gain) * static_cast<uint16_t>(maxValue) + 127u) / 255u); }
+
   static constexpr uint8_t MaxGain = 0x1f;
   static constexpr size_t StripChannelCount = 3; // APA102 wire format: RGB (no white)
   static constexpr size_t BytesPerPixel = 1 + StripChannelCount;
@@ -90,9 +109,10 @@ private:
   SettingsType _settings;
   size_t _requiredBufferSize{0};
   span<uint8_t> _byteBuffer{};
+  uint8_t _gainValue{0xff};
 };
 
-class Hd108Protocol : public IProtocol, public IHaveGain
+class Hd108Protocol : public IProtocol
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
@@ -100,7 +120,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
-  Hd108Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) { _gainValue = 0xff; }
+  Hd108Protocol(PixelCount pixelCount, SettingsType settings) : IProtocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
   void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
@@ -135,7 +155,26 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
+  void setRuntimeConfig(RuntimeConfig type, void* value) override
+  {
+    if (type == RuntimeConfig::Gain && value != nullptr)
+    {
+      _gainValue = *static_cast<uint8_t*>(value);
+    }
+  }
+
+  void* getRuntimeConfig(RuntimeConfig type) override
+  {
+    if (type == RuntimeConfig::Gain)
+    {
+      return &_gainValue;
+    }
+    return nullptr;
+  }
+
 private:
+  static constexpr uint8_t normalizeGainValue(uint8_t gain, uint8_t maxValue) { return static_cast<uint8_t>((static_cast<uint16_t>(gain) * static_cast<uint16_t>(maxValue) + 127u) / 255u); }
+
   static constexpr uint8_t MaxGain = 0x1f;
   static constexpr size_t StripChannelCount = 3; // HD108 wire format: RGB (no white)
   static constexpr size_t BytesPerPixel = 2 + (StripChannelCount * 2);
@@ -149,6 +188,7 @@ private:
   SettingsType _settings;
   size_t _requiredBufferSize{0};
   span<uint8_t> _byteBuffer{};
+  uint8_t _gainValue{0xff};
 };
 
 } // namespace lw::protocols

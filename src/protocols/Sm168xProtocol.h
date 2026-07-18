@@ -16,7 +16,7 @@ struct Sm168xProtocolSettings : public ProtocolSettings
   const char* channelOrder = ChannelOrder::RGB::value;
 };
 
-class Sm168xProtocol : public IProtocol, public IHaveGain
+class Sm168xProtocol : public IProtocol
 {
 public:
   using SettingsType = Sm168xProtocolSettings;
@@ -28,7 +28,6 @@ public:
   Sm168xProtocol(PixelCount pixelCount, SettingsType settings)
       : IProtocol(pixelCount), _settings{std::move(settings)}, _channelCount{resolveChannelCount(_settings.channelOrder)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings))
   {
-    _gainValue = 0xff;
   }
 
   void begin() override {}
@@ -48,7 +47,26 @@ public:
 
   ProtocolSettings& settings() override { return _settings; }
 
+  void setRuntimeConfig(RuntimeConfig type, void* value) override
+  {
+    if (type == RuntimeConfig::Gain && value != nullptr)
+    {
+      _gainValue = *static_cast<uint8_t*>(value);
+    }
+  }
+
+  void* getRuntimeConfig(RuntimeConfig type) override
+  {
+    if (type == RuntimeConfig::Gain)
+    {
+      return &_gainValue;
+    }
+    return nullptr;
+  }
+
 private:
+  static constexpr uint8_t normalizeGainValue(uint8_t gain, uint8_t maxValue) { return static_cast<uint8_t>((static_cast<uint16_t>(gain) * static_cast<uint16_t>(maxValue) + 127u) / 255u); }
+
   static constexpr size_t SettingsSize = 2;
 
   static constexpr size_t resolveChannelCount(const char* channelOrder)
@@ -145,6 +163,7 @@ private:
   size_t _channelCount{0};
   size_t _requiredBufferSize{0};
   span<uint8_t> _frameBuffer{};
+  uint8_t _gainValue{0xff};
 };
 
 } // namespace lw::protocols

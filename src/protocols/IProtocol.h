@@ -15,19 +15,9 @@ struct ProtocolSettings
 {
 };
 
-class IHaveGain
+enum class RuntimeConfig : uint8_t
 {
-protected:
-  uint8_t _gainValue = 0;
-
-  static constexpr uint8_t normalizeGainValue(uint8_t gain, uint8_t maxValue) { return static_cast<uint8_t>((static_cast<uint16_t>(gain) * static_cast<uint16_t>(maxValue) + 127u) / 255u); }
-
-public:
-  virtual ~IHaveGain() = default;
-
-  virtual void setGain(uint8_t gain) { _gainValue = gain; }
-
-  virtual uint8_t getGain() { return _gainValue; }
+  Gain = 0x01,
 };
 
 class IProtocol
@@ -46,6 +36,17 @@ public:
   virtual void update(span<const lw::colors::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) {}
   virtual ProtocolSettings& settings() { return _settings; }
   virtual bool alwaysUpdate() const { return false; }
+
+  virtual void setRuntimeConfig(RuntimeConfig type, void* value)
+  {
+    (void)type;
+    (void)value;
+  }
+  virtual void* getRuntimeConfig(RuntimeConfig type)
+  {
+    (void)type;
+    return nullptr;
+  }
 
 protected:
   PixelCount _pixelCount;

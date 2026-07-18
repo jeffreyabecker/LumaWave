@@ -83,7 +83,10 @@ void test_1_1_3_and_1_1_4_dotstar_fixed_brightness_and_luminance_serialization(v
 
   {
     lw::protocols::Apa102Protocol protocol(2, lw::protocols::Apa102ProtocolSettings{{}, lw::ChannelOrder::GRB::value});
-    protocol.setGain(128);
+    {
+      uint8_t g = 128;
+      protocol.setRuntimeConfig(lw::protocols::RuntimeConfig::Gain, &g);
+    }
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.begin();
     protocol.update(colors, as_span(protocolBuffer));
@@ -114,7 +117,10 @@ void test_1_1_3_and_1_1_4_dotstar_fixed_brightness_and_luminance_serialization(v
 
   {
     lw::protocols::Hd108Protocol protocol(1, lw::protocols::Hd108ProtocolSettings{{}, lw::ChannelOrder::RGB::value});
-    protocol.setGain(128);
+    {
+      uint8_t g = 128;
+      protocol.setRuntimeConfig(lw::protocols::RuntimeConfig::Gain, &g);
+    }
     auto protocolBuffer = bind_protocol_buffer(protocol);
     protocol.begin();
     protocol.update(std::array<lw::Color, 1>{lw::Color{0x12AB, 0x34CD, 0x56EF}}, as_span(protocolBuffer));

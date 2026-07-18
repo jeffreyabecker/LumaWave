@@ -251,7 +251,10 @@ void test_1_11_1_and_1_11_3_tlc59711_header_encoding_and_latch_guard(void)
   cfg.blank = true;
 
   lw::protocols::Tlc59711ProtocolT protocol(1, lw::protocols::Tlc59711ProtocolSettings{{}, cfg});
-  protocol.setGain(128);
+  {
+    uint8_t g = 128;
+    protocol.setRuntimeConfig(lw::protocols::RuntimeConfig::Gain, &g);
+  }
   auto protocolBuffer = bind_protocol_buffer(protocol);
   protocol.update(std::array<lw::Color, 1>{lw::Color{1, 2, 3}}, as_span(protocolBuffer));
 
