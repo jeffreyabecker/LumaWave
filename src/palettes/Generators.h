@@ -8,8 +8,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "colors/ColorMath.h"
-#include "colors/palette/Types.h"
+#include "palettes/ColorMath.h"
+#include "palettes/Types.h"
 
 #if LW_USE_PLATFORM_RANDOM && defined(ARDUINO_ARCH_ESP32)
 #include <esp_system.h>
@@ -582,7 +582,7 @@ private:
   {
     for (size_t i = 0; i < _stops.size(); ++i)
     {
-      _stops[i].color = lw::colors::linearBlendProgress8(_sourceColors[i], _targetColors[i], _progress);
+      _stops[i].color = lw::colors::linearBlendProgress(_sourceColors[i], _targetColors[i], _progress);
     }
   }
 
@@ -730,7 +730,7 @@ private:
     for (size_t i = 0; i < stopCount; ++i)
     {
       const size_t next = (i + 1u) % stopCount;
-      _stops[i].color = lw::colors::linearBlendProgress8(_colors[i], _colors[next], _phase);
+      _stops[i].color = lw::colors::linearBlendProgress(_colors[i], _colors[next], _phase);
     }
   }
 

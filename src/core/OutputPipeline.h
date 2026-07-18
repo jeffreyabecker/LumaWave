@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "colors/Color.h"
+#include "core/Color.h"
 #include "core/Compat.h"
 
 namespace lw::buses

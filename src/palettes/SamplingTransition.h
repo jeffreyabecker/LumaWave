@@ -6,8 +6,8 @@
 #include <type_traits>
 #include <utility>
 
-#include "colors/ColorMath.h"
-#include "colors/palette/Traits.h"
+#include "palettes/ColorMath.h"
+#include "palettes/Traits.h"
 
 namespace lw::colors::palettes
 {
@@ -20,7 +20,7 @@ template < typename TOutputIt, typename = void> class BlendAssignProxy
 
     BlendAssignProxy& operator=(const lw::Color& sampled)
     {
-        *_output = lw::colors::linearBlendProgress8(*_output, sampled, _blendProgress);
+        *_output = lw::colors::linearBlendProgress(*_output, sampled, _blendProgress);
         return *this;
     }
 

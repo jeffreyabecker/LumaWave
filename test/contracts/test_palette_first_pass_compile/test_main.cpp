@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "colors/palette/Palette.h"
+#include "palettes/Palette.h"
 
 namespace
 {

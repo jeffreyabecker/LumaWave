@@ -18,8 +18,7 @@
 #endif
 #endif
 
-#include "colors/ChannelMap.h"
-#include "colors/ColorMath.h"
+#include "palettes/ColorMath.h"
 #include "core/OutputPipeline.h"
 
 namespace lw::transports::esp32
@@ -28,11 +27,11 @@ namespace lw::transports::esp32
 struct Esp32LedcLightDriverSettings
 {
   static constexpr size_t MaxChannels = 4;
-  using PinsMap = ChannelMap<int>;
+  using PinsMap = std::array<int, 4>;
   static constexpr uint32_t DefaultFrequencyHz = 5000;
   static constexpr uint8_t DefaultResolutionBits = 8;
 
-  PinsMap pins{-1};
+  PinsMap pins{-1, -1, -1, -1};
   uint32_t frequencyHz{DefaultFrequencyHz};
   uint8_t resolutionBits{DefaultResolutionBits};
   bool invert{false};
@@ -161,7 +160,7 @@ public:
       return;
     }
 
-    const auto& color = colors[0];
+    const auto adjusted = lw::applyBrightness(colors[0], brightness);
     if (!_begun)
     {
       begin();
@@ -182,7 +181,7 @@ public:
       }
 
       const char channelTag = "RGBW"[channel];
-      const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
+      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(adjusted, channel));
       WideType duty = (component * pwmMax + (componentMax / 2U)) / componentMax;
       if (_settings.invert)
       {

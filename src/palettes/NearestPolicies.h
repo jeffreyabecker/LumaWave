@@ -1,6 +1,6 @@
 #pragma once
 
-#include "colors/palette/ModeEnums.h"
+#include "palettes/ModeEnums.h"
 
 namespace lw::colors::palettes
 {

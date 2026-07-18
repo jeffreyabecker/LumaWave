@@ -4,8 +4,8 @@
 #include <limits>
 
 #include "IShader.h"
-#include "colors/Color.h"
-#include "colors/ColorMath.h"
+#include "core/Color.h"
+#include "palettes/ColorMath.h"
 
 namespace lw::protocols
 {

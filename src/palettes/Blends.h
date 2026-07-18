@@ -7,11 +7,11 @@
 #include <type_traits>
 #include <utility>
 
-#include "colors/palette/BlendOperations.h"
-#include "colors/palette/Detail.h"
-#include "colors/palette/ModeEnums.h"
-#include "colors/palette/Traits.h"
-#include "colors/palette/WrapModes.h"
+#include "palettes/BlendOperations.h"
+#include "palettes/Detail.h"
+#include "palettes/ModeEnums.h"
+#include "palettes/Traits.h"
+#include "palettes/WrapModes.h"
 
 namespace lw::colors::palettes
 {

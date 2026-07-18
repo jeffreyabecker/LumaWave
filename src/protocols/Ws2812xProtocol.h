@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include "Protocol.h"
-#include "colors/Color.h"
+#include "core/Color.h"
 #include "protocols/OneWireEncoding.h"
 #include "protocols/OneWireTiming.h"
 

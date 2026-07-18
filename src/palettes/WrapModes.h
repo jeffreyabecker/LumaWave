@@ -4,9 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "colors/palette/ModeEnums.h"
-#include "colors/palette/Types.h"
-#include "colors/palette/PaletteDomain.h"
+#include "palettes/ModeEnums.h"
+#include "palettes/Types.h"
+#include "palettes/PaletteDomain.h"
 namespace lw::colors::palettes
 {
 namespace detail

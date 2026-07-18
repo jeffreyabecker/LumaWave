@@ -6,7 +6,7 @@
 #include <algorithm>
 
 #include "Protocol.h"
-#include "colors/Color.h"
+#include "core/Color.h"
 
 namespace lw::protocols
 {

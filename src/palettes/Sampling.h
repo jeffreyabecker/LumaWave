@@ -7,9 +7,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "colors/palette/Blends.h"
-#include "colors/palette/SamplingTransition.h"
-#include "colors/palette/Traits.h"
+#include "palettes/Blends.h"
+#include "palettes/SamplingTransition.h"
+#include "palettes/Traits.h"
 
 namespace lw::colors::palettes
 {
@@ -120,11 +120,11 @@ public:
     const TBlendDomain progress = static_cast<TBlendDomain>(_sampleProgress(paletteIndex));
     if constexpr (std::is_same_v<TBlendDomain, uint8_t>)
     {
-      return lw::colors::linearBlendProgress8(from, to, progress);
+      return lw::colors::linearBlendProgress(from, to, progress);
     }
 
     const uint8_t blendProgress8 = lw::colors::scaleComponent<uint8_t>(progress);
-    return lw::colors::linearBlendProgress8(from, to, blendProgress8);
+    return lw::colors::linearBlendProgress(from, to, blendProgress8);
   }
 
 private:

@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "colors/palette/Types.h"
+#include "palettes/Types.h"
 
 namespace lw::colors::palettes
 {

@@ -10,8 +10,7 @@
 
 #include <Arduino.h>
 
-#include "colors/ChannelMap.h"
-#include "colors/ColorMath.h"
+#include "palettes/ColorMath.h"
 #include "core/OutputPipeline.h"
 
 #if __has_include("driver/sdm.h")
@@ -34,9 +33,9 @@ namespace lw::transports::esp32
 struct Esp32SigmaDeltaLightDriverSettings
 {
   static constexpr size_t MaxChannels = 4;
-  using PinsMap = ChannelMap<int>;
+  using PinsMap = std::array<int, 4>;
 
-  PinsMap pins{-1};
+  PinsMap pins{-1, -1, -1, -1};
   uint32_t sampleRateHz{1000000UL};
   uint8_t prescale{80};
   bool invert{false};
@@ -144,7 +143,7 @@ public:
       return;
     }
 
-    const auto& color = colors[0];
+    const auto adjusted = lw::applyBrightness(colors[0], brightness);
     if (!_begun)
     {
       begin();
@@ -159,7 +158,7 @@ public:
       }
 
       const char channelTag = "RGBW"[channel];
-      const auto scaledComponent = lw::colors::applyBrightness(color[channelTag], brightness);
+      const auto scaledComponent = lw::colorComponentByIndex(adjusted, channel);
       const int8_t duty = mapComponentToDensity(scaledComponent);
 
 #if LW_ESP32_USE_SDM_DRIVER

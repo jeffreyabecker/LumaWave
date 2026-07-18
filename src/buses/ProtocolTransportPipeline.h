@@ -6,7 +6,7 @@
 
 #include "core/Compat.h"
 #include "core/OutputPipeline.h"
-#include "colors/Color.h"
+#include "core/Color.h"
 #include "protocols/Protocol.h"
 #include "transports/Transport.h"
 

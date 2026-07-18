@@ -1,12 +1,12 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
 
-#include "colors/ChannelMap.h"
-#include "colors/ColorMath.h"
+#include "palettes/ColorMath.h"
 #include "core/OutputPipeline.h"
 
 namespace lw::transports
@@ -15,11 +15,11 @@ namespace lw::transports
 struct PwmOutputPipelineSettings
 {
   static constexpr size_t MaxChannels = 4;
-  using PinsMap = ChannelMap<int>;
+  using PinsMap = std::array<int, 4>;
   static constexpr uint16_t DefaultPwmRange = 1023;
   static constexpr uint32_t DefaultPwmFrequencyHz = 1000;
 
-  PinsMap pins{-1};
+  PinsMap pins{-1, -1, -1, -1};
   uint16_t pwmRange{DefaultPwmRange};
   uint32_t pwmFrequencyHz{DefaultPwmFrequencyHz};
   bool invert{false};
@@ -109,13 +109,13 @@ public:
       return;
     }
 
-    const auto& color = colors[0];
+    const auto adjusted = lw::applyBrightness(colors[0], brightness);
     if (!_begun)
     {
       begin();
     }
 
-    using ComponentType = typename ColorType::ComponentType;
+    using ComponentType = ColorComponent;
     using WideType = std::conditional_t<(sizeof(ComponentType) <= 2), uint32_t, uint64_t>;
 
     const WideType componentMax = static_cast<WideType>(std::numeric_limits<ComponentType>::max());
@@ -129,8 +129,7 @@ public:
         continue;
       }
 
-      const char channelTag = "RGBW"[channel];
-      const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
+      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(adjusted, channel));
       WideType level = (component * pwmMax + (componentMax / 2U)) / componentMax;
       if (_settings.invert)
       {

@@ -5,7 +5,7 @@
 #include <memory>
 #include <utility>
 
-#include "colors/Color.h"
+#include "core/Color.h"
 #include "protocols/ChannelOrder.h"
 #include "core/Compat.h"
 namespace lw::protocols

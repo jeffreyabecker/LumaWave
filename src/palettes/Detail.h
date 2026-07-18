@@ -6,7 +6,7 @@
 #include <limits>
 #include <type_traits>
 
-#include "colors/palette/Types.h"
+#include "palettes/Types.h"
 
 namespace lw::colors::palettes
 {

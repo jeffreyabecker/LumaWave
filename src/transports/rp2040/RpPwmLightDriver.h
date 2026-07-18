@@ -13,8 +13,7 @@
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 
-#include "colors/ChannelMap.h"
-#include "colors/ColorMath.h"
+#include "palettes/ColorMath.h"
 #include "core/OutputPipeline.h"
 
 namespace lw::transports::rp2040
@@ -23,9 +22,9 @@ namespace lw::transports::rp2040
 struct RpPwmLightDriverSettings
 {
   static constexpr size_t MaxChannels = 4;
-  using PinsMap = ChannelMap<int>;
+  using PinsMap = std::array<int, 4>;
 
-  PinsMap pins{-1};
+  PinsMap pins{-1, -1, -1, -1};
   uint16_t wrap{255};
   float clockDiv{4.0f};
   bool invert{false};
@@ -124,7 +123,7 @@ public:
       return;
     }
 
-    const auto& color = colors[0];
+    const auto adjusted = lw::applyBrightness(colors[0], brightness);
     if (!_begun)
     {
       begin();
@@ -145,7 +144,7 @@ public:
       }
 
       const char channelTag = "RGBW"[channel];
-      const WideType component = static_cast<WideType>(lw::colors::applyBrightness(color[channelTag], brightness));
+      const WideType component = static_cast<WideType>(lw::colorComponentByIndex(adjusted, channel));
       const WideType scaled = (component * wrap + (componentMax / 2U)) / componentMax;
       const uint16_t level = static_cast<uint16_t>(scaled);
       pwm_set_gpio_level(static_cast<uint>(pin), level);

@@ -298,12 +298,31 @@ inline bool serializeColor(Color c, char* s, size_t l)
   return serializeColor(c, span<char>(s, l));
 }
 
+// Brightness application — scalar and color-level overloads
+template <typename TValue, typename TBrightness, typename = std::enable_if_t<std::is_integral_v<TValue> && std::is_unsigned_v<TValue> && std::is_integral_v<TBrightness> && std::is_unsigned_v<TBrightness>>>
+constexpr TValue applyBrightness(TValue value, TBrightness brightness)
+{
+  using ScaleWide = uint64_t;
+  constexpr ScaleWide brightnessMax = static_cast<ScaleWide>(std::numeric_limits<TBrightness>::max());
+  if constexpr (brightnessMax == 0)
+    return static_cast<TValue>(0);
+  return static_cast<TValue>(((static_cast<ScaleWide>(value) * static_cast<ScaleWide>(brightness)) + (brightnessMax / 2u)) / brightnessMax);
+}
+
+inline constexpr Color applyBrightness(Color c, ColorComponent brightness)
+{
+  if (brightness == std::numeric_limits<ColorComponent>::max())
+    return c;
+  return colorFromRGBW(applyBrightness(colorR(c), brightness), applyBrightness(colorG(c), brightness), applyBrightness(colorB(c), brightness), applyBrightness(colorW(c), brightness));
+}
+
 } // namespace lw::colors
 
 namespace lw
 {
 using ColorComponent = colors::ColorComponent;
 using Color = colors::Color;
+using colors::applyBrightness;
 using colors::colorB;
 using colors::colorCompare;
 using colors::colorComponentByIndex;
