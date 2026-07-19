@@ -133,24 +133,6 @@ template <typename T = ColorComponent> inline constexpr T colorComponentByIndex(
       return 0;
   }
 }
-inline void setColorComponentByIndex(Color& c, size_t i, ColorComponent v)
-{
-  switch (i)
-  {
-    case 0:
-      setColorR(c, v);
-      break;
-    case 1:
-      setColorG(c, v);
-      break;
-    case 2:
-      setColorB(c, v);
-      break;
-    case 3:
-      setColorW(c, v);
-      break;
-  }
-}
 
 // Comparison (integer comparison works natively for == and !=)
 inline constexpr int colorCompare(Color a, Color b)

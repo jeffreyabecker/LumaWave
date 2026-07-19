@@ -23,7 +23,6 @@ using lw::colorW;
 using lw::parseColor;
 using lw::serializeColor;
 using lw::setColorB;
-using lw::setColorComponentByIndex;
 using lw::setColorComponentByTag;
 using lw::setColorG;
 using lw::setColorR;
