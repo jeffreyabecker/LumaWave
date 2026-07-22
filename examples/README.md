@@ -8,6 +8,17 @@ When a suitable global alias is not available, examples intentionally use fully 
 - `hello/ws2812/ws2812.ino`: Basic one-wire strip animation.
 - `hello/apa102/apa102.ino`: Basic SPI/DotStar strip animation.
 - `hello/light/light.ino`: Single-light RGBW16 output with platform-default light driver.
+- `hello/builder/builder.ino`: Hello World using the BusBuilder API (replaces manual construction).
+
+## Builder Examples
+
+The `BusBuilder` API replaces manual construction of protocol, transport, buffers, shaders, pipeline, and bus with a single chained builder expression. See [docs/usage/bus-builder.md](../docs/usage/bus-builder.md) for full API documentation.
+
+- `hello/builder/builder.ino`: Simplest builder usage — single strip, no shaders.
+- `external-pixels/external-pixels.ino`: External (caller-owned) pixel buffer via `setPixelStorage()`.
+- `stack-allocation/stack-allocation.ino`: Zero-heap construction via `StackBusStorage` + `buildInto()`.
+- `shader-chaining/shader-chaining.ino`: Multiple shaders applied in insertion order via `addShader()`.
+- `presets/presets.ino`: Protocol/transport presets with `addStrip()`, inline field overrides.
 
 ## Strip Composition
 

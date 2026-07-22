@@ -113,12 +113,12 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-60 | `todo` | Port `examples/hello/` to use `BusBuilder` | BBL-27 | Example compiles and runs with builder API; simpler than current manual construction |
-| BBL-61 | `todo` | Port `examples/multi-strip/` to use `BusBuilder::addStrip()` | BBL-27, BBL-30 | Multi-strip example uses builder; demonstrates `addStrip(offset, len, proto, trans)` with distinct presets per strip |
-| BBL-62 | `todo` | Add example demonstrating external pixel storage (zero-copy / WLED pattern) | BBL-27 | Example shows `setPixelStorage()` with caller-owned array |
-| BBL-63 | `todo` | Add example demonstrating static/stack allocation with `buildInto()` | BBL-33 | Example shows `StackBusStorage` + `buildInto()` for no-heap embedded use |
-| BBL-64 | `todo` | Add example demonstrating shader chaining via builder | BBL-27 | Example chains `BrightnessShader` + `GammaShader` via `addShader()` |
-| BBL-65 | `todo` | Add example demonstrating presets (`ws2812x`, `rp_pio`, `brightness`) | BBL-30 | Examples show `addStrip` with protocol+transport+shader presets, multi-strip with `addStrip(offset, len, ...)`, and inline field override |
+| BBL-60 | `done` | Port `examples/hello/` to use `BusBuilder` | BBL-27 | Example `examples/hello/builder/builder.ino` compiles and runs with builder API; simpler than current manual construction |
+| BBL-61 | `deferred` | Port `examples/multi-strip/` to use `BusBuilder::addStrip()` | BBL-27, BBL-30 | Multi-strip example deferred with multi-run BusStorage (BBL-22) and addRun (BBL-26) |
+| BBL-62 | `done` | Add example demonstrating external pixel storage (zero-copy / WLED pattern) | BBL-27 | `examples/external-pixels/external-pixels.ino` shows `setPixelStorage()` with caller-owned array |
+| BBL-63 | `done` | Add example demonstrating static/stack allocation with `buildInto()` | BBL-33 | `examples/stack-allocation/stack-allocation.ino` shows `StackBusStorage` + `buildInto()` for no-heap embedded use |
+| BBL-64 | `done` | Add example demonstrating shader chaining via builder | BBL-27 | `examples/shader-chaining/shader-chaining.ino` chains BrightnessShader + GammaShader via `addShader()` |
+| BBL-65 | `done` | Add example demonstrating presets (`ws2812x`, `nil_transport`, inline override) | BBL-30 | `examples/presets/presets.ino` shows `addStrip` with protocol+transport presets, inline field override, and preset + explicit shader |
 
 ## Phase 7 — Documentation & Cleanup
 

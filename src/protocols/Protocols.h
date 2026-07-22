@@ -16,3 +16,5 @@
 #include "protocols/Tm1914Protocol.h"
 #include "protocols/Ws2801Protocol.h"
 #include "protocols/Ws2812xProtocol.h"
+#include "protocols/Ws2812xPreset.h"
+#include "protocols/ProtocolPresets.h"

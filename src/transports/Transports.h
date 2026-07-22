@@ -2,6 +2,8 @@
 
 #include "transports/Transport.h"
 #include "transports/NilTransport.h"
+#include "transports/NilTransportPreset.h"
+#include "transports/TransportPresets.h"
 #include "core/OutputPipeline.h"
 
 #if defined(ARDUINO_ARCH_NRF52840)
