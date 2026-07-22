@@ -186,7 +186,7 @@ public:
 
     /// Attach a transport by move. The builder takes ownership.
     template<typename TTransport>
-    BusBuilder& setTransport(TTransport transport);
+    BusBuilder& setTransport(TTransport transport, typename TTransport::TransportSettingsType settings = {});
 
     // --- Protocol ---
 
@@ -282,6 +282,18 @@ auto bus = lw::buses::BusBuilder()
     .setPixelCount(90)                   // 30 + 60 total
     .addStrip(0, 30, ws2801{}, spi{})     // Strip 1: pixels [0, 30)
     .addStrip(30, 60, ws2812x{}, rp_pio{3}, gamma{2.2f})  // Strip 2
+    .build();
+```
+
+**Inline field override + transport settings:**
+
+```cpp
+using namespace lw::buses::presets;
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelCount(60)
+    .addStrip(ws2812x{.channelOrder = "RGB"},
+              spi{.settings = {.clockRateHz = 2000000, .dataMode = SpiMode0}})
     .build();
 ```
 
@@ -409,12 +421,17 @@ struct p9813 {
 // --- Transport presets ---
 
 struct spi {
-    void configure(BusBuilder& b) { b.setTransport(transports::SpiTransport{}); }
+    transports::SpiTransportSettings settings{};
+    void configure(BusBuilder& b) { b.setTransport(transports::SpiTransport{}, settings); }
 };
 
 struct rp_pio {
     int pin = -1;
-    void configure(BusBuilder& b) { b.setTransport(transports::RpPioTransport{pin}); }
+    transports::RpPioTransportSettings settings{};
+    void configure(BusBuilder& b) {
+        settings.dataPin = pin;
+        b.setTransport(transports::RpPioTransport{}, settings);
+    }
 };
 
 // --- Shader presets ---
