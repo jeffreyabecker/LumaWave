@@ -58,8 +58,8 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-10 | `todo` | Implement `BufferManager`: owns protocol buffer(s) and scratch pixel buffer for a single run | BBL-01, BBL-02, BBL-03 | Header `src/buses/detail/BufferManager.h` exists; computes protocol buffer size from protocol type and pixel count; allocates scratch only when `ShaderList::needsScratchBuffer()` is true; stores `vector<uint8_t>` (protocol) and `vector<Pixel>` (scratch, may be empty); provides `span<uint8_t>` and `span<Pixel>` accessors; unit tested |
-| BBL-11 | `todo` | Extend `BufferManager` to support multiple runs (one protocol buffer per run, shared scratch) | BBL-10 | `BufferManager` can allocate N protocol buffers for N runs; accessor takes run index; unit tested with multi-run scenario |
+| BBL-10 | `done` | Implement `BufferManager`: owns protocol buffer(s) and scratch pixel buffer for a single run | BBL-01, BBL-02, BBL-03 | Header `src/buses/detail/BufferManager.h` exists; computes protocol buffer size from protocol type and pixel count; allocates scratch only when `ShaderList::needsScratchBuffer()` is true; stores `vector<uint8_t>` (protocol) and `vector<Pixel>` (scratch, may be empty); provides `span<uint8_t>` and `span<Pixel>` accessors; unit tested |
+| BBL-11 | `done` | Extend `BufferManager` to support multiple runs (one protocol buffer per run, shared scratch) | BBL-10 | `BufferManager` can allocate N protocol buffers for N runs; accessor takes run index; unit tested with multi-run scenario |
 
 ## Phase 3 — BusBuilder Core (Heap / Dynamic Path)
 

@@ -6,6 +6,7 @@
 #include "buses/detail/TransportHolder.h"
 #include "buses/detail/ProtocolHolder.h"
 #include "buses/detail/ShaderList.h"
+#include "buses/detail/BufferManager.h"
 #include "core/Compat.h"
 #include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
@@ -416,6 +417,98 @@ void test_shader_list_set_runtime_config(void)
   list.setRuntimeConfig(lw::RuntimeConfig::Brightness, &val);
 }
 
+// ---------------------------------------------------------------------------
+// BufferManager tests
+// ---------------------------------------------------------------------------
+
+void test_buffer_manager_single_run_no_scratch(void)
+{
+  lw::buses::detail::BufferManager bm(128, 30, false);
+
+  TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(bm.runCount()));
+  TEST_ASSERT_FALSE(bm.hasScratch());
+
+  TEST_ASSERT_EQUAL_UINT32(128, static_cast<uint32_t>(bm.protocolBuffer().size()));
+  TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(bm.scratchPixels().size()));
+}
+
+void test_buffer_manager_single_run_with_scratch(void)
+{
+  lw::buses::detail::BufferManager bm(256, 60, true);
+
+  TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(bm.runCount()));
+  TEST_ASSERT_TRUE(bm.hasScratch());
+
+  TEST_ASSERT_EQUAL_UINT32(256, static_cast<uint32_t>(bm.protocolBuffer().size()));
+  TEST_ASSERT_EQUAL_UINT32(60, static_cast<uint32_t>(bm.scratchPixels().size()));
+}
+
+void test_buffer_manager_single_run_writable(void)
+{
+  lw::buses::detail::BufferManager bm(16, 4, true);
+
+  // Write to protocol buffer
+  auto protoBuf = bm.protocolBuffer();
+  for (size_t i = 0; i < protoBuf.size(); ++i)
+  {
+    protoBuf[i] = static_cast<uint8_t>(i);
+  }
+  TEST_ASSERT_EQUAL_UINT8(0, bm.protocolBuffer()[0]);
+  TEST_ASSERT_EQUAL_UINT8(15, bm.protocolBuffer()[15]);
+
+  // Write to scratch
+  auto scratch = bm.scratchPixels();
+  scratch[0] = lw::pixelFromRGB(42, 0, 0);
+  scratch[1] = lw::pixelFromRGB(0, 99, 0);
+  TEST_ASSERT_EQUAL_UINT8(42, lw::pixelR(bm.scratchPixels()[0]));
+  TEST_ASSERT_EQUAL_UINT8(99, lw::pixelG(bm.scratchPixels()[1]));
+}
+
+void test_buffer_manager_multi_run(void)
+{
+  size_t sizes[] = {128, 256, 64};
+  lw::buses::detail::BufferManager bm(lw::span<const size_t>{sizes, 3}, 90, true);
+
+  TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(bm.runCount()));
+  TEST_ASSERT_TRUE(bm.hasScratch());
+
+  // Each run gets its own protocol buffer
+  TEST_ASSERT_EQUAL_UINT32(128, static_cast<uint32_t>(bm.protocolBuffer(0).size()));
+  TEST_ASSERT_EQUAL_UINT32(256, static_cast<uint32_t>(bm.protocolBuffer(1).size()));
+  TEST_ASSERT_EQUAL_UINT32(64, static_cast<uint32_t>(bm.protocolBuffer(2).size()));
+
+  // Shared scratch
+  TEST_ASSERT_EQUAL_UINT32(90, static_cast<uint32_t>(bm.scratchPixels().size()));
+}
+
+void test_buffer_manager_multi_run_no_scratch(void)
+{
+  size_t sizes[] = {64, 64};
+  lw::buses::detail::BufferManager bm(lw::span<const size_t>{sizes, 2}, 50, false);
+
+  TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(bm.runCount()));
+  TEST_ASSERT_FALSE(bm.hasScratch());
+  TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(bm.scratchPixels().size()));
+}
+
+void test_buffer_manager_empty_run(void)
+{
+  // Zero pixelCount with no scratch is valid (degenerate case)
+  lw::buses::detail::BufferManager bm(0, 0, false);
+
+  TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(bm.runCount()));
+  TEST_ASSERT_FALSE(bm.hasScratch());
+  TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(bm.protocolBuffer().size()));
+}
+
+void test_buffer_manager_single_run_const_access(void)
+{
+  const lw::buses::detail::BufferManager bm(32, 10, true);
+
+  TEST_ASSERT_EQUAL_UINT32(32, static_cast<uint32_t>(bm.protocolBuffer().size()));
+  TEST_ASSERT_EQUAL_UINT32(10, static_cast<uint32_t>(bm.scratchPixels().size()));
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -461,6 +554,15 @@ int main(void)
   // ShaderProtocol destructive mode
   RUN_TEST(test_shader_protocol_destructive_mode_mutates_input);
   RUN_TEST(test_shader_protocol_scratch_mode_preserves_input);
+
+  // BufferManager
+  RUN_TEST(test_buffer_manager_single_run_no_scratch);
+  RUN_TEST(test_buffer_manager_single_run_with_scratch);
+  RUN_TEST(test_buffer_manager_single_run_writable);
+  RUN_TEST(test_buffer_manager_multi_run);
+  RUN_TEST(test_buffer_manager_multi_run_no_scratch);
+  RUN_TEST(test_buffer_manager_empty_run);
+  RUN_TEST(test_buffer_manager_single_run_const_access);
 
   return UNITY_END();
 }
