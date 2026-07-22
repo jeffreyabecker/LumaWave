@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "core/Color.h"
+#include "core/Pixel.h"
 #include "transports/PrintOutputPipeline.h"
 
 namespace

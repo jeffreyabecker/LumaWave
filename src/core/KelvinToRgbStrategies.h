@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <limits>
 
-#include "core/Color.h"
+#include "core/Pixel.h"
 
 namespace lw
 {

@@ -6,7 +6,7 @@
 #include "core/Compat.h"
 #include "core/IPixelBus.h"
 #include "core/OutputPipeline.h"
-#include "core/Color.h"
+#include "core/Pixel.h"
 
 namespace lw::buses
 {

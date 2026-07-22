@@ -88,13 +88,7 @@ namespace detail::palettegen
 
   lw::Color randomColor(uint32_t& state)
   {
-    lw::Color color{};
-    for (char channel : {'R', 'G', 'B', 'W'})
-    {
-      lw::setColorComponentByTag(color, channel, randomComponent<lw::ColorComponent>(state));
-    }
-
-    return color;
+    return lw::mapChannels(lw::Pixel{}, [&](auto, char) { return randomComponent<lw::ColorComponent>(state); });
   }
 
   template <typename TStops> void assignDistributedStopIndexes(TStops& stops)

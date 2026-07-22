@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "IShader.h"
-#include "core/Color.h"
+#include "core/Pixel.h"
 
 namespace lw::protocols
 {
@@ -23,13 +23,7 @@ public:
   {
     for (size_t i = 0; i < source.size(); ++i)
     {
-      auto& d = dest[i];
-      const auto& s = source[i];
-
-      for (char channel : {'R', 'G', 'B', 'W'})
-      {
-        lw::setColorComponentByTag(d, channel, gamma8(static_cast<uint8_t>(lw::colorComponentByTag(s, channel))));
-      }
+      dest[i] = lw::mapChannels(source[i], [&](auto v, char) { return gamma8(static_cast<uint8_t>(v)); });
     }
   }
 

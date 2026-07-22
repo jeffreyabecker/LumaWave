@@ -5,7 +5,7 @@
 #include <limits>
 #include <type_traits>
 
-#include "core/Color.h"
+#include "core/Pixel.h"
 
 namespace lw
 {
@@ -95,17 +95,16 @@ template <typename TProgress, typename = std::enable_if_t<std::is_unsigned_v<TPr
   if (progress == maxProgress)
     return right;
 
-  lw::Color blended = 0;
-  for (char channel : {'R', 'G', 'B', 'W'})
-  {
-    const Wide leftValue = static_cast<Wide>(lw::colorComponentByTag(left, channel));
-    const Wide rightValue = static_cast<Wide>(lw::colorComponentByTag(right, channel));
-    const Wide progressWide = static_cast<Wide>(progress);
-    const Wide inverseProgress = maxProgress - progressWide;
-    const Wide numerator = (leftValue * inverseProgress) + (rightValue * progressWide) + (maxProgress / static_cast<Wide>(2));
-    lw::setColorComponentByTag(blended, channel, static_cast<ColorComponent>(numerator / maxProgress));
-  }
-  return blended;
+  return lw::mapChannels(left, right,
+                         [&](auto lv, auto rv, char)
+                         {
+                           const Wide leftValue = static_cast<Wide>(lv);
+                           const Wide rightValue = static_cast<Wide>(rv);
+                           const Wide progressWide = static_cast<Wide>(progress);
+                           const Wide inverseProgress = maxProgress - progressWide;
+                           const Wide numerator = (leftValue * inverseProgress) + (rightValue * progressWide) + (maxProgress / static_cast<Wide>(2));
+                           return static_cast<ColorComponent>(numerator / maxProgress);
+                         });
 }
 
 // ---------------------------------------------------------------------------

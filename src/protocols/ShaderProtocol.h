@@ -6,7 +6,7 @@
 
 #include "Protocol.h"
 #include "IShader.h"
-#include "core/Color.h"
+#include "core/Pixel.h"
 
 namespace lw::protocols
 {

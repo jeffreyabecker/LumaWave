@@ -6,7 +6,7 @@
 #include "buses/Bus.h"
 #include "buses/ProtocolTransportPipeline.h"
 #include "core/OutputPipeline.h"
-#include "core/Color.h"
+#include "core/Pixel.h"
 
 namespace
 {

@@ -18,19 +18,16 @@ lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uin
   const uint32_t step = maxValue / (clampedLevels - 1u);
 
   lw::Color out = lw::linearBlendProgress(left, right, progress);
-  for (char channel : {'R', 'G', 'B', 'W'})
-  {
-    const uint32_t value = static_cast<uint32_t>(lw::colorComponentByTag(out, channel));
-    uint32_t quantized = ((value + (step / 2u)) / step) * step;
-    if (quantized > maxValue)
-    {
-      quantized = maxValue;
-    }
-
-    lw::setColorComponentByTag(out, channel, static_cast<Component>(quantized));
-  }
-
-  return out;
+  return lw::mapChannels(out,
+                         [&](auto v, char)
+                         {
+                           uint32_t quantized = ((static_cast<uint32_t>(v) + (step / 2u)) / step) * step;
+                           if (quantized > maxValue)
+                           {
+                             quantized = maxValue;
+                           }
+                           return static_cast<Component>(quantized);
+                         });
 }
 lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::Color& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
 {
@@ -49,21 +46,16 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
     case BlendMode::GammaLinear:
     {
       using Component = lw::ColorComponent;
-      lw::Color out{};
-
-      for (char channel : {'R', 'G', 'B', 'W'})
-      {
-        const uint32_t leftValue = static_cast<uint32_t>(lw::colorComponentByTag(left, channel));
-        const uint32_t rightValue = static_cast<uint32_t>(lw::colorComponentByTag(right, channel));
-        const uint32_t leftLinear = leftValue * leftValue;
-        const uint32_t rightLinear = rightValue * rightValue;
-
-        const uint32_t linear = leftLinear + ((rightLinear - leftLinear) * progress) / lw::palettes::detail::PaletteCanonicalFractionScale;
-        const uint32_t gamma = lw::integerSqrt(linear);
-        lw::setColorComponentByTag(out, channel, static_cast<Component>(gamma));
-      }
-
-      return out;
+      return lw::mapChannels(left, right,
+                             [&](auto lv, auto rv, char)
+                             {
+                               const uint32_t leftValue = static_cast<uint32_t>(lv);
+                               const uint32_t rightValue = static_cast<uint32_t>(rv);
+                               const uint32_t leftLinear = leftValue * leftValue;
+                               const uint32_t rightLinear = rightValue * rightValue;
+                               const uint32_t linear = leftLinear + ((rightLinear - leftLinear) * progress) / lw::palettes::detail::PaletteCanonicalFractionScale;
+                               return static_cast<Component>(lw::integerSqrt(linear));
+                             });
     }
     case BlendMode::Quantized:
       return applyQuantizedBlend(left, right, progress, quantizedLevels);
@@ -73,21 +65,18 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
       constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
 
       lw::Color out = lw::linearBlendProgress(left, right, progress);
-      uint8_t channelOrdinal = 0;
-      for (char channel : {'R', 'G', 'B', 'W'})
-      {
-        uint32_t value = static_cast<uint32_t>(lw::colorComponentByTag(out, channel));
-        const uint8_t noise = static_cast<uint8_t>((sampleIndex * 37u) + (channelOrdinal * 97u));
-        if (value < maxValue && noise < (progress & 0x3Fu))
-        {
-          ++value;
-        }
-
-        lw::setColorComponentByTag(out, channel, static_cast<Component>(value));
-        ++channelOrdinal;
-      }
-
-      return out;
+      return lw::mapChannels(out,
+                             [&](auto v, char tag)
+                             {
+                               uint32_t value = static_cast<uint32_t>(v);
+                               const uint8_t channelOrdinal = (tag == 'R') ? 0 : (tag == 'G') ? 1 : (tag == 'B') ? 2 : 3;
+                               const uint8_t noise = static_cast<uint8_t>((sampleIndex * 37u) + (channelOrdinal * 97u));
+                               if (value < maxValue && noise < (progress & 0x3Fu))
+                               {
+                                 ++value;
+                               }
+                               return static_cast<Component>(value);
+                             });
     }
     case BlendMode::Nearest:
     case BlendMode::Linear:

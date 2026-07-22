@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "core/Color.h"
+#include "core/Pixel.h"
 #include "core/Compat.h"
 
 namespace lw

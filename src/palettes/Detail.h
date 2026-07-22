@@ -23,13 +23,7 @@ namespace detail
       return color;
     }
 
-    for (char channel : {'R', 'G', 'B', 'W'})
-    {
-      const uint32_t value = static_cast<uint32_t>(lw::colorComponentByTag(color, channel));
-      lw::setColorComponentByTag(color, channel, static_cast<Component>((value * scale) / MaxComponent));
-    }
-
-    return color;
+    return lw::mapChannels(color, [&](auto v, char) { return static_cast<Component>((static_cast<uint32_t>(v) * scale) / MaxComponent); });
   }
 
   template <typename TOutputIt, typename TSentinel, typename = void> size_t writeZeroed(TOutputIt output, TSentinel outputEnd)

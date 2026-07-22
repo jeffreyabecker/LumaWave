@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "core/Compat.h"
-#include "core/Color.h"
+#include "core/Pixel.h"
 #include "palettes/ModeEnums.h"
 #include "palettes/PaletteDomain.h"
 

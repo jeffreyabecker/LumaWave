@@ -125,9 +125,9 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-01 | todo | Rename `src/core/Color.h` to `src/core/Pixel.h` and update all internal type/function/constant names | — | File renamed; `Color` → `Pixel`, `ColorComponent` → `PixelComponent`, `ColorComponentBitDepth` → `PixelComponentBitDepth`, `colorBits` → `pixelBits`, `colorMask` → `pixelMask`, `colorR/G/B/W` → `pixelR/G/B/W`, `setColorR/G/B/W` → `setPixelR/G/B/W`, `colorFromRGB/W` → `pixelFromRGB/W`, `colorComponentByTag` → `pixelComponentByTag`, `setColorComponentByTag` → `setPixelComponentByTag`, `colorComponentByIndex` → `pixelComponentByIndex`, `colorCompare` → `pixelCompare`, `serializeColor` → `serializePixel`, `parseColor` → `parsePixel`, `tryParseColor` → `tryParsePixel` |
-| CPR-02 | todo | Rename `LW_COLOR_COMPONENT_SIZE` to `LW_PIXEL_COMPONENT_SIZE` in `src/core/Compat.h` | — | Macro renamed; no remaining references to old name in Compat.h |
-| CPR-03 | todo | Update all `#include "core/Color.h"` to `#include "core/Pixel.h"` across `src/`, `test/`, `examples/` | CPR-01 | All 18 include directives updated; compilation succeeds |
+| CPR-01 | done | Rename `src/core/Color.h` to `src/core/Pixel.h` and update all internal type/function/constant names | — | File renamed; `Color` → `Pixel`, `ColorComponent` → `PixelComponent`, `ColorComponentBitDepth` → `PixelComponentBitDepth`, `colorBits` → `pixelBits`, `colorMask` → `pixelMask`, `colorR/G/B/W` → `pixelR/G/B/W`, `setColorR/G/B/W` → `setPixelR/G/B/W`, `colorFromRGB/W` → `pixelFromRGB/W`, `colorComponentByTag` → `pixelComponentByTag`, `setColorComponentByTag` → `setPixelComponentByTag`, `colorComponentByIndex` → `pixelComponentByIndex`, `colorCompare` → `pixelCompare`, `serializeColor` → `serializePixel`, `parseColor` → `parsePixel`, `tryParseColor` → `tryParsePixel` |
+| CPR-02 | done | Rename `LW_COLOR_COMPONENT_SIZE` to `LW_PIXEL_COMPONENT_SIZE` in `src/core/Compat.h` | — | Macro renamed; no remaining references to old name in Compat.h |
+| CPR-03 | done | Update all `#include "core/Color.h"` to `#include "core/Pixel.h"` across `src/`, `test/`, `examples/` | CPR-01 | All 18 include directives updated; compilation succeeds |
 
 ## Phase 2 — Palette Layer (`src/palettes/`)
 

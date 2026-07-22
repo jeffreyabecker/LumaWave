@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
-#include "core/Color.h"
+#include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
 #include "protocols/ChannelOrder.h"
 #include "core/Compat.h"

@@ -4,7 +4,7 @@
 #include <limits>
 
 #include "IShader.h"
-#include "core/Color.h"
+#include "core/Pixel.h"
 #include "palettes/ColorMath.h"
 
 namespace lw::protocols
@@ -24,12 +24,7 @@ public:
 
     for (size_t i = 0; i < source.size(); ++i)
     {
-      dest[i] = source[i];
-
-      for (char channel : {'R', 'G', 'B', 'W'})
-      {
-        lw::setColorComponentByTag(dest[i], channel, static_cast<lw::ColorComponent>(lw::applyBrightness(lw::colorComponentByTag(source[i], channel), _brightnessValue)));
-      }
+      dest[i] = lw::mapChannels(source[i], [&](auto v, char) { return static_cast<lw::ColorComponent>(lw::applyBrightness(v, _brightnessValue)); });
     }
   }
 
