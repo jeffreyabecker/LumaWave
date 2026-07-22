@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <vector>
 
-#include <ArduinoFake.h>
-
 #include "protocols/DotStarProtocol.h"
 #include "protocols/PixieProtocol.h"
 #include "protocols/Ws2801Protocol.h"
@@ -14,8 +12,6 @@
 
 namespace
 {
-using namespace fakeit;
-
 template <typename TProtocol> std::vector<uint8_t> bind_protocol_buffer(TProtocol& protocol)
 {
   const auto& settings = static_cast<const typename TProtocol::SettingsType&>(protocol.settings());
@@ -326,12 +322,6 @@ void test_1_14_5_ws2812x_oversized_span_contract(void)
 
 void setUp(void)
 {
-  ArduinoFakeReset();
-
-  When(Method(ArduinoFake(Function), micros)).AlwaysReturn(0UL);
-  When(Method(ArduinoFake(Function), millis)).AlwaysReturn(0UL);
-  When(Method(ArduinoFake(Function), yield)).AlwaysDo([]() {});
-  When(Method(ArduinoFake(Function), delayMicroseconds)).AlwaysDo([](unsigned int) {});
 }
 
 void tearDown(void)

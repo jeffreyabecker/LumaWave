@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <vector>
 
-#include <ArduinoFake.h>
-
 #include "protocols/Lpd6803Protocol.h"
 #include "protocols/Lpd8806Protocol.h"
 #include "protocols/P9813Protocol.h"
@@ -18,8 +16,6 @@
 
 namespace
 {
-using namespace fakeit;
-
 template <typename TProtocol> std::vector<uint8_t> bind_protocol_buffer(TProtocol& protocol)
 {
   const auto& settings = static_cast<const typename TProtocol::SettingsType&>(protocol.settings());
@@ -361,12 +357,6 @@ void test_1_13_3_tm1914_oversized_and_order_safety(void)
 
 void setUp(void)
 {
-  ArduinoFakeReset();
-
-  When(Method(ArduinoFake(Function), micros)).AlwaysReturn(0UL);
-  When(Method(ArduinoFake(Function), millis)).AlwaysReturn(0UL);
-  When(Method(ArduinoFake(Function), yield)).AlwaysDo([]() {});
-  When(Method(ArduinoFake(Function), delayMicroseconds)).AlwaysDo([](unsigned int) {});
 }
 
 void tearDown(void)
