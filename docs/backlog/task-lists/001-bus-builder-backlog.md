@@ -47,10 +47,10 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-01 | `todo` | Draft `TransportHolder`: move-only, type-erased owner of a `Transport` via custom vtable (no RTTI, no exceptions) | — | Header `src/buses/detail/TransportHolder.h` exists; holds `unique_ptr<TransportBase>` with hand-rolled vtable dispatch for `begin()`, `beginTransaction()`, `transmitBytes()`, `endTransaction()`, `isReadyToUpdate()`, `setRuntimeConfig()`; unit tested in `test/buses/test_bus_builder/` |
-| BBL-02 | `todo` | Draft `ProtocolHolder`: move-only, type-erased owner of a `Protocol` via custom vtable | — | Header `src/buses/detail/ProtocolHolder.h` exists; holds `unique_ptr<ProtocolBase>` with hand-rolled vtable dispatch for `begin()`, `update()`, `settings()`, `pixelCount()`, `alwaysUpdate()`, `setRuntimeConfig()`; unit tested |
-| BBL-03 | `todo` | Draft `ShaderList`: owning, type-erased list of `IShader*` plus backing storage for shader objects | — | Header `src/buses/detail/ShaderList.h` exists; stores `vector<unique_ptr<IShader>>` and produces `span<IShader*>`; `addShader<T>()` template method constructs in place; unit tested |
-| BBL-04 | `todo` | Wire holders into `test/CMakeLists.txt` and add a dedicated test binary `test_bus_builder` | BBL-01, BBL-02, BBL-03 | `test/buses/test_bus_builder/` directory exists with Unity test file; CMake target registered; all holder tests pass in native build |
+| BBL-01 | `done` | Draft `TransportHolder`: move-only, type-erased owner of a `Transport` via custom vtable (no RTTI, no exceptions) | — | Header `src/buses/detail/TransportHolder.h` exists; holds `unique_ptr<TransportBase>` with hand-rolled vtable dispatch for `begin()`, `beginTransaction()`, `transmitBytes()`, `endTransaction()`, `isReadyToUpdate()`, `setRuntimeConfig()`; unit tested in `test/buses/test_bus_builder/` |
+| BBL-02 | `done` | Draft `ProtocolHolder`: move-only, type-erased owner of a `Protocol` via custom vtable | — | Header `src/buses/detail/ProtocolHolder.h` exists; holds `unique_ptr<ProtocolBase>` with hand-rolled vtable dispatch for `begin()`, `update()`, `settings()`, `pixelCount()`, `alwaysUpdate()`, `setRuntimeConfig()`; unit tested |
+| BBL-03 | `done` | Draft `ShaderList`: owning, type-erased list of `IShader*` plus backing storage for shader objects | — | Header `src/buses/detail/ShaderList.h` exists; stores `vector<unique_ptr<IShader>>` and produces `span<IShader*>`; `addShader<T>()` template method constructs in place; unit tested |
+| BBL-04 | `done` | Wire holders into `test/CMakeLists.txt` and add a dedicated test binary `test_bus_builder` | BBL-01, BBL-02, BBL-03 | `test/buses/test_bus_builder/` directory exists with Unity test file; CMake target registered; all holder tests pass in native build |
 
 ## Phase 2 — Buffer Management
 
