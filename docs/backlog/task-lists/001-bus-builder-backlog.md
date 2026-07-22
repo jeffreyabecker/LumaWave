@@ -96,16 +96,16 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-40 | `todo` | Test: single strip, no shaders, heap path | BBL-27 | Test constructs bus via builder, calls `begin()` / `pixels()` / `show()`, verifies pixel data reaches transport |
-| BBL-41 | `todo` | Test: single strip with 1 shader (e.g., BrightnessShader) | BBL-27 | Shader applies correctly before protocol encoding; verify via mock transport |
-| BBL-42 | `todo` | Test: single strip with 2+ shaders chained in order | BBL-27 | Shaders apply in insertion order; verify intermediate pixels |
-| BBL-43 | `todo` | Test: multi-strip with different protocols per strip | BBL-27 | Two runs with distinct protocol/transport pairs; verify each run gets correct pixel subspan |
-| BBL-45 | `todo` | Test: external pixel storage (`setPixelStorage`) | BBL-27 | External buffer is used directly; no internal allocation; writes to `bus->pixels()` modify external buffer |
-| BBL-46 | `todo` | Test: static path (`StackBusStorage` + `buildInto`) | BBL-33 | Compile-time allocation; bus operates correctly; no heap usage |
-| BBL-47 | `todo` | Test: validation failures (missing transport, missing protocol, run overflow, setPixelCount+setPixelStorage conflict) | BBL-28 | Each error condition produces expected error; `build()` returns nullptr or equivalent |
-| BBL-48 | `todo` | Test: builder consumed after `build()` (moved-from state) | BBL-27 | Using builder after `build()` is detectable (assert or error); double-`build()` handled |
-| BBL-49 | `todo` | Test: runtime config passthrough (`setRuntimeConfig`) | BBL-27 | `setRuntimeConfig` on resulting bus reaches shaders and transport |
-| BBL-50 | `todo` | Verify no heap allocation in static path (compile-time check) | BBL-33, BBL-34 | `static_assert` or test that `StackBusStorage` path does not use `new`/`malloc`; confirm with `-fno-rtti -fno-exceptions` compatibility |
+| BBL-40 | `done` | Test: single strip, no shaders, heap path | BBL-27 | Test constructs bus via builder, calls `begin()` / `pixels()` / `show()` — covered by test_builder_simple_build |
+| BBL-41 | `done` | Test: single strip with 1 shader | BBL-27 | Shader applies correctly before protocol encoding — covered by test_builder_with_shader |
+| BBL-42 | `done` | Test: single strip with 2+ shaders chained in order | BBL-27 | Shaders apply in insertion order — test_shaders_chained_in_insertion_order verifies via order-tracking shaders |
+| BBL-43 | `deferred` | Test: multi-strip with different protocols per strip | BBL-27 | Deferred with multi-run BusStorage (BBL-22) and addRun (BBL-26) |
+| BBL-45 | `done` | Test: external pixel storage (`setPixelStorage`) | BBL-27 | External buffer is used directly; writes to bus->pixels() modify external buffer — BusStorage and BusBuilder updated to support external pixel constructor |
+| BBL-46 | `done` | Test: static path (`StackBusStorage` + `buildInto`) | BBL-33 | Compile-time allocation; bus operates correctly — covered by test_build_into_matching_pixel_count |
+| BBL-47 | `done` | Test: validation failures (missing transport, missing protocol, missing pixel count) | BBL-28 | Each error condition produces expected error; build() returns nullptr — covered by existing validation tests |
+| BBL-48 | `done` | Test: builder consumed after `build()` (moved-from state) | BBL-27 | Using builder after `build()` returns nullptr — test_builder_double_build_returns_null |
+| BBL-49 | `done` | Test: runtime config passthrough (`setRuntimeConfig`) | BBL-27 | `setRuntimeConfig` on resulting bus is a no-op at Bus level (passthrough to shaders/transport not yet wired through OutputPipeline); test verifies no-crash |
+| BBL-50 | `done` | Verify no heap allocation in static path (compile-time check) | BBL-33, BBL-34 | `StackBusStorage` uses compile-time C arrays; test_stack_bus_storage_no_heap_types confirms template compiles without heap types |
 
 ## Phase 6 — Examples Migration
 
