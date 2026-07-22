@@ -28,7 +28,25 @@ public:
       return;
     }
 
-    assert(!_scratchPixels.empty() && _scratchPixels.size() >= colors.size());
+    if (_scratchPixels.empty())
+    {
+      // Destructive mode: operate directly on the input pixel buffer.
+      // The caller must fully repaint before each show() — the pixel buffer
+      // is in an undefined (post-shader) state afterward.
+      auto* mutablePixels = const_cast<lw::Pixel*>(colors.data());
+      lw::span<lw::Pixel> pixels{mutablePixels, colors.size()};
+      for (size_t i = 0; i < _shaders.size(); ++i)
+      {
+        _shaders[i]->apply(pixels, pixels);
+      }
+      _inner.update(pixels, buffer);
+      return;
+    }
+
+    // Scratch mode: ping-pong through scratch buffer.
+    // Only the first shader needs the separate destination; subsequent
+    // shaders operate in-place on the scratch buffer itself.
+    assert(_scratchPixels.size() >= colors.size());
 
     span<const lw::Pixel> src = colors;
     span<lw::Pixel> dst = _scratchPixels;

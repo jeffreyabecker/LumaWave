@@ -10,6 +10,8 @@
 #include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
 #include "protocols/Protocol.h"
+#include "protocols/ShaderProtocol.h"
+#include "protocols/IShader.h"
 
 // ---------------------------------------------------------------------------
 // Mock types for testing holders
@@ -255,9 +257,141 @@ void test_shader_list_needs_scratch_buffer(void)
   // Empty: no scratch needed
   TEST_ASSERT_FALSE(list.needsScratchBuffer());
 
-  // One shader: scratch needed
+  // One shader: scratch needed (safe mode by default)
   list.addShader(MockShader{});
   TEST_ASSERT_TRUE(list.needsScratchBuffer());
+}
+
+void test_shader_list_destructive_mode_default_is_safe(void)
+{
+  lw::buses::detail::ShaderList list;
+  TEST_ASSERT_FALSE(list.isDestructiveMode());
+}
+
+void test_shader_list_destructive_mode_skips_scratch(void)
+{
+  lw::buses::detail::ShaderList list;
+  list.addShader(MockShader{});
+
+  // Before: scratch needed
+  TEST_ASSERT_TRUE(list.needsScratchBuffer());
+
+  // Enable destructive mode
+  list.setDestructiveMode(true);
+  TEST_ASSERT_TRUE(list.isDestructiveMode());
+  TEST_ASSERT_FALSE(list.needsScratchBuffer());
+
+  // Disable destructive mode
+  list.setDestructiveMode(false);
+  TEST_ASSERT_FALSE(list.isDestructiveMode());
+  TEST_ASSERT_TRUE(list.needsScratchBuffer());
+}
+
+void test_shader_list_destructive_mode_empty_still_no_scratch(void)
+{
+  lw::buses::detail::ShaderList list;
+  list.setDestructiveMode(true);
+
+  // Empty shader list: still no scratch regardless of mode
+  TEST_ASSERT_FALSE(list.needsScratchBuffer());
+}
+
+// A shader that overwrites every pixel with a fixed value (for testing
+// that the destructive path actually modifies the input in place).
+struct OverwriteShader : public lw::protocols::IShader
+{
+  lw::Pixel value;
+
+  explicit OverwriteShader(lw::Pixel v) : value(v) {}
+
+  void apply(lw::span<const lw::Pixel> /*source*/, lw::span<lw::Pixel> dest) override
+  {
+    for (size_t i = 0; i < dest.size(); ++i)
+    {
+      dest[i] = value;
+    }
+  }
+};
+
+// A protocol that captures the pixel span it receives from update().
+struct CaptureProtocol : public lw::protocols::Protocol
+{
+  lw::Pixel firstPixel{};
+  size_t pixelCount = 0;
+  bool updated = false;
+
+  CaptureProtocol() : Protocol(0) {}
+
+  void update(lw::span<const lw::Pixel> colors, lw::span<uint8_t> /*buffer*/) override
+  {
+    updated = true;
+    pixelCount = colors.size();
+    if (!colors.empty())
+    {
+      firstPixel = colors[0];
+    }
+  }
+};
+
+void test_shader_protocol_destructive_mode_mutates_input(void)
+{
+  CaptureProtocol inner;
+
+  // Create ShaderProtocol with shaders but NO scratch (destructive mode)
+  lw::protocols::IShader* shaderPtrs[] = {nullptr};
+  OverwriteShader shader(lw::pixelFromRGB(99, 88, 77));
+  shaderPtrs[0] = &shader;
+
+  lw::protocols::ShaderProtocol shaderProto(inner, lw::span<lw::protocols::IShader*>{shaderPtrs, 1}, lw::span<lw::Pixel>{}); // empty scratch = destructive
+
+  lw::Pixel pixels[3]{};
+  pixels[0] = lw::pixelFromRGB(10, 20, 30);
+  pixels[1] = lw::pixelFromRGB(40, 50, 60);
+  pixels[2] = lw::pixelFromRGB(70, 80, 90);
+
+  uint8_t buf[64]{};
+  shaderProto.update(lw::span<const lw::Pixel>{pixels, 3}, lw::span<uint8_t>{buf, 64});
+
+  // The inner protocol should see the overwritten values, not the originals
+  TEST_ASSERT_TRUE(inner.updated);
+  TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(inner.pixelCount));
+  TEST_ASSERT_EQUAL_UINT8(99, lw::pixelR(inner.firstPixel));
+  TEST_ASSERT_EQUAL_UINT8(88, lw::pixelG(inner.firstPixel));
+  TEST_ASSERT_EQUAL_UINT8(77, lw::pixelB(inner.firstPixel));
+
+  // The input pixels were also mutated in place
+  TEST_ASSERT_EQUAL_UINT8(99, lw::pixelR(pixels[0]));
+  TEST_ASSERT_EQUAL_UINT8(88, lw::pixelG(pixels[0]));
+  TEST_ASSERT_EQUAL_UINT8(77, lw::pixelB(pixels[0]));
+}
+
+void test_shader_protocol_scratch_mode_preserves_input(void)
+{
+  CaptureProtocol inner;
+
+  lw::protocols::IShader* shaderPtrs[] = {nullptr};
+  OverwriteShader shader(lw::pixelFromRGB(99, 88, 77));
+  shaderPtrs[0] = &shader;
+
+  lw::Pixel scratch[3]{};
+  lw::protocols::ShaderProtocol shaderProto(inner, lw::span<lw::protocols::IShader*>{shaderPtrs, 1}, lw::span<lw::Pixel>{scratch, 3}); // scratch provided = safe mode
+
+  lw::Pixel pixels[3]{};
+  pixels[0] = lw::pixelFromRGB(10, 20, 30);
+  pixels[1] = lw::pixelFromRGB(40, 50, 60);
+  pixels[2] = lw::pixelFromRGB(70, 80, 90);
+
+  uint8_t buf[64]{};
+  shaderProto.update(lw::span<const lw::Pixel>{pixels, 3}, lw::span<uint8_t>{buf, 64});
+
+  // Inner protocol sees the overwritten values (from scratch buffer)
+  TEST_ASSERT_TRUE(inner.updated);
+  TEST_ASSERT_EQUAL_UINT8(99, lw::pixelR(inner.firstPixel));
+
+  // Input pixels are preserved (scratch used, not mutated)
+  TEST_ASSERT_EQUAL_UINT8(10, lw::pixelR(pixels[0]));
+  TEST_ASSERT_EQUAL_UINT8(20, lw::pixelG(pixels[0]));
+  TEST_ASSERT_EQUAL_UINT8(30, lw::pixelB(pixels[0]));
 }
 
 void test_shader_list_applies_shaders(void)
@@ -318,8 +452,15 @@ int main(void)
   RUN_TEST(test_shader_list_add_one);
   RUN_TEST(test_shader_list_add_multiple);
   RUN_TEST(test_shader_list_needs_scratch_buffer);
+  RUN_TEST(test_shader_list_destructive_mode_default_is_safe);
+  RUN_TEST(test_shader_list_destructive_mode_skips_scratch);
+  RUN_TEST(test_shader_list_destructive_mode_empty_still_no_scratch);
   RUN_TEST(test_shader_list_applies_shaders);
   RUN_TEST(test_shader_list_set_runtime_config);
+
+  // ShaderProtocol destructive mode
+  RUN_TEST(test_shader_protocol_destructive_mode_mutates_input);
+  RUN_TEST(test_shader_protocol_scratch_mode_preserves_input);
 
   return UNITY_END();
 }
