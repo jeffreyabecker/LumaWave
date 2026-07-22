@@ -186,17 +186,17 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-70 | done | Update all `using` declarations: `Color` → `Pixel`, and all `using lw::color*` → `using lw::pixel*` | CPR-01 | `using Pixel = lw::Pixel`; `using lw::pixelB/G/R/W`, `using lw::pixelComponentByTag`, `using lw::pixelFromRGB/W`, `using lw::setPixelB/G/R/W`, `using lw::tryParsePixel`; removed: `pixelCompare`, `pixelComponentByIndex`, `parsePixel`, `serializePixel`, `setPixelComponentByTag` (not in public API) |
+| CPR-70 | todo | Update all `using` declarations: `Color` → `Pixel`, and all `using lw::color*` → `using lw::pixel*` | CPR-01 | All 16 using declarations updated; `using Pixel = lw::Pixel`; `using lw::pixelB/G/R/W`, `using lw::pixelCompare`, `using lw::pixelComponentByIndex/Tag`, `using lw::pixelFromRGB/W`, `using lw::parsePixel`, `using lw::serializePixel`, `using lw::setPixelB/G/R/W`, `using lw::setPixelComponentByTag`, `using lw::tryParsePixel` |
 
 ## Phase 7 — Tests
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-80 | todo | Update `test/busses/test_bus/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `lw::colorFromRGB` → `lw::pixelFromRGB`, `lw::colorR/G/B` → `lw::pixelR/G/B`, local `color`/`pixel` var names | CPR-01 | All type/function references updated; tests compile and pass |
-| CPR-81 | todo | Update `test/contracts/test_palette_first_pass_compile/test_main.cpp` — `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`; field `.color` stays per CPR-DEC-1 | CPR-10, CPR-01 | All references updated; contract tests pass |
-| CPR-82 | todo | Update `test/lights/test_print_light_driver/test_main.cpp` — `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local var `color` → `pixel` | CPR-01 | All references updated; tests compile and pass |
-| CPR-83 | todo | Update `test/protocols/test_protocol_spec_sections_1_1_to_1_4_and_1_14/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local `colors` vars → `pixels` | CPR-01, CPR-39 | All references updated; tests compile and pass |
-| CPR-84 | todo | Update `test/protocols/test_protocol_spec_sections_1_5_to_1_13/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local `colors` vars → `pixels` | CPR-01, CPR-39 | All references updated; tests compile and pass |
+| CPR-80 | done | Update `test/busses/test_bus/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `lw::colorFromRGB` → `lw::pixelFromRGB`, `lw::colorR/G/B` → `lw::pixelR/G/B`, local `color`/`pixel` var names | CPR-01 | All type/function references updated; tests compile and pass |
+| CPR-81 | done | Update `test/contracts/test_palette_first_pass_compile/test_main.cpp` — `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`; field `.color` stays per CPR-DEC-1 | CPR-10, CPR-01 | All references updated; contract tests pass |
+| CPR-82 | done | Update `test/lights/test_print_light_driver/test_main.cpp` — `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local var `color` → `pixel` | CPR-01 | All references updated; tests compile and pass |
+| CPR-83 | done | Update `test/protocols/test_protocol_spec_sections_1_1_to_1_4_and_1_14/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local `colors` vars → `pixels` | CPR-01, CPR-39 | All references updated; tests compile and pass |
+| CPR-84 | done | Update `test/protocols/test_protocol_spec_sections_1_5_to_1_13/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local `colors` vars → `pixels` | CPR-01, CPR-39 | All references updated; tests compile and pass |
 | CPR-85 | todo | Run full test suite (`ctest`) and confirm all tests pass | CPR-80, CPR-81, CPR-82, CPR-83, CPR-84 | `ctest --test-dir build -C Debug --output-on-failure` exits 0 with no failures |
 
 ## Phase 8 — Examples
