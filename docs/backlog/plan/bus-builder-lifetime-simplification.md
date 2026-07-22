@@ -145,6 +145,8 @@ These costs make it harder to add new bus topologies (e.g., matrix, serpentine),
 
 7. **Clear error messages.** Misconfiguration (e.g., forgetting to attach a transport) should produce a comprehensible compile-time or runtime error, not a cryptic template backtrace.
 
+8. **External pixel buffer support.** Allow callers to provide a pre-allocated pixel buffer that the bus writes into directly, enabling zero-copy integration with frameworks (e.g., WLED) that manage their own LED buffer arrays. The external buffer path must not force a heap allocation for pixel storage.
+
 ## Non-Goals
 
 - **No modification to `Protocol` or `Transport` base classes.** These are stable seams; the builder wraps them, it does not change them.
@@ -168,8 +170,13 @@ class BusBuilder
 public:
     // --- Pixel storage ---
 
-    /// Set dynamic pixel count. Allocates internally.
+    /// Set dynamic pixel count. Allocates pixel storage internally.
     BusBuilder& setPixelCount(size_t count);
+
+    /// Use externally-owned pixel storage. The builder does not allocate pixel memory.
+    /// Mutually exclusive with setPixelCount(). The provided span must outlive
+    /// the returned IPixelBus. Pixel count is inferred from span.size().
+    BusBuilder& setPixelStorage(span<Color> externalPixels);
 
     // --- Transport ---
 
@@ -257,6 +264,26 @@ auto bus = lw::buses::BusBuilder()
     .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
     .addRun(30, 60)
     .build();
+```
+
+**External pixel storage (zero-copy, WLED-compatible):**
+
+```cpp
+// Caller owns the pixel buffer; BusBuilder wires everything else.
+std::array<lw::Color, 90> ledStrip{};
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelStorage(ledStrip)
+    .setTransport(lw::transports::RpPioTransport{})
+    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+    .build();
+
+// bus->pixels() returns a span referencing ledStrip directly.
+// Writes to bus->pixels()[n] write to ledStrip[n] — no copy.
+bus->begin();
+bus->pixels()[0] = lw::colorFromRGB(255, 0, 0);
+bus->show();
+// ledStrip must outlive bus
 ```
 
 **Static/stack allocation:**
@@ -395,3 +422,4 @@ The plan is additive:
 | BBL-DEC-4 | `todo` | Should the builder support sharing transports across runs? | Current `ProtocolTransportPipeline` holds references — sharing is already possible at the low level. The builder should allow runs to reference the same transport index. |
 | BBL-DEC-5 | `todo` | Should `BusBuilder` use `std::any` / `std::function` for type erasure, or a custom vtable approach? | Custom vtable avoids RTTI and exception overhead, which matters for `-fno-rtti -fno-exceptions` embedded targets. A hand-rolled `TransportHolder` with a `unique_ptr<TransportBase>` + move-only semantics is preferred. |
 | BBL-DEC-6 | `todo` | What is the error handling strategy for `build()`? | Options: (a) return `nullptr` on failure, (b) return `expected<unique_ptr<IPixelBus>, Error>` (C++23 style), (c) assert/abort. Given embedded constraints, option (a) or (c) is most practical. The builder can also have a `validate()` method for early checking. |
+| BBL-DEC-7 | `todo` | Should `setPixelStorage()` and `setPixelCount()` be mutually exclusive, or should `setPixelStorage()` override `setPixelCount()`? | Mutual exclusion is clearer and avoids ambiguity about which allocation is authoritative. The builder should reject (at runtime) a configuration that calls both. Should `buildInto()` with `StackBusStorage` also support external pixels, or is that only for `build()`? If `StackBusStorage` owns pixel memory by definition, external pixels would need a different storage concept (e.g., `StackBusStorageNoPixels`). |

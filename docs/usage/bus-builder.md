@@ -106,6 +106,24 @@ auto bus = lw::buses::BusBuilder()
 //     .build();
 ```
 
+### Rule 2.1b — setPixelStorage() as an external-pixel alternative
+
+As an alternative to `setPixelCount()`, callers can provide an externally-owned pixel buffer via `setPixelStorage()`. This enables zero-copy integration with frameworks (e.g., WLED) that manage their own LED buffer arrays. When `setPixelStorage()` is used, the builder does not allocate pixel memory — it wires the external span directly into the bus. `setPixelStorage()` and `setPixelCount()` are mutually exclusive.
+
+```cpp
+// External pixel buffer — caller owns the storage
+std::array<lw::Color, 300> ledStrip{};
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelStorage(ledStrip)
+    .setTransport(lw::transports::RpPioTransport{})
+    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+    .build();
+
+// bus->pixels() returns a span that references ledStrip directly
+bus->pixels()[0] = lw::colorFromRGB(255, 0, 0);  // writes to ledStrip[0]
+```
+
 ### Rule 2.2 — setTransport() and setProtocol() form a pair
 
 Each `setTransport()` / `setProtocol()` pair defines the pipeline for the next `addRun()` call. For a single-strip bus where no explicit `addRun()` is called, `build()` implicitly creates one run covering `[0, pixelCount)`.
@@ -224,6 +242,37 @@ lw::span<lw::Color> dangling()
     return bus->pixels();  // BUG: span dangles after bus is destroyed
 }
 ```
+
+### Rule 3.4 — External pixel buffer lifetime
+
+When using `setPixelStorage()`, the caller owns the pixel buffer. The external buffer must outlive the `IPixelBus` — the bus holds a non-owning `span` into it. This is the same lifetime contract as the low-level `Bus` constructor: the bus references external memory and does not manage its lifetime.
+
+```cpp
+// Correct — buffer declared before bus, destroyed after
+std::array<lw::Color, 60> pixels{};
+{
+    auto bus = lw::buses::BusBuilder()
+        .setPixelStorage(pixels)
+        .setTransport(lw::transports::SpiTransport{})
+        .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+        .build();
+
+    bus->show();  // ok — pixels still alive
+}
+// bus destroyed, pixels still valid for reuse
+
+// Error — buffer destroyed before bus
+// auto bus = []() {
+//     std::array<lw::Color, 60> localPixels{};
+//     return lw::buses::BusBuilder()
+//         .setPixelStorage(localPixels)
+//         .setTransport(...)
+//         .setProtocol(...)
+//         .build();
+// }();  // BUG: localPixels destroyed, bus holds dangling span
+```
+
+When using `setPixelStorage()` with `build()`, only the bus machinery (pipelines, protocol buffers, shaders) is heap-allocated. The pixel buffer itself incurs no allocation — it is the caller's responsibility.
 
 ---
 
@@ -363,6 +412,32 @@ auto bus = lw::buses::BusBuilder()
     .build();  // error: no pipeline defined
 ```
 
+### Anti-Pattern 6.5 — Letting an external pixel buffer go out of scope before the bus
+
+When using `setPixelStorage()`, the external buffer must outlive the `IPixelBus`. Destroying the buffer while the bus is still in use produces a dangling span — reads and writes corrupt unrelated memory.
+
+```cpp
+// ❌ External buffer destroyed before bus
+std::unique_ptr<lw::IPixelBus> makeBus()
+{
+    std::array<lw::Color, 60> pixels{};  // local — will be destroyed on return
+    return lw::buses::BusBuilder()
+        .setPixelStorage(pixels)
+        .setTransport(lw::transports::SpiTransport{})
+        .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+        .build();  // BUG: bus references local 'pixels' that dies with this frame
+}
+
+// ✅ External buffer at stable scope
+std::array<lw::Color, 60> gPixels{};  // file-scope or long-lived object
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelStorage(gPixels)
+    .setTransport(lw::transports::SpiTransport{})
+    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+    .build();
+```
+
 ---
 
 ## 7  Build Validation and Error Reporting
@@ -371,7 +446,7 @@ auto bus = lw::buses::BusBuilder()
 
 `build()` checks:
 
-1. `pixelCount > 0`
+1. Exactly one of `setPixelCount()` or `setPixelStorage()` was called, and the resulting pixel count is `> 0`
 2. At least one transport+protocol pair is set (or explicit runs are added)
 3. All `addRun()` offsets are non-overlapping and within `[0, pixelCount)`
 4. The sum of run lengths equals `pixelCount` (warning, not error)
