@@ -200,7 +200,26 @@ public:
     template<typename TShader>
     BusBuilder& addShader(TShader shader);
 
-    // --- Runs (for multi-strip) ---
+    // --- Preset strips ---
+
+    /// Add a strip using presets. Sets protocol+transport on the builder.
+    /// For single-strip buses this is all you need; build() handles the run.
+    template<typename TProtoPreset, typename TTransPreset>
+    BusBuilder& addStrip(TProtoPreset protocol, TTransPreset transport);
+
+    /// Add a strip with shader preset.
+    template<typename TProtoPreset, typename TTransPreset, typename TShaderPreset>
+    BusBuilder& addStrip(TProtoPreset protocol, TTransPreset transport, TShaderPreset shader);
+
+    /// Add a run with explicit pixel offset and length (multi-strip).
+    template<typename TProtoPreset, typename TTransPreset>
+    BusBuilder& addStrip(size_t pixelOffset, size_t length, TProtoPreset protocol, TTransPreset transport);
+
+    /// Add a run with offset, length, and shader preset.
+    template<typename TProtoPreset, typename TTransPreset, typename TShaderPreset>
+    BusBuilder& addStrip(size_t pixelOffset, size_t length, TProtoPreset protocol, TTransPreset transport, TShaderPreset shader);
+
+    // --- Runs (low-level, for manual protocol/transport) ---
 
     /// Add a run referencing the most recently set protocol+transport pair.
     /// For single-strip, this is called implicitly by build().
@@ -228,7 +247,45 @@ private:
 
 ### Usage Examples
 
-**Single strip (simplest case):**
+**Single strip with presets (recommended):**
+
+```cpp
+using namespace lw::buses::presets;
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelCount(30)
+    .addStrip(ws2812x{}, spi{})
+    .build();
+
+bus->begin();
+bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);
+bus->show();
+```
+
+**Single strip with presets + shader:**
+
+```cpp
+using namespace lw::buses::presets;
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelCount(60)
+    .addStrip(apa102{}, rp_pio{2}, brightness{128})
+    .build();
+```
+
+**Multi-strip with presets:**
+
+```cpp
+using namespace lw::buses::presets;
+
+auto bus = lw::buses::BusBuilder()
+    .setPixelCount(90)                   // 30 + 60 total
+    .addStrip(0, 30, ws2801{}, spi{})     // Strip 1: pixels [0, 30)
+    .addStrip(30, 60, ws2812x{}, rp_pio{3}, gamma{2.2f})  // Strip 2
+    .build();
+```
+
+**Explicit construction (no presets):**
 
 ```cpp
 auto bus = lw::buses::BusBuilder()
@@ -242,66 +299,31 @@ bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);
 bus->show();
 ```
 
-**Single strip with shaders:**
-
-```cpp
-auto bus = lw::buses::BusBuilder()
-    .setPixelCount(60)
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Apa102Protocol{}, {})
-    .addShader(lw::protocols::BrightnessShader{128})
-    .addShader(lw::protocols::GammaShader{2.2f})
-    .build();
-```
-
-**Multi-strip (aggregate bus):**
-
-```cpp
-auto bus = lw::buses::BusBuilder()
-    .setPixelCount(90)              // 30 + 60 total
-    // Strip 1: pixels [0, 30) via SPI
-    .setTransport(lw::transports::SpiTransport{})
-    .setProtocol(lw::protocols::Ws2801Protocol{}, {})
-    .addRun(0, 30)
-    // Strip 2: pixels [30, 90) via PIO
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-    .addRun(30, 60)
-    .build();
-```
-
 **External pixel storage (zero-copy, WLED-compatible):**
 
 ```cpp
-// Caller owns the pixel buffer; BusBuilder wires everything else.
 std::array<lw::Pixel, 90> ledStrip{};
 
+using namespace lw::buses::presets;
 auto bus = lw::buses::BusBuilder()
     .setPixelStorage(ledStrip)
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+    .addStrip(ws2812x{}, rp_pio{2})
     .build();
-
 // bus->pixels() returns a span referencing ledStrip directly.
-// Writes to bus->pixels()[n] write to ledStrip[n] — no copy.
-bus->begin();
-bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);
-bus->show();
 // ledStrip must outlive bus
 ```
 
 **Static/stack allocation:**
 
 ```cpp
-// User provides static storage; builder validates sizes at compile time.
 lw::buses::StackBusStorage<90,
     lw::protocols::Ws2812xProtocol,
     lw::transports::RpPioTransport> storage;
 
+using namespace lw::buses::presets;
 auto& bus = lw::buses::BusBuilder()
     .setPixelCount(90)
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+    .addStrip(ws2812x{}, rp_pio{2})
     .buildInto(storage);
 
 bus.begin();
@@ -309,102 +331,124 @@ bus.pixels()[0] = lw::pixelFromRGB(255, 0, 255);
 bus.show();
 ```
 
-### Protocol/Transport Presets
+### Protocol, Transport, and Shader Presets
 
 NeoPixelBus composes two orthogonal template parameters — **Color Feature** (RGB, GRB, BGR, WRGB byte order) and **Method** (800Kbps, 400Kbps, DotStar SPI, DMA) — into well-known combinations like `NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod>`. Users pick from a catalog of named types rather than wiring raw protocol settings.
 
-LumaWave's analog uses **preset functions** that return a partially-configured `BusBuilder`. Because LumaWave's protocols already bundle color feature + byte encoding, and transports are a separate choice, presets collapse the common pairings into discoverable factory functions.
+LumaWave's analog keeps protocol and transport **separate** — the user always chooses them independently — and uses the **configure** pattern: a preset is any type with a `configure(BusBuilder&)` method. `BusBuilder::addStrip()` calls `configure()` on each preset in the correct order, injecting the preset's settings into the builder.
 
-**Design:** Presets live in `lw::buses::presets` as free functions returning `BusBuilder` by value.
+**Preset Concept (SFINAE gate):**
+
+```cpp
+// A type is a Preset if it has configure(BusBuilder&).
+// All presets — protocol, transport, shader — use the same contract.
+// They are distinguished by role (argument position in addStrip), not by type tag.
+
+template<typename T, typename = void>
+struct is_preset : std::false_type {};
+
+template<typename T>
+struct is_preset<T, std::void_t<decltype(std::declval<T&>().configure(std::declval<BusBuilder&>()))>>
+    : std::true_type {};
+```
+
+**Preset Catalog** (in `lw::buses::presets`):
 
 ```cpp
 namespace lw::buses::presets
 {
 
-// --- Protocol-only presets (caller adds transport) ---
+// --- Protocol presets ---
 
-/// WS2812-family (one-wire, GRB color order).
-BusBuilder ws2812x(size_t pixelCount);
-/// WS2812 with RGB color order.
-BusBuilder ws2812xRgb(size_t pixelCount);
-/// WS2812 with WRGB (RGB+White) color order.
-BusBuilder ws2812xWrgb(size_t pixelCount);
+struct ws2812x {
+    const char* channelOrder = ChannelOrder::GRB::value;
+    void configure(BusBuilder& b) {
+        b.setProtocol(protocols::Ws2812xProtocol{},
+            Ws2812xProtocolSettings{.channelOrder = channelOrder});
+    }
+};
 
-/// DotStar / APA102 / SK9822 (two-wire SPI, BGR color order).
-BusBuilder dotstar(size_t pixelCount);
-/// APA102 with RGB color order.
-BusBuilder apa102Rgb(size_t pixelCount);
+struct ws2812x_rgb {
+    void configure(BusBuilder& b) {
+        b.setProtocol(protocols::Ws2812xProtocol{},
+            Ws2812xProtocolSettings{.channelOrder = ChannelOrder::RGB::value});
+    }
+};
 
-/// WS2801 (two-wire SPI, RGB color order).
-BusBuilder ws2801(size_t pixelCount);
+struct ws2812x_wrgb {
+    void configure(BusBuilder& b) {
+        b.setProtocol(protocols::Ws2812xProtocol{},
+            Ws2812xProtocolSettings{.channelOrder = ChannelOrder::WRGB::value});
+    }
+};
 
-/// LPD8806 (two-wire SPI, GRB color order).
-BusBuilder lpd8806(size_t pixelCount);
+struct dotstar {
+    void configure(BusBuilder& b) { b.setProtocol(protocols::DotStarProtocol{}, {}); }
+};
 
-/// TM1814 (one-wire, WRGB color order, current-control capable).
-BusBuilder tm1814(size_t pixelCount);
+struct apa102 {
+    void configure(BusBuilder& b) { b.setProtocol(protocols::Apa102Protocol{}, {}); }
+};
 
-/// P9813 (two-wire SPI, BGR color order with checksum).
-BusBuilder p9813(size_t pixelCount);
+struct ws2801 {
+    void configure(BusBuilder& b) { b.setProtocol(protocols::Ws2801Protocol{}, {}); }
+};
 
-// --- Full bundles (protocol + transport + pixel count) ---
+struct lpd8806 {
+    void configure(BusBuilder& b) { b.setProtocol(protocols::Lpd8806Protocol{}, {}); }
+};
 
-/// WS2812 on RP2040 PIO.
-BusBuilder ws2812xPio(size_t pixelCount, int pin);
-/// WS2812 on hardware SPI.
-BusBuilder ws2812xSpi(size_t pixelCount);
-/// DotStar on hardware SPI.
-BusBuilder dotstarSpi(size_t pixelCount);
-/// APA102 on hardware SPI.
-BusBuilder apa102Spi(size_t pixelCount);
-/// WS2801 on hardware SPI.
-BusBuilder ws2801Spi(size_t pixelCount);
+struct tm1814 {
+    void configure(BusBuilder& b) { b.setProtocol(protocols::Tm1814Protocol{}, {}); }
+};
+
+struct p9813 {
+    void configure(BusBuilder& b) { b.setProtocol(protocols::P9813Protocol{}, {}); }
+};
+
+// --- Transport presets ---
+
+struct spi {
+    void configure(BusBuilder& b) { b.setTransport(transports::SpiTransport{}); }
+};
+
+struct rp_pio {
+    int pin = -1;
+    void configure(BusBuilder& b) { b.setTransport(transports::RpPioTransport{pin}); }
+};
+
+// --- Shader presets ---
+
+struct brightness {
+    uint8_t level = 255;
+    void configure(BusBuilder& b) { b.addShader(protocols::BrightnessShader{level}); }
+};
+
+struct gamma {
+    float value = 2.2f;
+    void configure(BusBuilder& b) { b.addShader(protocols::GammaShader{value}); }
+};
 
 } // namespace lw::buses::presets
 ```
 
-**Usage:** Presets return a `BusBuilder` by value, so the caller can continue the chain:
-
-```cpp
-// Full preset: WS2812 strip on RP2040 PIO pin 2 with brightness
-
-auto bus = lw::buses::presets::ws2812xPio(60, 2)
-    .addShader(lw::protocols::BrightnessShader{128})
-    .build();
-
-// Protocol-only preset: caller supplies transport and shaders
-
-auto bus = lw::buses::presets::dotstar(144)
-    .setTransport(lw::transports::SpiTransport{})
-    .addShader(lw::protocols::GammaShader{2.2f})
-    .build();
-
-// Multi-strip with presets
-
-auto bus = lw::buses::presets::ws2801Spi(30)   // strip 1: WS2801 via SPI
-    .addRun(0, 30)                                // pixels [0, 30)
-    .setTransport(lw::transports::RpPioTransport{3})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-    .addRun(30, 60)                               // strip 2: pixels [30, 90)
-    .build();
-```
-
 **Key design properties:**
 
-- **Non-breaking:** Presets are additive. `setTransport`/`setProtocol` remain the explicit path.
-- **Discoverable:** Each chip family has named presets — no need to memorize protocol class names.
-- **Composable:** Preset return values are ordinary `BusBuilder` objects; shaders, runs, and transport can be added after.
-- **Testable:** Each preset is a thin wrapper that can be tested by verifying the resulting builder configuration.
-- **No template propagation:** Presets are plain functions, not templates (they internally use the templated `setTransport`/`setProtocol` but the preset signature is non-template).
+- **Protocol and transport are never bundled.** The user always picks both independently: `addStrip(ws2812x{}, rp_pio{2})`.
+- **Presets are plain structs with public fields.** Default values can be overridden inline: `addStrip(ws2812x{.channelOrder = "RGB"}, rp_pio{.pin = 5})`.
+- **Composable.** Any third-party code can define a preset by providing `configure(BusBuilder&)` — no inheritance required.
+- **Non-breaking.** `setTransport`/`setProtocol`/`addRun` remain the explicit low-level path.
+- **SFINAE-friendly.** `is_preset<T>` gives clear compile errors if a non-preset type is passed to `addStrip`.
+- **No template propagation.** Presets are concrete types; the SFINAE gate is internal to `addStrip`.
 
 **Comparison to NeoPixelBus:**
 
 | Concept | NeoPixelBus | LumaWave |
 |---------|-------------|----------|
-| Color order | `T_COLOR_FEATURE` template param (`NeoGrbFeature`) | `channelOrder` in `ProtocolSettings` (runtime) |
-| Protocol timing | `T_METHOD` template param (`Neo800KbpsMethod`) | Chosen by `Protocol` subclass (`Ws2812xProtocol`) |
-| Transport hardware | Bundled inside `T_METHOD` | Separate `Transport` subclass (`RpPioTransport`) |
-| Convenience | `NeoPixelBus<Feature, Method>` typedef | `presets::ws2812xPio(count, pin)` function |
+| Color order | `T_COLOR_FEATURE` template param (`NeoGrbFeature`) | `channelOrder` field on protocol preset struct |
+| Protocol timing | `T_METHOD` template param (`Neo800KbpsMethod`) | Chosen by which protocol preset struct is used |
+| Transport hardware | Bundled inside `T_METHOD` | Separate transport preset struct (`spi`, `rp_pio`) |
+| Convenience | `NeoPixelBus<Feature, Method>` typedef | `addStrip(ws2812x{}, rp_pio{2})` |
 
 ### Internal Architecture
 
@@ -416,28 +460,32 @@ graph TD
         A[BusBuilder::setTransport&lt;T&gt;]
         B[BusBuilder::setProtocol&lt;T&gt;]
         C[BusBuilder::addShader&lt;T&gt;]
-        D[BusBuilder::addRun]
-        E[BusBuilder::build / buildInto]
+        D[BusBuilder::addStrip&lt;Proto,Trans,Shader&gt;]
+        E[BusBuilder::addRun]
+        F[BusBuilder::build / buildInto]
     end
 
     subgraph "Internal (type-erased)"
-        F[TransportHolder]
-        G[ProtocolHolder]
-        H[ShaderList]
-        I[BufferManager]
-        J[BusStorage concept]
+        G[TransportHolder]
+        H[ProtocolHolder]
+        I[ShaderList]
+        J[BufferManager]
+        K[BusStorage concept]
     end
 
     subgraph "Result"
-        K[IPixelBus*]
-        L[Bus + PipelineRun array + ProtocolTransportPipeline(s)]
+        L[IPixelBus*]
+        M[Bus + PipelineRun array + ProtocolTransportPipeline(s)]
     end
 
-    A --> F
-    B --> G
-    C --> H
+    A --> G
+    B --> H
+    C --> I
+    D --> G
+    D --> H
     D --> I
-    E --> J --> L --> K
+    E --> J
+    F --> K --> M --> L
 ```
 
 ### Ownership Model
@@ -524,6 +572,6 @@ The plan is additive:
 | BBL-DEC-5 | `todo` | Should `BusBuilder` use `std::any` / `std::function` for type erasure, or a custom vtable approach? | Custom vtable avoids RTTI and exception overhead, which matters for `-fno-rtti -fno-exceptions` embedded targets. A hand-rolled `TransportHolder` with a `unique_ptr<TransportBase>` + move-only semantics is preferred. |
 | BBL-DEC-6 | `todo` | What is the error handling strategy for `build()`? | Options: (a) return `nullptr` on failure, (b) return `expected<unique_ptr<IPixelBus>, Error>` (C++23 style), (c) assert/abort. Given embedded constraints, option (a) or (c) is most practical. The builder can also have a `validate()` method for early checking. |
 | BBL-DEC-7 | `todo` | Should `setPixelStorage()` and `setPixelCount()` be mutually exclusive, or should `setPixelStorage()` override `setPixelCount()`? | Mutual exclusion is clearer and avoids ambiguity about which allocation is authoritative. The builder should reject (at runtime) a configuration that calls both. Should `buildInto()` with `StackBusStorage` also support external pixels, or is that only for `build()`? If `StackBusStorage` owns pixel memory by definition, external pixels would need a different storage concept (e.g., `StackBusStorageNoPixels`). |
-| BBL-DEC-8 | `todo` | Should presets live as static methods on `BusBuilder` or as free functions in `lw::buses::presets`? | Free functions in a `presets` namespace keep `BusBuilder` focused and avoid coupling the builder to every protocol/transport header. Presets can be included selectively via a `BusPresets.h` convenience header. |
-| BBL-DEC-9 | `todo` | Should full-bundle presets (protocol+transport) set default pin assignments, or require explicit pin arguments? | Transport-only presets (e.g., `ws2812xSpi`) can use default SPI pins. PIO/bitbang presets should require explicit pin arguments since there is no universal default. |
-| BBL-DEC-10 | `todo` | How should presets be organized — one header per chip family, a single `BusPresets.h`, or inline in protocol headers? | A single `src/buses/BusPresets.h` that includes only the presets the user requests (via `#include` of specific protocol headers) keeps compile times low and discoverability high. Protocol headers themselves should not depend on `BusBuilder`. |
+| BBL-DEC-8 | `todo` | Should `addStrip` SFINAE use a single `is_preset<T>` gate or separate `is_protocol_preset` / `is_transport_preset` tags? | A single `is_preset` is simpler — presets are distinguished by argument position. If stronger type safety is needed later, a `preset_category` typedef can be added without breaking the `configure()` contract. |
+| BBL-DEC-9 | `todo` | Should preset structs live in `lw::buses::presets` or be declared inline alongside protocol/transport headers? | A single `src/buses/BusPresets.h` keeps discoverability high. Protocol/transport headers must not depend on `BusBuilder`. |
+| BBL-DEC-10 | `todo` | Should `addStrip` without offset+length always defer the run to `build()`, or add it eagerly? | Deferring to `build()` for the non-offset overloads matches the existing `addRun` semantics. The offset+length overloads add the run immediately (since they exist for multi-strip). |
