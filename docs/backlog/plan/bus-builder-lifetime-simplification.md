@@ -34,6 +34,8 @@
 | Tests — StackPixelBus | `test/busses/test_pixel_bus/test_main.cpp` | Static template construction |
 | Tests — PixelBus | `test/busses/test_pixel_bus_dynamic/test_main.cpp` | Dynamic template construction |
 | Inventory | `docs/internal/platform-transport-inventory.md` | Full transport catalog |
+| Presets (planned) | `src/buses/BusPresets.h` | `lw::buses::presets` convenience functions |
+| Reference: NeoPixelBus | `NeoPixelBus.h` (Makuna) | `T_COLOR_FEATURE` + `T_METHOD` composition, `NeoGrbFeature`, `Neo800KbpsMethod` |
 
 ## Current State
 
@@ -146,6 +148,8 @@ These costs make it harder to add new bus topologies (e.g., matrix, serpentine),
 7. **Clear error messages.** Misconfiguration (e.g., forgetting to attach a transport) should produce a comprehensible compile-time or runtime error, not a cryptic template backtrace.
 
 8. **External pixel buffer support.** Allow callers to provide a pre-allocated pixel buffer that the bus writes into directly, enabling zero-copy integration with frameworks (e.g., WLED) that manage their own LED buffer arrays. The external buffer path must not force a heap allocation for pixel storage.
+
+9. **Discoverable protocol/transport presets.** Common chip+transport combinations should be available as named convenience functions so users don't need to know which `Protocol` subclass and `Transport` subclass to pair. Inspired by NeoPixelBus's `NeoGrbFeature` + `Neo800KbpsMethod` pattern, presets collapse the two-axis choice (what chip? what hardware?) into discoverable one-liners.
 
 ## Non-Goals
 
@@ -305,6 +309,103 @@ bus.pixels()[0] = lw::pixelFromRGB(255, 0, 255);
 bus.show();
 ```
 
+### Protocol/Transport Presets
+
+NeoPixelBus composes two orthogonal template parameters — **Color Feature** (RGB, GRB, BGR, WRGB byte order) and **Method** (800Kbps, 400Kbps, DotStar SPI, DMA) — into well-known combinations like `NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod>`. Users pick from a catalog of named types rather than wiring raw protocol settings.
+
+LumaWave's analog uses **preset functions** that return a partially-configured `BusBuilder`. Because LumaWave's protocols already bundle color feature + byte encoding, and transports are a separate choice, presets collapse the common pairings into discoverable factory functions.
+
+**Design:** Presets live in `lw::buses::presets` as free functions returning `BusBuilder` by value.
+
+```cpp
+namespace lw::buses::presets
+{
+
+// --- Protocol-only presets (caller adds transport) ---
+
+/// WS2812-family (one-wire, GRB color order).
+BusBuilder ws2812x(size_t pixelCount);
+/// WS2812 with RGB color order.
+BusBuilder ws2812xRgb(size_t pixelCount);
+/// WS2812 with WRGB (RGB+White) color order.
+BusBuilder ws2812xWrgb(size_t pixelCount);
+
+/// DotStar / APA102 / SK9822 (two-wire SPI, BGR color order).
+BusBuilder dotstar(size_t pixelCount);
+/// APA102 with RGB color order.
+BusBuilder apa102Rgb(size_t pixelCount);
+
+/// WS2801 (two-wire SPI, RGB color order).
+BusBuilder ws2801(size_t pixelCount);
+
+/// LPD8806 (two-wire SPI, GRB color order).
+BusBuilder lpd8806(size_t pixelCount);
+
+/// TM1814 (one-wire, WRGB color order, current-control capable).
+BusBuilder tm1814(size_t pixelCount);
+
+/// P9813 (two-wire SPI, BGR color order with checksum).
+BusBuilder p9813(size_t pixelCount);
+
+// --- Full bundles (protocol + transport + pixel count) ---
+
+/// WS2812 on RP2040 PIO.
+BusBuilder ws2812xPio(size_t pixelCount, int pin);
+/// WS2812 on hardware SPI.
+BusBuilder ws2812xSpi(size_t pixelCount);
+/// DotStar on hardware SPI.
+BusBuilder dotstarSpi(size_t pixelCount);
+/// APA102 on hardware SPI.
+BusBuilder apa102Spi(size_t pixelCount);
+/// WS2801 on hardware SPI.
+BusBuilder ws2801Spi(size_t pixelCount);
+
+} // namespace lw::buses::presets
+```
+
+**Usage:** Presets return a `BusBuilder` by value, so the caller can continue the chain:
+
+```cpp
+// Full preset: WS2812 strip on RP2040 PIO pin 2 with brightness
+
+auto bus = lw::buses::presets::ws2812xPio(60, 2)
+    .addShader(lw::protocols::BrightnessShader{128})
+    .build();
+
+// Protocol-only preset: caller supplies transport and shaders
+
+auto bus = lw::buses::presets::dotstar(144)
+    .setTransport(lw::transports::SpiTransport{})
+    .addShader(lw::protocols::GammaShader{2.2f})
+    .build();
+
+// Multi-strip with presets
+
+auto bus = lw::buses::presets::ws2801Spi(30)   // strip 1: WS2801 via SPI
+    .addRun(0, 30)                                // pixels [0, 30)
+    .setTransport(lw::transports::RpPioTransport{3})
+    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
+    .addRun(30, 60)                               // strip 2: pixels [30, 90)
+    .build();
+```
+
+**Key design properties:**
+
+- **Non-breaking:** Presets are additive. `setTransport`/`setProtocol` remain the explicit path.
+- **Discoverable:** Each chip family has named presets — no need to memorize protocol class names.
+- **Composable:** Preset return values are ordinary `BusBuilder` objects; shaders, runs, and transport can be added after.
+- **Testable:** Each preset is a thin wrapper that can be tested by verifying the resulting builder configuration.
+- **No template propagation:** Presets are plain functions, not templates (they internally use the templated `setTransport`/`setProtocol` but the preset signature is non-template).
+
+**Comparison to NeoPixelBus:**
+
+| Concept | NeoPixelBus | LumaWave |
+|---------|-------------|----------|
+| Color order | `T_COLOR_FEATURE` template param (`NeoGrbFeature`) | `channelOrder` in `ProtocolSettings` (runtime) |
+| Protocol timing | `T_METHOD` template param (`Neo800KbpsMethod`) | Chosen by `Protocol` subclass (`Ws2812xProtocol`) |
+| Transport hardware | Bundled inside `T_METHOD` | Separate `Transport` subclass (`RpPioTransport`) |
+| Convenience | `NeoPixelBus<Feature, Method>` typedef | `presets::ws2812xPio(count, pin)` function |
+
 ### Internal Architecture
 
 The builder uses type erasure internally to avoid template propagation across the builder chain:
@@ -423,3 +524,6 @@ The plan is additive:
 | BBL-DEC-5 | `todo` | Should `BusBuilder` use `std::any` / `std::function` for type erasure, or a custom vtable approach? | Custom vtable avoids RTTI and exception overhead, which matters for `-fno-rtti -fno-exceptions` embedded targets. A hand-rolled `TransportHolder` with a `unique_ptr<TransportBase>` + move-only semantics is preferred. |
 | BBL-DEC-6 | `todo` | What is the error handling strategy for `build()`? | Options: (a) return `nullptr` on failure, (b) return `expected<unique_ptr<IPixelBus>, Error>` (C++23 style), (c) assert/abort. Given embedded constraints, option (a) or (c) is most practical. The builder can also have a `validate()` method for early checking. |
 | BBL-DEC-7 | `todo` | Should `setPixelStorage()` and `setPixelCount()` be mutually exclusive, or should `setPixelStorage()` override `setPixelCount()`? | Mutual exclusion is clearer and avoids ambiguity about which allocation is authoritative. The builder should reject (at runtime) a configuration that calls both. Should `buildInto()` with `StackBusStorage` also support external pixels, or is that only for `build()`? If `StackBusStorage` owns pixel memory by definition, external pixels would need a different storage concept (e.g., `StackBusStorageNoPixels`). |
+| BBL-DEC-8 | `todo` | Should presets live as static methods on `BusBuilder` or as free functions in `lw::buses::presets`? | Free functions in a `presets` namespace keep `BusBuilder` focused and avoid coupling the builder to every protocol/transport header. Presets can be included selectively via a `BusPresets.h` convenience header. |
+| BBL-DEC-9 | `todo` | Should full-bundle presets (protocol+transport) set default pin assignments, or require explicit pin arguments? | Transport-only presets (e.g., `ws2812xSpi`) can use default SPI pins. PIO/bitbang presets should require explicit pin arguments since there is no universal default. |
+| BBL-DEC-10 | `todo` | How should presets be organized — one header per chip family, a single `BusPresets.h`, or inline in protocol headers? | A single `src/buses/BusPresets.h` that includes only the presets the user requests (via `#include` of specific protocol headers) keeps compile times low and discoverability high. Protocol headers themselves should not depend on `BusBuilder`. |
