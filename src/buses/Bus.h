@@ -20,7 +20,7 @@ struct PipelineRun
 class Bus : public IPixelBus
 {
 public:
-  Bus(span<lw::Color> pixelStorage, span<const PipelineRun> runs) : _pixels(pixelStorage), _runs(runs) {}
+  Bus(span<lw::Pixel> pixelStorage, span<const PipelineRun> runs) : _pixels(pixelStorage), _runs(runs) {}
 
   void begin() override
   {
@@ -50,7 +50,7 @@ public:
     {
       if (run.pipeline && run.length > 0)
       {
-        run.pipeline->write(span<const lw::Color>{_pixels.data() + offset, run.length});
+        run.pipeline->write(span<const lw::Pixel>{_pixels.data() + offset, run.length});
       }
       offset += run.length;
     }
@@ -71,18 +71,18 @@ public:
     return true;
   }
 
-  span<lw::Color>& pixels() override
+  span<lw::Pixel>& pixels() override
   {
     _dirty = true;
     return _pixels;
   }
 
-  const span<lw::Color>& pixels() const override { return _pixels; }
+  const span<lw::Pixel>& pixels() const override { return _pixels; }
 
   span<const PipelineRun> runs() const { return _runs; }
 
 private:
-  span<lw::Color> _pixels;
+  span<lw::Pixel> _pixels;
   span<const PipelineRun> _runs;
   bool _dirty{true};
 };

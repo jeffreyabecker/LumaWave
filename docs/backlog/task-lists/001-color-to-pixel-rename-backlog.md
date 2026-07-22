@@ -93,9 +93,12 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 | Function | `setColorR/G/B/W()` | `setPixelR/G/B/W()` |
 | Function | `colorFromRGB/W()` | `pixelFromRGB/W()` |
 | Function | `colorComponentByTag()` | `pixelComponentByTag()` |
-| Function | `setColorComponentByTag()` | `setPixelComponentByTag()` |
-| Function | `colorComponentByIndex()` | `pixelComponentByIndex()` |
-| Function | `colorCompare()` | `pixelCompare()` |
+| Function | `setColorComponentByTag()` | (removed — replaced by `mapChannels`) |
+| Function | `colorComponentByIndex()` | (removed — uncalled) |
+| Function | `colorCompare()` | (removed — uncalled) |
+| Function | `serializeColor()` | (removed — uncalled) |
+| Function | `parseColor()` | (removed — uncalled) |
+| Function | `applyBrightness()` | (moved to `BrightnessShader` as private static) |
 | Macro | `LW_COLOR_COMPONENT_SIZE` | `LW_PIXEL_COMPONENT_SIZE` |
 | File | `src/core/Color.h` | `src/core/Pixel.h` |
 | Alias (protocols) | `ColorType` | `PixelType` |
@@ -125,7 +128,7 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-01 | done | Rename `src/core/Color.h` to `src/core/Pixel.h` and update all internal type/function/constant names | — | File renamed; `Color` → `Pixel`, `ColorComponent` → `PixelComponent`, `ColorComponentBitDepth` → `PixelComponentBitDepth`, `colorBits` → `pixelBits`, `colorMask` → `pixelMask`, `colorR/G/B/W` → `pixelR/G/B/W`, `setColorR/G/B/W` → `setPixelR/G/B/W`, `colorFromRGB/W` → `pixelFromRGB/W`, `colorComponentByTag` → `pixelComponentByTag`, `setColorComponentByTag` → `setPixelComponentByTag`, `colorComponentByIndex` → `pixelComponentByIndex`, `colorCompare` → `pixelCompare`, `serializeColor` → `serializePixel`, `parseColor` → `parsePixel`, `tryParseColor` → `tryParsePixel` |
+| CPR-01 | done | Rename `src/core/Color.h` to `src/core/Pixel.h` and update all internal type/function/constant names | — | File renamed; `Color`→`Pixel`, `ColorComponent`→`PixelComponent`, `ColorComponentBitDepth`→`PixelComponentBitDepth`, `colorBits`→`pixelBits`, `colorMask`→`pixelMask`, `colorR/G/B/W`→`pixelR/G/B/W`, `setColorR/G/B/W`→`setPixelR/G/B/W`, `colorFromRGB/W`→`pixelFromRGB/W`, `colorComponentByTag`→`pixelComponentByTag`, `tryParseColor`→`tryParsePixel`; removed: `setPixelComponentByTag` (replaced by mapChannels), `pixelComponentByIndex`, `pixelCompare`, `serializePixel`/`parsePixel` (all uncalled), pixel-level `applyBrightness` (moved to BrightnessShader) |
 | CPR-02 | done | Rename `LW_COLOR_COMPONENT_SIZE` to `LW_PIXEL_COMPONENT_SIZE` in `src/core/Compat.h` | — | Macro renamed; no remaining references to old name in Compat.h |
 | CPR-03 | done | Update all `#include "core/Color.h"` to `#include "core/Pixel.h"` across `src/`, `test/`, `examples/` | CPR-01 | All 18 include directives updated; compilation succeeds |
 
@@ -154,7 +157,7 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 | CPR-31 | todo | Update `Protocol.h` — `ColorType` → `PixelType`, `lw::Color` → `lw::Pixel` | CPR-01 | Alias and type references updated |
 | CPR-32 | todo | Update `IShader.h` — `lw::Color` → `lw::Pixel` in `apply()` signature | CPR-01 | Signature updated |
 | CPR-33 | todo | Update `ShaderProtocol.h` — `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
-| CPR-34 | todo | Update `BrightnessShader.h` — `BrightnessType = lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
+| CPR-34 | done | Update `BrightnessShader.h` — `BrightnessType = lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
 | CPR-35 | todo | Update `GammaShader.h` — `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
 | CPR-36 | todo | Update `DotStarProtocol.h` — `InterfaceColorType` → `InterfacePixelType`, `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01 | All type/function references updated |
 | CPR-37 | todo | Update `Ws2812xProtocol.h` — `lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01 | All type/function references updated; `static_assert` message updated |
@@ -165,10 +168,10 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-50 | todo | Update `Bus.h` — `#include "core/Color.h"` → `"core/Pixel.h"`, `span<Color>` → `span<Pixel>` | CPR-01, CPR-03 | All includes and type references updated |
-| CPR-51 | todo | Update `PixelBus.h` — `span<Color>` → `span<Pixel>` | CPR-01 | All type references updated |
-| CPR-52 | todo | Update `StackPixelBus.h` — `span<Color>` → `span<Pixel>` | CPR-01 | All type references updated |
-| CPR-53 | todo | Update `ProtocolTransportPipeline.h` — includes and type references | CPR-01, CPR-03 | All includes and type references updated |
+| CPR-50 | done | Update `Bus.h` — `#include "core/Color.h"` → `"core/Pixel.h"`, `span<Color>` → `span<Pixel>` | CPR-01, CPR-03 | All includes and type references updated |
+| CPR-51 | done | Update `PixelBus.h` — `span<Color>` → `span<Pixel>` | CPR-01 | All type references updated |
+| CPR-52 | done | Update `StackPixelBus.h` — `span<Color>` → `span<Pixel>` | CPR-01 | All type references updated |
+| CPR-53 | done | Update `ProtocolTransportPipeline.h` — includes and type references | CPR-01, CPR-03 | All includes and type references updated |
 
 ## Phase 5 — Remaining Core (`src/core/`)
 

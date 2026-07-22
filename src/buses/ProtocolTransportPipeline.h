@@ -29,7 +29,7 @@ public:
 
   bool alwaysUpdate() const override { return _protocol.alwaysUpdate(); }
 
-  void write(span<const lw::Color> colors) override
+  void write(span<const lw::Pixel> colors) override
   {
     if (colors.empty())
     {

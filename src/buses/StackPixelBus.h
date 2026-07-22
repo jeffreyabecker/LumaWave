@@ -30,8 +30,8 @@ public:
   // Default-constructs all shaders
   StackPixelBus(ProtocolSettings protocolSettings = {}, TransportSettings transportSettings = {})
       : _protocol(NPixelCount, std::move(protocolSettings)), _transport(std::move(transportSettings)),
-        _shaderProto(_protocol, lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}, lw::span<lw::Color>{_scratchPixels, HasShaders ? NPixelCount : 0u}),
-        _pipeline(_shaderProto, _transport, lw::span<uint8_t>{_protocolBuffer}), _run{&_pipeline, NPixelCount}, _bus(lw::span<lw::Color>{_pixels}, lw::span<const lw::buses::PipelineRun>{&_run, 1})
+        _shaderProto(_protocol, lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}, lw::span<lw::Pixel>{_scratchPixels, HasShaders ? NPixelCount : 0u}),
+        _pipeline(_shaderProto, _transport, lw::span<uint8_t>{_protocolBuffer}), _run{&_pipeline, NPixelCount}, _bus(lw::span<lw::Pixel>{_pixels}, lw::span<const lw::buses::PipelineRun>{&_run, 1})
   {
     populateShaderPtrs(std::index_sequence_for<TShaders...>{});
   }
@@ -40,8 +40,8 @@ public:
   template <typename... TShaderArgTuples, typename = std::enable_if_t<(sizeof...(TShaderArgTuples) > 0)>>
   StackPixelBus(ProtocolSettings protocolSettings, TransportSettings transportSettings, TShaderArgTuples&&... shaderArgs)
       : _shaders{std::make_from_tuple<TShaders>(std::forward<TShaderArgTuples>(shaderArgs))...}, _protocol(NPixelCount, std::move(protocolSettings)), _transport(std::move(transportSettings)),
-        _shaderProto(_protocol, lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}, lw::span<lw::Color>{_scratchPixels, HasShaders ? NPixelCount : 0u}),
-        _pipeline(_shaderProto, _transport, lw::span<uint8_t>{_protocolBuffer}), _run{&_pipeline, NPixelCount}, _bus(lw::span<lw::Color>{_pixels}, lw::span<const lw::buses::PipelineRun>{&_run, 1})
+        _shaderProto(_protocol, lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}, lw::span<lw::Pixel>{_scratchPixels, HasShaders ? NPixelCount : 0u}),
+        _pipeline(_shaderProto, _transport, lw::span<uint8_t>{_protocolBuffer}), _run{&_pipeline, NPixelCount}, _bus(lw::span<lw::Pixel>{_pixels}, lw::span<const lw::buses::PipelineRun>{&_run, 1})
   {
     populateShaderPtrs(std::index_sequence_for<TShaders...>{});
   }
@@ -50,15 +50,15 @@ public:
   void show() override { _bus.show(); }
   bool isReadyToUpdate() const override { return _bus.isReadyToUpdate(); }
 
-  lw::span<lw::Color>& pixels() override { return _bus.pixels(); }
-  const lw::span<lw::Color>& pixels() const override { return _bus.pixels(); }
+  lw::span<lw::Pixel>& pixels() override { return _bus.pixels(); }
+  const lw::span<lw::Pixel>& pixels() const override { return _bus.pixels(); }
 
 private:
-  lw::Color _pixels[NPixelCount]{};
+  lw::Pixel _pixels[NPixelCount]{};
   TProtocol _protocol;
   TTransport _transport;
   uint8_t _protocolBuffer[ProtocolBufferSize]{};
-  lw::Color _scratchPixels[HasShaders ? NPixelCount : 1]{};
+  lw::Pixel _scratchPixels[HasShaders ? NPixelCount : 1]{};
   std::tuple<TShaders...> _shaders{};
   std::array<lw::protocols::IShader*, sizeof...(TShaders)> _shaderPtrs{};
   lw::protocols::ShaderProtocol _shaderProto;
