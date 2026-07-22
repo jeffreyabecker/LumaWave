@@ -188,17 +188,17 @@ struct KelvinToRgbExactStrategy
       blue = 255;
     }
 
-    return {scaleComponent<ColorComponent>(static_cast<uint8_t>(std::clamp(red, int32_t{0}, int32_t{255}))), scaleComponent<ColorComponent>(static_cast<uint8_t>(std::clamp(green, int32_t{0}, int32_t{255}))),
-            scaleComponent<ColorComponent>(static_cast<uint8_t>(std::clamp(blue, int32_t{0}, int32_t{255})))};
+    return {scaleComponent<PixelComponent>(static_cast<uint8_t>(std::clamp(red, int32_t{0}, int32_t{255}))), scaleComponent<PixelComponent>(static_cast<uint8_t>(std::clamp(green, int32_t{0}, int32_t{255}))),
+            scaleComponent<PixelComponent>(static_cast<uint8_t>(std::clamp(blue, int32_t{0}, int32_t{255})))};
   }
 };
 
 struct KelvinToRgbIntegerStrategy
 {
-  static constexpr uint16_t MinKelvin = KelvinToRgbExactStrategy<ColorComponent>::MinKelvin;
-  static constexpr uint16_t MaxKelvin = KelvinToRgbExactStrategy<ColorComponent>::MaxKelvin;
+  static constexpr uint16_t MinKelvin = KelvinToRgbExactStrategy<PixelComponent>::MinKelvin;
+  static constexpr uint16_t MaxKelvin = KelvinToRgbExactStrategy<PixelComponent>::MaxKelvin;
 
-  static constexpr uint16_t clampKelvin(uint16_t kelvin) { return KelvinToRgbExactStrategy<ColorComponent>::clampKelvin(kelvin); }
+  static constexpr uint16_t clampKelvin(uint16_t kelvin) { return KelvinToRgbExactStrategy<PixelComponent>::clampKelvin(kelvin); }
 
   static KelvinRgb convert(uint16_t kelvin)
   {
@@ -209,7 +209,7 @@ struct KelvinToRgbIntegerStrategy
     const uint8_t green = Math::evaluateGreen(clampedKelvin);
     const uint8_t blue = Math::evaluateBlue(clampedKelvin);
 
-    return {scaleComponent<ColorComponent>(red), scaleComponent<ColorComponent>(green), scaleComponent<ColorComponent>(blue)};
+    return {scaleComponent<PixelComponent>(red), scaleComponent<PixelComponent>(green), scaleComponent<PixelComponent>(blue)};
   }
 };
 
@@ -243,7 +243,7 @@ struct KelvinToRgbLut64Strategy
 private:
   using Rgb8 = std::array<uint8_t, 3>;
 
-  static KelvinRgb scaleEntry(const Rgb8& entry) { return {scaleComponent<ColorComponent>(entry[0]), scaleComponent<ColorComponent>(entry[1]), scaleComponent<ColorComponent>(entry[2])}; }
+  static KelvinRgb scaleEntry(const Rgb8& entry) { return {scaleComponent<PixelComponent>(entry[0]), scaleComponent<PixelComponent>(entry[1]), scaleComponent<PixelComponent>(entry[2])}; }
 
   static constexpr std::array<Rgb8, TablePointCount> makeTable()
   {

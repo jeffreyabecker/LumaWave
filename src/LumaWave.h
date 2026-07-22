@@ -9,21 +9,21 @@
 #ifndef LW_USE_EXPLICIT_NAMESPACES
 
 using pixel_count_t = lw::PixelCount;
-using Color = lw::Color;
+using Pixel = lw::Pixel;
 
-using lw::colorB;
-using lw::colorComponentByTag;
-using lw::colorFromRGB;
-using lw::colorFromRGBW;
-using lw::colorG;
-using lw::colorR;
-using lw::colorW;
+using lw::pixelB;
+using lw::pixelComponentByTag;
+using lw::pixelFromRGB;
+using lw::pixelFromRGBW;
+using lw::pixelG;
+using lw::pixelR;
+using lw::pixelW;
 
-using lw::setColorB;
-using lw::setColorG;
-using lw::setColorR;
-using lw::setColorW;
-using lw::tryParseColor;
+using lw::setPixelB;
+using lw::setPixelG;
+using lw::setPixelR;
+using lw::setPixelW;
+using lw::tryParsePixel;
 
 using lw::fillPixels;
 using lw::fillPixelsIndexed;

@@ -17,7 +17,7 @@ public:
 
   virtual bool isReadyToUpdate() const { return true; }
 
-  virtual void write(span<const lw::Color> colors) { (void)colors; }
+  virtual void write(span<const lw::Pixel> colors) { (void)colors; }
 
   virtual bool alwaysUpdate() const { return false; }
 };

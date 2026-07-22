@@ -19,8 +19,8 @@ public:
   virtual void show() = 0;
   virtual bool isReadyToUpdate() const = 0;
 
-  virtual span<Color>& pixels() = 0;
-  virtual const span<Color>& pixels() const = 0;
+  virtual span<Pixel>& pixels() = 0;
+  virtual const span<Pixel>& pixels() const = 0;
 
   virtual void setRuntimeConfig(RuntimeConfig type, void* value)
   {

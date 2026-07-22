@@ -177,16 +177,16 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-60 | todo | Update `OutputPipeline.h` — `write(span<const lw::Color>)` → `write(span<const lw::Pixel>)` | CPR-01 | Signature updated |
-| CPR-61 | todo | Update `IPixelBus.h` — includes and type references | CPR-01, CPR-03 | All references updated |
-| CPR-62 | todo | Update `Fill.h` — includes and type references | CPR-01, CPR-03 | All references updated |
-| CPR-63 | todo | Update `KelvinToRgbStrategies.h` — `ColorComponent` → `PixelComponent` | CPR-01 | All references updated |
+| CPR-60 | done | Update `OutputPipeline.h` — `write(span<const lw::Color>)` → `write(span<const lw::Pixel>)` | CPR-01 | Signature updated |
+| CPR-61 | done | Update `IPixelBus.h` — includes and type references | CPR-01, CPR-03 | All references updated |
+| CPR-62 | done | Update `Fill.h` — includes and type references | CPR-01, CPR-03 | All references updated |
+| CPR-63 | done | Update `KelvinToRgbStrategies.h` — `ColorComponent` → `PixelComponent` | CPR-01 | All references updated |
 
 ## Phase 6 — Public API (`src/LumaWave.h`)
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-70 | todo | Update all `using` declarations: `Color` → `Pixel`, and all `using lw::color*` → `using lw::pixel*` | CPR-01 | All 16 using declarations updated; `using Pixel = lw::Pixel`; `using lw::pixelB/G/R/W`, `using lw::pixelCompare`, `using lw::pixelComponentByIndex/Tag`, `using lw::pixelFromRGB/W`, `using lw::parsePixel`, `using lw::serializePixel`, `using lw::setPixelB/G/R/W`, `using lw::setPixelComponentByTag`, `using lw::tryParsePixel` |
+| CPR-70 | done | Update all `using` declarations: `Color` → `Pixel`, and all `using lw::color*` → `using lw::pixel*` | CPR-01 | `using Pixel = lw::Pixel`; `using lw::pixelB/G/R/W`, `using lw::pixelComponentByTag`, `using lw::pixelFromRGB/W`, `using lw::setPixelB/G/R/W`, `using lw::tryParsePixel`; removed: `pixelCompare`, `pixelComponentByIndex`, `parsePixel`, `serializePixel`, `setPixelComponentByTag` (not in public API) |
 
 ## Phase 7 — Tests
 
