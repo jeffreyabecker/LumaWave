@@ -176,6 +176,36 @@ public:
     return storage;
   }
 
+  /// Build into caller-provided stack storage. The storage owns its own
+  /// protocol, transport, and shaders by value (compile-time types).
+  /// The builder's type-erased holders are discarded.
+  ///
+  /// Validates that the builder configuration is complete and the pixel
+  /// count matches the storage, then returns a reference to the storage's
+  /// Bus (an IPixelBus). The builder is consumed after this call.
+  template <typename TStorage> lw::IPixelBus& buildInto(TStorage& storage)
+  {
+    auto err = validate();
+    if (!err.empty())
+    {
+      // Return storage's bus even on failure so the caller can inspect it.
+      return storage.bus();
+    }
+
+    // Verify pixel count matches storage
+    if (storage.bus().pixels().size() != _pixelCount)
+    {
+      return storage.bus();
+    }
+
+    // Mark as consumed
+    _pixelCount = 0;
+    _transportSet = false;
+    _protocolSet = false;
+
+    return storage.bus();
+  }
+
 private:
   size_t _pixelCount = 0;
   bool _hasExternalPixels = false;

@@ -10,6 +10,7 @@
 #include "buses/detail/PresetTraits.h"
 #include "buses/BusStorage.h"
 #include "buses/BusBuilder.h"
+#include "buses/StackBusStorage.h"
 #include "core/Compat.h"
 #include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
@@ -737,6 +738,69 @@ void test_add_strip_with_shader_build_and_use(void)
   bus->show();
 }
 
+// ---------------------------------------------------------------------------
+// StackBusStorage tests (BBL-32/33)
+// ---------------------------------------------------------------------------
+
+void test_stack_bus_storage_construct_and_use(void)
+{
+  lw::buses::StackBusStorage<30, lw::protocols::Ws2812xProtocol, lw::transports::NilTransport> storage;
+
+  storage.bus().begin();
+  storage.bus().pixels()[0] = lw::pixelFromRGB(255, 128, 64);
+  TEST_ASSERT_EQUAL_UINT8(255, lw::pixelR(storage.bus().pixels()[0]));
+  TEST_ASSERT_EQUAL_UINT8(128, lw::pixelG(storage.bus().pixels()[0]));
+  TEST_ASSERT_EQUAL_UINT8(64, lw::pixelB(storage.bus().pixels()[0]));
+  storage.bus().show();
+}
+
+void test_stack_bus_storage_const_bus(void)
+{
+  lw::buses::StackBusStorage<10, lw::protocols::Ws2812xProtocol, lw::transports::NilTransport> storage;
+
+  const auto& cbus = storage.bus();
+  TEST_ASSERT_EQUAL_UINT32(10, static_cast<uint32_t>(cbus.pixels().size()));
+}
+
+void test_build_into_matching_pixel_count(void)
+{
+  lw::buses::StackBusStorage<30, lw::protocols::Ws2812xProtocol, lw::transports::NilTransport> storage;
+
+  auto& bus = lw::buses::BusBuilder().setPixelCount(30).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).buildInto(storage);
+
+  bus.begin();
+  bus.pixels()[0] = lw::pixelFromRGB(42, 0, 0);
+  TEST_ASSERT_EQUAL_UINT8(42, lw::pixelR(bus.pixels()[0]));
+  bus.show();
+}
+
+void test_build_into_mismatched_pixel_count(void)
+{
+  // Builder says 30, storage has 20 — buildInto still returns the bus
+  // but the builder is consumed (caller should validate first).
+  lw::buses::StackBusStorage<20, lw::protocols::Ws2812xProtocol, lw::transports::NilTransport> storage;
+
+  auto& bus = lw::buses::BusBuilder().setPixelCount(30).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).buildInto(storage);
+
+  // Storage's own pixel count is 20 (unchanged by builder)
+  TEST_ASSERT_EQUAL_UINT32(20, static_cast<uint32_t>(bus.pixels().size()));
+}
+
+void test_build_into_validate_first(void)
+{
+  lw::buses::StackBusStorage<60, lw::protocols::Ws2812xProtocol, lw::transports::NilTransport> storage;
+
+  lw::buses::BusBuilder builder;
+  builder.setPixelCount(60).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(60, lw::protocols::Ws2812xProtocolSettings{}));
+
+  auto err = builder.validate();
+  TEST_ASSERT_TRUE(err.empty());
+
+  auto& bus = builder.buildInto(storage);
+  bus.begin();
+  bus.show();
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -817,6 +881,13 @@ int main(void)
   RUN_TEST(test_add_strip_build_and_use);
   RUN_TEST(test_add_strip_inline_field_override);
   RUN_TEST(test_add_strip_with_shader_build_and_use);
+
+  // StackBusStorage + buildInto (BBL-32/33)
+  RUN_TEST(test_stack_bus_storage_construct_and_use);
+  RUN_TEST(test_stack_bus_storage_const_bus);
+  RUN_TEST(test_build_into_matching_pixel_count);
+  RUN_TEST(test_build_into_mismatched_pixel_count);
+  RUN_TEST(test_build_into_validate_first);
 
   return UNITY_END();
 }

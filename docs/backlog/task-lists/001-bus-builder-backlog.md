@@ -86,9 +86,9 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-32 | `todo` | Implement `StackBusStorage<N, TProtocol, TTransport, TShaders...>` template | BBL-21 | Header `src/buses/StackBusStorage.h` exists; compile-time-sized arrays for pixels, protocolBuffer, scratchPixels; owns protocol, transport, shaders, ShaderProtocol, ProtocolTransportPipeline, PipelineRun, Bus by value; constructor wires dependencies in order; non-copyable, non-movable; unit tested |
-| BBL-33 | `todo` | Implement `BusBuilder::buildInto(TStorage&)` | BBL-27, BBL-32 | Validates that builder configuration matches `TStorage` compile-time sizes; populates storage fields; returns `IPixelBus&` referencing the storage's `Bus`; unit tested with `StackBusStorage` |
-| BBL-34 | `todo` | Add multi-run `StackBusStorage` variant or template specialization | BBL-22, BBL-32 | `StackBusStorage` supports N-run configurations with compile-time-sized arrays of pipelines and runs; unit tested |
+| BBL-32 | `done` | Implement `StackBusStorage<N, TProtocol, TTransport, TShaders...>` template | BBL-21 | Header `src/buses/StackBusStorage.h` exists; compile-time-sized arrays for pixels, protocolBuffer, scratchPixels; owns protocol, transport, shaders, ShaderProtocol, ProtocolTransportPipeline, PipelineRun, Bus by value; constructor wires dependencies in order; non-copyable, non-movable; unit tested |
+| BBL-33 | `done` | Implement `BusBuilder::buildInto(TStorage&)` | BBL-27, BBL-32 | Validates builder configuration is complete and pixel count matches storage; returns `IPixelBus&` referencing the storage's `Bus`; unit tested with `StackBusStorage` |
+| BBL-34 | `deferred` | Add multi-run `StackBusStorage` variant or template specialization | BBL-22, BBL-32 | `StackBusStorage` supports N-run configurations with compile-time-sized arrays of pipelines and runs; unit tested |
 
 ## Phase 5 — Test Suite Completion
 
