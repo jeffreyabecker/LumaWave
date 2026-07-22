@@ -13,7 +13,7 @@
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
 | Primary model | Hybrid: template-instantiated chipset/platform controllers attached to runtime `fl::CLEDController` linked list | Virtual-first seam model (`IPixelBus`, `Protocol`, `Transport`) with non-owning composition |
-| User-facing construction | `FastLED.addLeds<CHIPSET, ...>(...)` compile-time selection, global singleton registration | Direct `Bus(span<Color>, span<const PipelineRun>)` construction; or `PixelBus<Protocol, Transport, Shaders...>` owning wrapper |
+| User-facing construction | `FastLED.addLeds<CHIPSET, ...>(...)` compile-time selection, global singleton registration | Direct `Bus(span<Pixel>, span<const PipelineRun>)` construction; or `PixelBus<Protocol, Transport, Shaders...>` owning wrapper |
 | Runtime polymorphism | Yes at controller list level (`virtual show()/showColor()`) | Yes across all seam boundaries (`IPixelBus`, `Protocol`, `Transport`, `IShader`) |
 | Runtime reconfiguration | Limited (enable/disable controllers, selected runtime controls on some platforms) | Via `setRuntimeConfig(RuntimeConfig, void*)` on pipeline, protocol, and shader instances |
 | Heterogeneous multi-strip orchestration | Global singleton (`FastLED`) iterates registered controllers | Native via multiple `PipelineRun` entries in a caller-owned array; each run maps an `OutputPipeline*` to a pixel-count slice |
@@ -28,7 +28,7 @@ LumaWave places explicit architectural seams at bus/protocol/transport/shader bo
 
 | Concern | FastLED | LumaWave |
 |---------|---------|----------|
-| Pixel container | Caller-owned `CRGB[]` passed to controller via `setLeds` | Caller-owned `span<Color>` passed to `Bus` constructor |
+| Pixel container | Caller-owned `CRGB[]` passed to controller via `setLeds` | Caller-owned `span<Pixel>` passed to `Bus` constructor |
 | Protocol encoding | Typically embedded in chipset/controller templates | Isolated in `Protocol::update(span<const Color>, span<uint8_t>)` |
 | Hardware transfer | Platform controller classes (RMT/SPI/clockless/etc.) | Isolated in `Transport::transmitBytes(span<uint8_t>)` |
 | Protocol↔transport wiring | Implicit in controller class hierarchy | Explicit `ProtocolTransportPipeline(Protocol&, Transport&, span<uint8_t>)` |
@@ -45,7 +45,7 @@ LumaWave intentionally forces these boundaries to stay independent. Every `Proto
 
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
-| Pixel memory ownership | External by default (user array passed via `setLeds`) | External: caller passes `span<Color>` to `Bus`; `PixelBus<...>` owns internally for convenience |
+| Pixel memory ownership | External by default (user array passed via `setLeds`) | External: caller passes `span<Pixel>` to `Bus`; `PixelBus<...>` owns internally for convenience |
 | Controller/pipeline ownership | FastLED global owns linked list of controllers | Caller owns all protocol, transport, buffer, shader, and pipeline run instances |
 | Global singleton dependence | Strong (`FastLED`) | None — architecture is interface-first, no global state |
 | Heap allocation profile | Platform/controller dependent, plus optional features | Zero in `Bus`/`ProtocolTransportPipeline` hot path; `PixelBus<...>` uses `std::vector` for owning convenience path |
@@ -91,7 +91,7 @@ FastLED's C++11 baseline helps maintain very broad hardware compatibility. LumaW
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
 | Simple single-strip | `FastLED.addLeds<WS2812, DATA_PIN>(leds, NUM_LEDS)` | `PixelBus<Ws2812Protocol, RmtTransport>(pixelCount)` — owning wrapper |
-| Advanced / non-owning | Not a first-class API pattern | `Bus(span<Color>, span<const PipelineRun>)` — caller owns all resources |
+| Advanced / non-owning | Not a first-class API pattern | `Bus(span<Pixel>, span<const PipelineRun>)` — caller owns all resources |
 | Multi-strip | Multiple `addLeds` calls, single `FastLED.show()` | Array of `PipelineRun` entries, each with `{OutputPipeline*, length}`, passed to single `Bus` |
 | Protocol+transport pairing | Implicit in chipset template selection | Explicit `ProtocolTransportPipeline(protocol, transport, buffer)` |
 | Shader integration | Global brightness/dither pipeline | `ShaderProtocol(protocol, span<IShader*>, scratchPixels)` wraps protocol with shader chain |
@@ -117,9 +117,9 @@ This is the closest analog to FastLED's `addLeds<...>()` — a single-line const
 
 | Aspect | FastLED | LumaWave |
 |--------|---------|----------|
-| Core color type | `CRGB` (+ HSV utilities, palettes, etc.) | `lw::Color` (RGB/RGBW with channel-order abstraction) |
+| Core color type | `CRGB` (+ HSV utilities, palettes, etc.) | `lw::Pixel` (RGB/RGBW with channel-order abstraction) |
 | Typical app model | Mutate user `CRGB[]` frame buffer, call `FastLED.show()` | Mutate bus pixels via `bus.pixels()`, call `bus.show()` |
-| Color utilities | Rich inline functions on `CRGB` struct | Free functions: `colorR()`, `setColorR()`, `fillPixels()`, palette sampling |
+| Color utilities | Rich inline functions on `CRGB` struct | Free functions: `pixelR()`, `setColorR()`, `fillPixels()`, palette sampling |
 
 ### 4.2  Shader Pipeline
 

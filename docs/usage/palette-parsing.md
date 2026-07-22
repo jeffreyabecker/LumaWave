@@ -1,6 +1,6 @@
 # Palette Parsing
 
-This document specifies the consumer-facing text formats accepted by `Palette<TColor>::parse(...)` and `Palette<TColor>::parseDynamic(...)`.
+This document specifies the consumer-facing text formats accepted by `Palette<TPixel>::parse(...)` and `Palette<TPixel>::parseDynamic(...)`.
 
 These formats are part of the public palette API surface.
 
@@ -134,8 +134,8 @@ Parsing fails when any of the following are true:
 
 On failure:
 
-- `Palette<TColor>::parse(...)` returns an empty palette
-- `Palette<TColor>::parseDynamic(...)` returns `nullptr`
+- `Palette<TPixel>::parse(...)` returns an empty palette
+- `Palette<TPixel>::parseDynamic(...)` returns `nullptr`
 
 ## 6. Behavior Notes
 

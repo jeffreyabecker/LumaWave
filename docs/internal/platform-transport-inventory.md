@@ -12,7 +12,7 @@ LumaWave has two categories of "things that push pixels to hardware":
 | Category | Base Class | Signature | Role |
 |----------|-----------|-----------|------|
 | **Transport** | `lw::transports::Transport` | `transmitBytes(span<uint8_t>)` | Receives bytes from `ProtocolTransportPipeline` and sends them over hardware |
-| **Light Driver** | `lw::OutputPipeline` | `write(span<const Color>)` | Receives raw `Color` pixels directly (bypasses protocol encoding) and drives pins |
+| **Light Driver** | `lw::OutputPipeline` | `write(span<const Color>)` | Receives raw `Pixel` pixels directly (bypasses protocol encoding) and drives pins |
 
 A `Transport` is paired with a `Protocol` inside `ProtocolTransportPipeline`. A light driver is used as a standalone `OutputPipeline` in a `PipelineRun`, typically for PWM/sigma-delta direct-drive scenarios.
 
@@ -97,7 +97,7 @@ These transports depend on the Arduino SDK (`Arduino.h`, `SPI.h`, `Print`) and a
   - Writes raw color data via a `Writable` (Arduino `Print`) interface
   - `write(span<const Color>)`: iterates all colors; binary mode writes R,G,B,W channel bytes; ASCII mode writes hex chars
   - `debugOutput` mode prints `[LIGHT:id] begin/write` annotations
-  - Unlike `PrintTransport` (which receives protocol bytes), this receives `Color` pixels directly
+  - Unlike `PrintTransport` (which receives protocol bytes), this receives `Pixel` pixels directly
 - **Settings:** `PrintOutputPipelineSettings<TWritable>` — `output`, `asciiOutput`, `debugOutput`, `identifier`
 
 ---

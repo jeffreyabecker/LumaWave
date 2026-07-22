@@ -186,7 +186,7 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-70 | todo | Update all `using` declarations: `Color` → `Pixel`, and all `using lw::color*` → `using lw::pixel*` | CPR-01 | All 16 using declarations updated; `using Pixel = lw::Pixel`; `using lw::pixelB/G/R/W`, `using lw::pixelCompare`, `using lw::pixelComponentByIndex/Tag`, `using lw::pixelFromRGB/W`, `using lw::parsePixel`, `using lw::serializePixel`, `using lw::setPixelB/G/R/W`, `using lw::setPixelComponentByTag`, `using lw::tryParsePixel` |
+| CPR-70 | done | Update all `using` declarations: `Color` → `Pixel`, and all `using lw::color*` → `using lw::pixel*` | CPR-01 | All 16 using declarations updated; `using Pixel = lw::Pixel`; `using lw::pixelB/G/R/W`, `using lw::pixelCompare`, `using lw::pixelComponentByIndex/Tag`, `using lw::pixelFromRGB/W`, `using lw::parsePixel`, `using lw::serializePixel`, `using lw::setPixelB/G/R/W`, `using lw::setPixelComponentByTag`, `using lw::tryParsePixel` |
 
 ## Phase 7 — Tests
 
@@ -203,19 +203,19 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-90 | todo | Update all `examples/` .ino and .cpp files: `lw::Color` → `lw::Pixel`, `Color` → `Pixel`, `colorFromRGB` → `pixelFromRGB`, `Protocol::ColorType` → `Protocol::PixelType`, local vars | CPR-01, CPR-31, CPR-70 | All examples updated; `lw::Color` no longer appears in examples/ |
-| CPR-91 | todo | Update `include/.gitkeep` — `core/Color.h` → `core/Pixel.h`, `Rgb8Color` → `Rgb8Pixel` | CPR-01 | include stub updated |
+| CPR-90 | done | Update all `examples/` .ino and .cpp files: `lw::Color` → `lw::Pixel`, `Color` → `Pixel`, `colorFromRGB` → `pixelFromRGB`, `Protocol::ColorType` → `Protocol::PixelType`, local vars | CPR-01, CPR-31, CPR-70 | All examples updated; `lw::Color` no longer appears in examples/ |
+| CPR-91 | done | Update `include/.gitkeep` — `core/Color.h` → `core/Pixel.h`, `Rgb8Color` → `Rgb8Pixel` | CPR-01 | include stub updated |
 
 ## Phase 9 — Documentation
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-100 | todo | Update `docs/comparison-lumawave-vs-fastled.md` — `Color`/`span<Color>` → `Pixel`/`span<Pixel>` | CPR-01 | All doc references updated |
-| CPR-101 | todo | Update `docs/usage/bus-builder.md` — `lw::Color` → `lw::Pixel` | CPR-01 | All doc references updated |
-| CPR-102 | todo | Update `docs/usage/compilation-flags.md` — `LW_COLOR_COMPONENT_SIZE` → `LW_PIXEL_COMPONENT_SIZE` | CPR-02 | All doc references updated |
-| CPR-103 | todo | Update `docs/usage/palette-parsing.md` — `TColor` → `TPixel`, `Color` → `Pixel` | CPR-01 | All doc references updated |
-| CPR-104 | todo | Update `docs/internal/` docs — `Color` → `Pixel`, `span<Color>` → `span<Pixel>` | CPR-01 | All 4 internal docs updated |
-| CPR-105 | todo | Update `docs/backlog/plan/bus-builder-lifetime-simplification.md` — `Color` → `Pixel` | CPR-01 | Plan doc references updated |
+| CPR-100 | done | Update `docs/comparison-lumawave-vs-fastled.md` — `Color`/`span<Color>` → `Pixel`/`span<Pixel>` | CPR-01 | All doc references updated |
+| CPR-101 | done | Update `docs/usage/bus-builder.md` — `lw::Color` → `lw::Pixel` | CPR-01 | All doc references updated |
+| CPR-102 | done | Update `docs/usage/compilation-flags.md` — `LW_COLOR_COMPONENT_SIZE` → `LW_PIXEL_COMPONENT_SIZE` | CPR-02 | All doc references updated |
+| CPR-103 | done | Update `docs/usage/palette-parsing.md` — `TColor` → `TPixel`, `Color` → `Pixel` | CPR-01 | All doc references updated |
+| CPR-104 | done | Update `docs/internal/` docs — `Color` → `Pixel`, `span<Color>` → `span<Pixel>` | CPR-01 | All 4 internal docs updated |
+| CPR-105 | done | Update `docs/backlog/plan/bus-builder-lifetime-simplification.md` — `Color` → `Pixel` | CPR-01 | Plan doc references updated |
 
 ## Phase 10 — Validation & Cleanup
 

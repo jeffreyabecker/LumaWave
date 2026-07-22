@@ -3,7 +3,7 @@
 
 void setup()
 {
-    lw::Rgb8Color color{};
+    lw::Rgb8Pixel color{};
     (void)color;
 }
 

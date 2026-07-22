@@ -56,7 +56,7 @@ The `unique_ptr<IPixelBus>` returned by `build()` is the sole owner of all pixel
         .build();
 
     bus->begin();
-    bus->pixels()[0] = lw::colorFromRGB(255, 0, 0);
+    bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);
     bus->show();
 }
 // bus destroyed — all buffers, shaders, protocol, transport freed
@@ -112,7 +112,7 @@ As an alternative to `setPixelCount()`, callers can provide an externally-owned 
 
 ```cpp
 // External pixel buffer — caller owns the storage
-std::array<lw::Color, 300> ledStrip{};
+std::array<lw::Pixel, 300> ledStrip{};
 
 auto bus = lw::buses::BusBuilder()
     .setPixelStorage(ledStrip)
@@ -121,7 +121,7 @@ auto bus = lw::buses::BusBuilder()
     .build();
 
 // bus->pixels() returns a span that references ledStrip directly
-bus->pixels()[0] = lw::colorFromRGB(255, 0, 0);  // writes to ledStrip[0]
+bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);  // writes to ledStrip[0]
 ```
 
 ### Rule 2.2 — setTransport() and setProtocol() form a pair
@@ -231,7 +231,7 @@ std::unique_ptr<lw::IPixelBus> makeStrip(int count)
 Whether using `build()` (heap) or `buildInto()` (stack), the storage object must outlive all use of the `IPixelBus`. The `IPixelBus::pixels()` span points into storage-owned memory.
 
 ```cpp
-lw::span<lw::Color> dangling()
+lw::span<lw::Pixel> dangling()
 {
     auto bus = lw::buses::BusBuilder()
         .setPixelCount(30)
@@ -249,7 +249,7 @@ When using `setPixelStorage()`, the caller owns the pixel buffer. The external b
 
 ```cpp
 // Correct — buffer declared before bus, destroyed after
-std::array<lw::Color, 60> pixels{};
+std::array<lw::Pixel, 60> pixels{};
 {
     auto bus = lw::buses::BusBuilder()
         .setPixelStorage(pixels)
@@ -263,7 +263,7 @@ std::array<lw::Color, 60> pixels{};
 
 // Error — buffer destroyed before bus
 // auto bus = []() {
-//     std::array<lw::Color, 60> localPixels{};
+//     std::array<lw::Pixel, 60> localPixels{};
 //     return lw::buses::BusBuilder()
 //         .setPixelStorage(localPixels)
 //         .setTransport(...)
@@ -302,7 +302,7 @@ The builder queries `TProtocol::SettingsType` for the settings parameter type an
 
 ### Rule 4.3 — Shaders must be move-constructible and implement `IShader`
 
-Shaders are stored in a type-erased list. They must derive from `lw::protocols::IShader` (or satisfy its duck-type: `apply(span<const Color>, span<Color>)`).
+Shaders are stored in a type-erased list. They must derive from `lw::protocols::IShader` (or satisfy its duck-type: `apply(span<const Color>, span<Pixel>)`).
 
 ---
 
@@ -314,7 +314,7 @@ Do not manually allocate `Protocol`, `Transport`, `ProtocolTransportPipeline`, `
 
 ```cpp
 // ❌ Manual wiring — 7 objects, fragile lifetimes
-std::array<lw::Color, 30> pixels{};
+std::array<lw::Pixel, 30> pixels{};
 Ws2812xProtocol protocol(30);
 NilTransport transport;
 std::vector<uint8_t> buf(Ws2812xProtocol::requiredBufferSize(30));
@@ -340,10 +340,10 @@ auto bus = lw::buses::BusBuilder()
 
 ```cpp
 // Bus with PwmOutputPipeline — BusBuilder does not cover this case
-lw::Color pixels[1]{};
+lw::Pixel pixels[1]{};
 MockPipeline pwm;  // light driver, not protocol+transport
 lw::buses::PipelineRun runs[] = {{&pwm, 1}};
-lw::buses::Bus bus(lw::span<lw::Color>{pixels}, lw::span<const lw::buses::PipelineRun>{runs});
+lw::buses::Bus bus(lw::span<lw::Pixel>{pixels}, lw::span<const lw::buses::PipelineRun>{runs});
 ```
 
 ---
@@ -420,7 +420,7 @@ When using `setPixelStorage()`, the external buffer must outlive the `IPixelBus`
 // ❌ External buffer destroyed before bus
 std::unique_ptr<lw::IPixelBus> makeBus()
 {
-    std::array<lw::Color, 60> pixels{};  // local — will be destroyed on return
+    std::array<lw::Pixel, 60> pixels{};  // local — will be destroyed on return
     return lw::buses::BusBuilder()
         .setPixelStorage(pixels)
         .setTransport(lw::transports::SpiTransport{})
@@ -429,7 +429,7 @@ std::unique_ptr<lw::IPixelBus> makeBus()
 }
 
 // ✅ External buffer at stable scope
-std::array<lw::Color, 60> gPixels{};  // file-scope or long-lived object
+std::array<lw::Pixel, 60> gPixels{};  // file-scope or long-lived object
 
 auto bus = lw::buses::BusBuilder()
     .setPixelStorage(gPixels)

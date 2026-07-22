@@ -4,7 +4,7 @@
 constexpr pixel_count_t ledCount = 30;
 
 // Caller-owned pixel storage
-lw::Color pixels[30];
+lw::Pixel pixels[30];
 
 // Caller-owned protocol and transport
 lw::protocols::Ws2812xProtocol ws2812proto(ledCount, {lw::ChannelOrder::GRB, lw::protocols::timing::Ws2812x});
@@ -13,7 +13,7 @@ lw::transports::NilTransport nilTransport;
 // Caller-owned buffers
 constexpr size_t protocolBufferSize = decltype(ws2812proto)::requiredBufferSize(ledCount, {lw::ChannelOrder::GRB, lw::protocols::timing::Ws2812x});
 uint8_t protocolBuffer[protocolBufferSize];
-lw::Color scratchPixels[ledCount];
+lw::Pixel scratchPixels[ledCount];
 
 // Shader chain with brightness
 lw::protocols::BrightnessShader brightnessShader;
@@ -25,7 +25,7 @@ lw::busses::ProtocolTransportPipeline pipeline(shaderProto, nilTransport, protoc
 lw::busses::PipelineRun runs[] = {{&pipeline, ledCount}};
 
 // Bus: non-owning view over caller-managed resources
-lw::busses::Bus strip(lw::span<lw::Color>{pixels}, lw::span<const lw::busses::PipelineRun>{runs});
+lw::busses::Bus strip(lw::span<lw::Pixel>{pixels}, lw::span<const lw::busses::PipelineRun>{runs});
 uint16_t frame = 0;
 
 void setup()

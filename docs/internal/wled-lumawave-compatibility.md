@@ -15,11 +15,11 @@ This section separates **library-level** touchpoints (where LumaWave must match 
 
 | Touchpoint | What FastLED / NeoPixelBus Do | LumaWave Equivalent | Status |
 |-----------|------------------------------|---------------------|--------|
-| **Pixel buffer** | Owned pixel array with typed access (`CRGB[]`, `RgbColor[]`) | `bus.pixels()` → `span<Color>` — non-owning or owning views | ✅ Compatible |
-| **Protocol encoding** | Encode pixel colors to wire-format bytes per chipset | `Protocol::update(span<Color>)` → encoded byte buffer | ✅ Compatible |
+| **Pixel buffer** | Owned pixel array with typed access (`CRGB[]`, `RgbColor[]`) | `bus.pixels()` → `span<Pixel>` — non-owning or owning views | ✅ Compatible |
+| **Protocol encoding** | Encode pixel colors to wire-format bytes per chipset | `Protocol::update(span<Pixel>)` → encoded byte buffer | ✅ Compatible |
 | **Hardware transport** | Push encoded bytes to physical output (PIO, RMT, SPI, bit-bang) | `Transport::transmitBytes(span<uint8_t>)` | ✅ Compatible (platform transports in progress) |
 | **Show / transmit trigger** | `FastLED.show()` / `NeoPixelBus::Show()` | `bus.show()` → pipeline run | ✅ Compatible |
-| **Color representation** | `CRGB` / `RgbColor` / `RgbwColor` etc. | LumaWave `Color` type (RGB, RGBW, HSV, HSL) | ✅ Compatible |
+| **Color representation** | `CRGB` / `RgbColor` / `RgbwColor` etc. | LumaWave `Pixel` type (RGB, RGBW, HSV, HSL) | ✅ Compatible |
 | **Protocol coverage** | ~15+ chipset protocols (WS2812, APA102, SK6812, etc.) | See §2 — core protocols done, several missing | ⚠️ Partial |
 | **Platform transport coverage** | AVR, ESP32 (RMT, I2S), ESP8266, RP2040 (PIO), nRF52 | RP2040 PIO done; ESP32 RMT/SPI in progress | ⚠️ Partial |
 | **PWM / analog direct output** | Not provided by either library — WLED's `BusPwm` is custom code | Deleted (was `PwmOutputPipeline`); needs rebuild | ⚠️ Gap |
@@ -174,7 +174,7 @@ These are WLED's own application-level architecture. LumaWave should not reimple
 | **`BusManager` + runtime bus dispatch** | WLED's bus registry with `BusConfig.type` dispatch. FastLED and NeoPixelBus are also compile-time; WLED already wraps them. | WLED wraps LumaWave buses the same way it wraps NeoPixelBus today. No change to WLED's `BusManager` pattern. |
 | **Segment mapping** (group/spacing/reverse/mirror/offset) | WLED's segment system is its core UI abstraction. Effects write virtual indices; mapping layer converts to physical. | `virtualIndex → physicalIndex → bus.pixels()[physicalIndex] = color`. Mapping happens above LumaWave. |
 | **`customMappingTable[]`** | Arbitrary index remapping owned by WLED. | Same pattern: remap index before calling `bus.pixels()[i] = color`. |
-| **ABL** (`estimateCurrentAndLimitBri()`) | WLED's power management reads pixel buffer, sums channel values, limits brightness. | `bus.pixels()` provides `span<Color>` — WLED reads it directly for power estimation, same as today. |
+| **ABL** (`estimateCurrentAndLimitBri()`) | WLED's power management reads pixel buffer, sums channel values, limits brightness. | `bus.pixels()` provides `span<Pixel>` — WLED reads it directly for power estimation, same as today. |
 | **`ColorOrderMap`** (per-pixel byte order overrides) | WLED's per-pixel color order lookup. Basic color order is inherent to each protocol; per-pixel overrides are a WLED-specific extension. | WLED keeps `ColorOrderMap` as-is. LumaWave protocols could optionally accept a `ColorOrderMap` for per-pixel lookup during encoding, but this is a WLED integration concern. |
 | **`BusConfig` / JSON config** | WLED's configuration schema. | WLED's config deserialization maps to LumaWave construction parameters. |
 | **Network output** (Art-Net, DDP, E1.31) | WLED's `BusNetwork` is custom UDP broadcast code. Neither FastLED nor NeoPixelBus provide this. | WLED keeps `BusNetwork` as-is; optionally, LumaWave could provide a `UdpTransport` as a stretch goal. |
@@ -301,5 +301,5 @@ These are WLED's own application features, built above the pixel library. WLED k
 
 - **Shader pipeline** — `AutoWhiteShader`, `CctWhiteBalanceShader` can host WLED's color-transform processing more cleanly than the current monolithic `BusDigital::show()`. Color order remains a protocol-level concern (byte layout during encoding), not a shader.
 - **Protocol/transport separation** — cleaner than WLED's enum-based bus types
-- **Non-owning `Bus` model** — ABL reads `span<Color>` directly, no buffer copy
+- **Non-owning `Bus` model** — ABL reads `span<Pixel>` directly, no buffer copy
 - **Multi-strip composition** via `PipelineRun[]`

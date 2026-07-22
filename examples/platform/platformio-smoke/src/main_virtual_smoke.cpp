@@ -3,7 +3,7 @@
 
 void setup()
 {
-  lw::Color color{};
+  lw::Pixel color{};
   (void)color;
 }
 

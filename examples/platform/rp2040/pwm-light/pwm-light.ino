@@ -14,9 +14,9 @@ API assumptions: Uses direct `LightBus<Color, RpPwmLightDriver>` construction.
 
 namespace
 {
-using ColorType = lw::Color;
-using DriverType = lw::transports::rp2040::RpPwmLightDriver<ColorType>;
-using LightType = lw::busses::LightBus<ColorType, DriverType>;
+using PixelType = lw::Pixel;
+using DriverType = lw::transports::rp2040::RpPwmLightDriver<PixelType>;
+using LightType = lw::busses::LightBus<PixelType, DriverType>;
 
 constexpr int RedPin = 2;
 constexpr int GreenPin = 3;

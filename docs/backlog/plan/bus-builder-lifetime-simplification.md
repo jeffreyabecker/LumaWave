@@ -29,7 +29,7 @@
 | Shader interface | `src/protocols/IShader.h` | `lw::protocols::IShader` |
 | Transport | `src/transports/Transport.h` | `lw::transports::Transport`, `lw::transports::TransportSettingsBase` |
 | Output pipeline | `src/core/OutputPipeline.h` | `lw::OutputPipeline` |
-| Color / span | `src/core/Compat.h` | `lw::Color`, `lw::span`, `lw::PixelCount` |
+| Color / span | `src/core/Compat.h` | `lw::Pixel`, `lw::span`, `lw::PixelCount` |
 | Tests — Bus | `test/busses/test_bus/test_main.cpp` | Manual `Bus` + `PipelineRun` construction |
 | Tests — StackPixelBus | `test/busses/test_pixel_bus/test_main.cpp` | Static template construction |
 | Tests — PixelBus | `test/busses/test_pixel_bus_dynamic/test_main.cpp` | Dynamic template construction |
@@ -54,7 +54,7 @@ graph TD
     H --> J[IShader array]
 ```
 
-`Bus` (`src/buses/Bus.h`) is the concrete terminal: it holds a `span<Color>` for pixel storage and a `span<const PipelineRun>`. Each `PipelineRun` pairs an `OutputPipeline*` with a length. On `show()`, the bus slices the pixel span by run length and delegates to each pipeline's `write()`.
+`Bus` (`src/buses/Bus.h`) is the concrete terminal: it holds a `span<Pixel>` for pixel storage and a `span<const PipelineRun>`. Each `PipelineRun` pairs an `OutputPipeline*` with a length. On `show()`, the bus slices the pixel span by run length and delegates to each pipeline's `write()`.
 
 `ProtocolTransportPipeline` (`src/buses/ProtocolTransportPipeline.h`) bridges protocol and transport: `write()` calls `Protocol::update()` to encode colors → bytes, then `Transport::transmitBytes()` to push bytes to hardware. It holds three references — `Protocol&`, `Transport&`, and `span<uint8_t>` protocol buffer.
 
@@ -68,7 +68,7 @@ The `Bus` class only takes references/views — it owns nothing. Users must manu
 
 ```cpp
 // All of these must live as long as the Bus:
-std::array<lw::Color, 30> pixels{};
+std::array<lw::Pixel, 30> pixels{};
 Ws2812xProtocol protocol(30);
 NilTransport transport;
 std::vector<uint8_t> protoBuf(Ws2812xProtocol::requiredBufferSize(30));
@@ -176,7 +176,7 @@ public:
     /// Use externally-owned pixel storage. The builder does not allocate pixel memory.
     /// Mutually exclusive with setPixelCount(). The provided span must outlive
     /// the returned IPixelBus. Pixel count is inferred from span.size().
-    BusBuilder& setPixelStorage(span<Color> externalPixels);
+    BusBuilder& setPixelStorage(span<Pixel> externalPixels);
 
     // --- Transport ---
 
@@ -234,7 +234,7 @@ auto bus = lw::buses::BusBuilder()
     .build();
 
 bus->begin();
-bus->pixels()[0] = lw::colorFromRGB(255, 0, 0);
+bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);
 bus->show();
 ```
 
@@ -270,7 +270,7 @@ auto bus = lw::buses::BusBuilder()
 
 ```cpp
 // Caller owns the pixel buffer; BusBuilder wires everything else.
-std::array<lw::Color, 90> ledStrip{};
+std::array<lw::Pixel, 90> ledStrip{};
 
 auto bus = lw::buses::BusBuilder()
     .setPixelStorage(ledStrip)
@@ -281,7 +281,7 @@ auto bus = lw::buses::BusBuilder()
 // bus->pixels() returns a span referencing ledStrip directly.
 // Writes to bus->pixels()[n] write to ledStrip[n] — no copy.
 bus->begin();
-bus->pixels()[0] = lw::colorFromRGB(255, 0, 0);
+bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);
 bus->show();
 // ledStrip must outlive bus
 ```
@@ -301,7 +301,7 @@ auto& bus = lw::buses::BusBuilder()
     .buildInto(storage);
 
 bus.begin();
-bus.pixels()[0] = lw::colorFromRGB(255, 0, 255);
+bus.pixels()[0] = lw::pixelFromRGB(255, 0, 255);
 bus.show();
 ```
 
@@ -374,9 +374,9 @@ struct StackBusStorage
     // Compile-time-computed sizes
     static constexpr size_t kProtocolBufferSize = TProtocol::requiredBufferSize(NPixelCount, {});
 
-    lw::Color pixels[NPixelCount]{};
+    lw::Pixel pixels[NPixelCount]{};
     uint8_t protocolBuffer[kProtocolBufferSize]{};
-    lw::Color scratchPixels[sizeof...(TShaders) > 0 ? NPixelCount : 1]{};
+    lw::Pixel scratchPixels[sizeof...(TShaders) > 0 ? NPixelCount : 1]{};
     std::tuple<TShaders...> shaders{};
     lw::protocols::IShader* shaderPtrs[sizeof...(TShaders)]{};
     TProtocol protocol;
@@ -391,7 +391,7 @@ struct StackBusStorage
         , shaderProto(protocol, shaderPtrs, scratchPixels)
         , pipeline(shaderProto, transport, protocolBuffer)
         , runs{{&pipeline, NPixelCount}}
-        , bus(lw::span<lw::Color>{pixels}, lw::span<const lw::buses::PipelineRun>{runs})
+        , bus(lw::span<lw::Pixel>{pixels}, lw::span<const lw::buses::PipelineRun>{runs})
     {}
 
     // Non-copyable, non-movable (internal references would dangle)

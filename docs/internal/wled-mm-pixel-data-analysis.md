@@ -245,8 +245,8 @@ When bus start ranges overlap, `slowMode` is enabled, disabling the bus cache. M
 
 | Aspect | WLED-MM | LumaWave |
 |--------|---------|----------|
-| Color format | RGBW32 packed uint32 + CRGB dual | Single `lw::Color` type |
-| Pixel buffer | Single shared `CRGB*` array | Caller-owned `span<Color>`, per-bus |
+| Color format | RGBW32 packed uint32 + CRGB dual | Single `lw::Pixel` type |
+| Pixel buffer | Single shared `CRGB*` array | Caller-owned `span<Pixel>`, per-bus |
 | Protocol | Encoded in bus type enum (NeoPixelBus) | Separate `Protocol` class hierarchy |
 | Transport | Encoded in bus type enum | Separate `Transport` class hierarchy |
 | Effect → pixel | Direct write to shared segment buffer | Write to bus `.pixels()` span |
