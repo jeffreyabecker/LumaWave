@@ -77,7 +77,7 @@ public:
     serializePixels(colors);
 
     const size_t encodedSize = protocols::OneWireEncoding::encodeWithResets(_frameBuffer.data(), _rawDataSize, _frameBuffer.data(), _frameBuffer.size(), _settings.timing, 0,
-                                                                             effectiveResetMultiplier(_settings.prefixResetMultiplier), effectiveResetMultiplier(_settings.suffixResetMultiplier), ProtocolIdleHigh);
+                                                                            effectiveResetMultiplier(_settings.prefixResetMultiplier), effectiveResetMultiplier(_settings.suffixResetMultiplier), ProtocolIdleHigh);
     if (encodedSize == 0)
     {
       return;

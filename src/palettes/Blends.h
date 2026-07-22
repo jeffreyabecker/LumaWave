@@ -32,7 +32,7 @@ namespace detail
     return static_cast<uint8_t>((static_cast<uint64_t>(offset) * lw::palettes::detail::PaletteCanonicalFractionScale) / spanWidth);
   }
 
-   size_t firstStopAtOrAfter(span<const PaletteStop> stops, palette_stop_index_t sampleIndex)
+  size_t firstStopAtOrAfter(span<const PaletteStop> stops, palette_stop_index_t sampleIndex)
   {
     size_t left = 1;
     size_t right = static_cast<size_t>(stops.size());
@@ -53,7 +53,7 @@ namespace detail
     return left;
   }
 
-   size_t firstStopAtOrAfterFixed(span<const PaletteStop> stops, palette_canonical_fixed_t sampleFixed)
+  size_t firstStopAtOrAfterFixed(span<const PaletteStop> stops, palette_canonical_fixed_t sampleFixed)
   {
     size_t left = 1;
     size_t right = static_cast<size_t>(stops.size());
@@ -88,7 +88,7 @@ namespace detail
     }
   }
 
-   lw::Color sampleWrappedSpan(span<const PaletteStop> stops, detail::PaletteCanonicalCoordinate sampleCoordinate, size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
+  lw::Color sampleWrappedSpan(span<const PaletteStop> stops, detail::PaletteCanonicalCoordinate sampleCoordinate, size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
   {
     const auto& left = stops.back();
     const auto& right = stops.front();
@@ -109,20 +109,18 @@ namespace detail
   }
 } // namespace detail
 
-template < typename TIndexRange, typename TOutputRange,
-          typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+template <typename TIndexRange, typename TOutputRange, typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
 size_t sampleNearest(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options);
 
-template < typename TIndexRange, typename TOutputRange,
-          typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
+template <typename TIndexRange, typename TOutputRange, typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TIndexRange>>::value && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
 size_t sampleInterpolated(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options);
 
-template < typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, PaletteSampleOptions options)
+template <typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, PaletteSampleOptions options)
 {
   *output = detail::applyBrightnessScale(options.outOfRangeColor, options.brightnessScale);
 }
 
- lw::Color sampleNearestAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
+lw::Color sampleNearestAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (stops.empty())
   {
@@ -156,7 +154,7 @@ template < typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, Pal
   return detail::applyBrightnessScale(stops[nearestStopIndex].color, options.brightnessScale);
 }
 
- lw::Color sampleInterpolatedAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
+lw::Color sampleInterpolatedAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (stops.empty())
   {
@@ -209,7 +207,7 @@ template < typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, Pal
   return detail::applyBrightnessScale(sampled, options.brightnessScale);
 }
 
- lw::Color samplePaletteAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
+lw::Color samplePaletteAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (options.blendMode == BlendMode::Nearest)
   {
@@ -219,8 +217,7 @@ template < typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, Pal
   return sampleInterpolatedAt(stops, rawSampleIndex, options);
 }
 
-template < typename TIndexRange, typename TOutputRange, typename>
-size_t sampleNearest(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options)
+template <typename TIndexRange, typename TOutputRange, typename> size_t sampleNearest(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options)
 {
   const auto stops = palette.stops();
   auto index = paletteIndexes.begin();
@@ -238,8 +235,7 @@ size_t sampleNearest(const IPalette& palette, TIndexRange&& paletteIndexes, TOut
   return written;
 }
 
-template < typename TIndexRange, typename TOutputRange, typename>
-size_t sampleInterpolated(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options)
+template <typename TIndexRange, typename TOutputRange, typename> size_t sampleInterpolated(const IPalette& palette, TIndexRange&& paletteIndexes, TOutputRange&& outputColors, PaletteSampleOptions options)
 {
   const auto stops = palette.stops();
   auto index = paletteIndexes.begin();

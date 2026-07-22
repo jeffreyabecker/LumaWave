@@ -7,7 +7,7 @@ void installDefaultArduinoFakes();
 
 inline void resetAndInstallDefaultArduinoFakes()
 {
-    resetArduinoFakes();
-    installDefaultArduinoFakes();
+  resetArduinoFakes();
+  installDefaultArduinoFakes();
 }
 } // namespace lw::test

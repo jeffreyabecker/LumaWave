@@ -39,9 +39,7 @@ public:
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + ((static_cast<size_t>(pixelCount) + 7u) / 8u); }
 
-  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u}
-  {
-  }
+  Lpd6803ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)), _endFrameSize{(pixelCount + 7u) / 8u} {}
 
   void begin() override {}
 

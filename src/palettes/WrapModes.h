@@ -42,7 +42,7 @@ namespace detail
     return static_cast<palette_canonical_fixed_t>(stopIndex * PaletteCanonicalFractionScale);
   }
 
-   constexpr palette_logical_domain_count_t normalizedDomainSampleCount(PaletteSampleOptions options)
+  constexpr palette_logical_domain_count_t normalizedDomainSampleCount(PaletteSampleOptions options)
   {
     return (options.scaledSampleCount == 0u) ? PaletteDomainSpan : options.scaledSampleCount;
   }
@@ -101,7 +101,7 @@ namespace detail
     return (position <= domainMaxIndex) ? position : (period - position);
   }
 
-   constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions options, palette_logical_index_t sampleIndex)
+  constexpr NormalizedSampleIndex normalizeForDomain(PaletteSampleOptions options, palette_logical_index_t sampleIndex)
   {
     const PaletteLogicalDomain logicalDomain{normalizedDomainSampleCount(options)};
     const palette_logical_domain_count_t domainSampleCount = logicalDomain.sampleCount;
@@ -142,14 +142,13 @@ namespace detail
 
     const palette_logical_index_t coordinateIndex = (outOfRange && sampleIndex > domainMaxIndex) ? domainMaxIndex : normalizedValue;
 
-    const PaletteCanonicalCoordinate canonical = (options.wrapMode == WrapMode::Circular && logicalDomain.sampleCount > PaletteDomainSpan)
-                                                     ? mapCircularLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain)
-                                                     : mapLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain);
+    const PaletteCanonicalCoordinate canonical = (options.wrapMode == WrapMode::Circular && logicalDomain.sampleCount > PaletteDomainSpan) ? mapCircularLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain)
+                                                                                                                                           : mapLogicalIndexToCanonicalCoordinate(coordinateIndex, logicalDomain);
 
     return NormalizedSampleIndex{normalizedValue, outOfRange, usesBoundarySampling, options.wrapMode, domainMaxIndex, logicalDomain, canonical};
   }
 
-   lw::Color upperBoundarySample(WrapMode wrapMode, span<const PaletteStop> stops)
+  lw::Color upperBoundarySample(WrapMode wrapMode, span<const PaletteStop> stops)
   {
     switch (wrapMode)
     {

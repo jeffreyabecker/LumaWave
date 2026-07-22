@@ -13,24 +13,24 @@ namespace lw::palettes
 {
 namespace samplingtransition
 {
-template < typename TOutputIt, typename = void> class BlendAssignProxy
-{
+  template <typename TOutputIt, typename = void> class BlendAssignProxy
+  {
   public:
     BlendAssignProxy(TOutputIt output, uint8_t blendProgress) : _output(output), _blendProgress(blendProgress) {}
 
     BlendAssignProxy& operator=(const lw::Color& sampled)
     {
-        *_output = lw::linearBlendProgress(*_output, sampled, _blendProgress);
-        return *this;
+      *_output = lw::linearBlendProgress(*_output, sampled, _blendProgress);
+      return *this;
     }
 
   private:
     TOutputIt _output;
     uint8_t _blendProgress;
-};
+  };
 
-template < typename TOutputIt, typename = void> class BlendOutputIterator
-{
+  template <typename TOutputIt, typename = void> class BlendOutputIterator
+  {
   public:
     using iterator_category = std::input_iterator_tag;
     using value_type = lw::Color;
@@ -44,44 +44,32 @@ template < typename TOutputIt, typename = void> class BlendOutputIterator
 
     BlendOutputIterator& operator++()
     {
-        ++_output;
-        return *this;
+      ++_output;
+      return *this;
     }
 
     BlendOutputIterator operator++(int)
     {
-        BlendOutputIterator copy = *this;
-        ++(*this);
-        return copy;
+      BlendOutputIterator copy = *this;
+      ++(*this);
+      return copy;
     }
 
-    friend bool operator==(const BlendOutputIterator& left, const BlendOutputIterator& right)
-    {
-        return left._output == right._output;
-    }
+    friend bool operator==(const BlendOutputIterator& left, const BlendOutputIterator& right) { return left._output == right._output; }
 
-    friend bool operator!=(const BlendOutputIterator& left, const BlendOutputIterator& right)
-    {
-        return !(left == right);
-    }
+    friend bool operator!=(const BlendOutputIterator& left, const BlendOutputIterator& right) { return !(left == right); }
 
   private:
     TOutputIt _output;
     uint8_t _blendProgress;
-};
+  };
 
-template < typename TOutputRange,
-          typename =
-              std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>>
-class BlendOutputRange
-{
+  template <typename TOutputRange, typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>> class BlendOutputRange
+  {
   public:
     using Iterator = BlendOutputIterator<lw::Color, decltype(std::declval<TOutputRange&>().begin())>;
 
-    BlendOutputRange(TOutputRange& outputColors, uint8_t blendProgress)
-        : _outputColors(outputColors), _blendProgress(blendProgress)
-    {
-    }
+    BlendOutputRange(TOutputRange& outputColors, uint8_t blendProgress) : _outputColors(outputColors), _blendProgress(blendProgress) {}
 
     Iterator begin() const { return Iterator(_outputColors.begin(), _blendProgress); }
 
@@ -90,19 +78,19 @@ class BlendOutputRange
   private:
     TOutputRange& _outputColors;
     uint8_t _blendProgress;
-};
+  };
 
 } // namespace samplingtransition
 
 inline uint8_t mapTransitionProgressToBlend8(uint8_t transitionProgress, uint8_t transitionDuration)
 {
-    if (transitionDuration == 0)
-    {
-        return 255;
-    }
+  if (transitionDuration == 0)
+  {
+    return 255;
+  }
 
-    const uint8_t clamped = (transitionProgress >= transitionDuration) ? transitionDuration : transitionProgress;
-    return static_cast<uint8_t>((static_cast<uint16_t>(clamped) * 255u) / transitionDuration);
+  const uint8_t clamped = (transitionProgress >= transitionDuration) ? transitionDuration : transitionProgress;
+  return static_cast<uint8_t>((static_cast<uint16_t>(clamped) * 255u) / transitionDuration);
 }
 
 } // namespace lw::palettes

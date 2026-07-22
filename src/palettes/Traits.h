@@ -22,8 +22,7 @@ template <typename TPaletteLike, typename = void> struct IsPaletteLike : std::fa
 
 template <typename TPaletteLike>
 struct IsPaletteLike<TPaletteLike, std::void_t<typename TPaletteLike::ColorType, decltype(std::declval<const TPaletteLike&>().stops()), decltype(std::declval<TPaletteLike&>().update())>>
-    : std::integral_constant<bool, std::is_base_of_v<IPalette, TPaletteLike> &&
-                                       std::is_convertible_v<decltype(std::declval<const TPaletteLike&>().stops()), lw::span<const PaletteStop>>>
+    : std::integral_constant<bool, std::is_base_of_v<IPalette, TPaletteLike> && std::is_convertible_v<decltype(std::declval<const TPaletteLike&>().stops()), lw::span<const PaletteStop>>>
 {
 };
 
