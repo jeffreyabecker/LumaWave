@@ -46,9 +46,9 @@ template <typename TSampler, typename TIndexIt, typename = void> class PaletteSa
 {
 public:
   using iterator_category = std::input_iterator_tag;
-  using value_type = lw::Color;
+  using value_type = lw::Pixel;
   using difference_type = std::ptrdiff_t;
-  using reference = lw::Color;
+  using reference = lw::Pixel;
   using pointer = void;
 
   PaletteSampleIterator(const TSampler* sampler, TIndexIt current, const void* ownerIdentity, size_t remaining) : _sampler(sampler), _current(current), _ownerIdentity(ownerIdentity), _remaining(remaining) {}
@@ -89,7 +89,7 @@ class SinglePaletteSampler
 public:
   SinglePaletteSampler(const IPalette& palette, PaletteSampleOptions options, size_t offset = 0) : _palette(palette), _options(options), _offset(offset) {}
 
-  lw::Color operator()(size_t paletteIndex) const { return samplePaletteAt(_palette.stops(), paletteIndex + _offset, _options); }
+  lw::Pixel operator()(size_t paletteIndex) const { return samplePaletteAt(_palette.stops(), paletteIndex + _offset, _options); }
 
 private:
   const IPalette& _palette;
@@ -113,10 +113,10 @@ template <typename TSamplerFrom, typename TSamplerTo, typename TBlendProgressSam
 public:
   TransitionSampler(TSamplerFrom sampleFrom, TSamplerTo sampleTo, TBlendProgressSampler sampleProgress) : _sampleFrom(std::move(sampleFrom)), _sampleTo(std::move(sampleTo)), _sampleProgress(std::move(sampleProgress)) {}
 
-  lw::Color operator()(size_t paletteIndex) const
+  lw::Pixel operator()(size_t paletteIndex) const
   {
-    const lw::Color from = _sampleFrom(paletteIndex);
-    const lw::Color to = _sampleTo(paletteIndex);
+    const lw::Pixel from = _sampleFrom(paletteIndex);
+    const lw::Pixel to = _sampleTo(paletteIndex);
     const TBlendDomain progress = static_cast<TBlendDomain>(_sampleProgress(paletteIndex));
     if constexpr (std::is_same_v<TBlendDomain, uint8_t>)
     {
@@ -143,7 +143,7 @@ public:
   {
   }
 
-  lw::Color operator()(size_t paletteIndex) const { return _sampler(paletteIndex); }
+  lw::Pixel operator()(size_t paletteIndex) const { return _sampler(paletteIndex); }
 
 private:
   SamplerType _sampler;

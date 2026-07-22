@@ -36,15 +36,15 @@ namespace detail::palettegen
   inline constexpr std::array<PaletteSettingDescriptor, 0> NoAllowedSettings{};
   inline constexpr std::array<PaletteSettingDescriptor, 4> RainbowAllowedSettings{{
       PaletteSettingDescriptor{"stop_count", PaletteSettingValueType::UnsignedSize},
-      PaletteSettingDescriptor{"saturation", PaletteSettingValueType::UnsignedColorComponent},
-      PaletteSettingDescriptor{"brightness", PaletteSettingValueType::UnsignedColorComponent},
-      PaletteSettingDescriptor{"hue_offset", PaletteSettingValueType::UnsignedColorComponent},
+      PaletteSettingDescriptor{"saturation", PaletteSettingValueType::UnsignedPixelComponent},
+      PaletteSettingDescriptor{"brightness", PaletteSettingValueType::UnsignedPixelComponent},
+      PaletteSettingDescriptor{"hue_offset", PaletteSettingValueType::UnsignedPixelComponent},
   }};
   inline constexpr std::array<PaletteSettingDescriptor, 5> TemporalRainbowAllowedSettings{{
       PaletteSettingDescriptor{"stop_count", PaletteSettingValueType::UnsignedSize},
-      PaletteSettingDescriptor{"saturation", PaletteSettingValueType::UnsignedColorComponent},
-      PaletteSettingDescriptor{"brightness", PaletteSettingValueType::UnsignedColorComponent},
-      PaletteSettingDescriptor{"hue_offset", PaletteSettingValueType::UnsignedColorComponent},
+      PaletteSettingDescriptor{"saturation", PaletteSettingValueType::UnsignedPixelComponent},
+      PaletteSettingDescriptor{"brightness", PaletteSettingValueType::UnsignedPixelComponent},
+      PaletteSettingDescriptor{"hue_offset", PaletteSettingValueType::UnsignedPixelComponent},
       PaletteSettingDescriptor{"step_index", PaletteSettingValueType::UnsignedSize},
   }};
   inline constexpr std::array<PaletteSettingDescriptor, 3> RandomSmoothAllowedSettings{{
@@ -86,9 +86,9 @@ namespace detail::palettegen
     return static_cast<TComponent>(value & static_cast<uint32_t>(std::numeric_limits<TComponent>::max()));
   }
 
-  lw::Color randomColor(uint32_t& state)
+  lw::Pixel randomColor(uint32_t& state)
   {
-    return lw::mapChannels(lw::Pixel{}, [&](auto, char) { return randomComponent<lw::ColorComponent>(state); });
+    return lw::mapChannels(lw::Pixel{}, [&](auto, char) { return randomComponent<lw::PixelComponent>(state); });
   }
 
   template <typename TStops> void assignDistributedStopIndexes(TStops& stops)
@@ -201,7 +201,7 @@ namespace detail::palettegen
 class RainbowPaletteGenerator : public IPalette
 {
 public:
-  using ComponentType = lw::ColorComponent;
+  using ComponentType = lw::PixelComponent;
   using SettingsView = typename IPalette::SettingsView;
   using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::RainbowPaletteGenerator;
@@ -209,7 +209,7 @@ public:
   inline static constexpr auto AllowedSettings = detail::palettegen::RainbowAllowedSettings;
 
   RainbowPaletteGenerator()
-      : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _saturation(std::numeric_limits<ColorComponent>::max()), _brightness(std::numeric_limits<ColorComponent>::max()), _hueOffset(0)
+      : IPalette(TypeCode), _stops(detail::palettegen::normalizeStopCount(DefaultStopCount)), _saturation(std::numeric_limits<PixelComponent>::max()), _brightness(std::numeric_limits<PixelComponent>::max()), _hueOffset(0)
   {
     detail::palettegen::assignDistributedStopIndexes(_stops);
     rebuild();
@@ -313,15 +313,15 @@ private:
     const size_t stopCount = _stops.size();
     for (size_t i = 0; i < stopCount; ++i)
     {
-      const uint64_t span = static_cast<uint64_t>(std::numeric_limits<ColorComponent>::max()) + 1ull;
+      const uint64_t span = static_cast<uint64_t>(std::numeric_limits<PixelComponent>::max()) + 1ull;
       const ComponentType hue = static_cast<ComponentType>(_hueOffset + static_cast<ComponentType>((static_cast<uint64_t>(i) * span) / stopCount));
       _stops[i].color = lw::hsbToRgb(hue, _saturation, _brightness);
     }
   }
 
   std::vector<PaletteStop> _stops{};
-  ComponentType _saturation{std::numeric_limits<ColorComponent>::max()};
-  ComponentType _brightness{std::numeric_limits<ColorComponent>::max()};
+  ComponentType _saturation{std::numeric_limits<PixelComponent>::max()};
+  ComponentType _brightness{std::numeric_limits<PixelComponent>::max()};
   ComponentType _hueOffset{0};
 };
 
@@ -329,7 +329,7 @@ class TemporalRainbowPaletteGenerator : public IPalette
 {
 public:
   using SettingsView = typename IPalette::SettingsView;
-  using ComponentType = lw::ColorComponent;
+  using ComponentType = lw::PixelComponent;
   using StopsView = span<const PaletteStop>;
   static constexpr uint32_t TypeCode = detail::PaletteTypeCodes::TemporalRainbowPaletteGenerator;
   inline static constexpr auto AllowedSettings = detail::palettegen::TemporalRainbowAllowedSettings;
@@ -436,7 +436,7 @@ private:
     sampleOpts.wrapMode = WrapMode::Circular;
     sampleOpts.blendMode = BlendMode::Linear;
     sampleOpts.quantizedLevels = 0;
-    const lw::Color liveColor = samplePaletteAt(_rainbowGenerator.stops(), _stepIndex, sampleOpts);
+    const lw::Pixel liveColor = samplePaletteAt(_rainbowGenerator.stops(), _stepIndex, sampleOpts);
     _stops[0].color = liveColor;
     _stops[1].color = liveColor;
   }
@@ -581,8 +581,8 @@ private:
   }
 
   std::vector<PaletteStop> _stops{};
-  std::vector<lw::Color> _sourceColors{};
-  std::vector<lw::Color> _targetColors{};
+  std::vector<lw::Pixel> _sourceColors{};
+  std::vector<lw::Pixel> _targetColors{};
   uint32_t _seed{DefaultSeed};
   uint32_t _rngState{0xC0FFEE11u};
   uint8_t _progress{0};
@@ -729,7 +729,7 @@ private:
   }
 
   std::vector<PaletteStop> _stops{};
-  std::vector<lw::Color> _colors{};
+  std::vector<lw::Pixel> _colors{};
   uint32_t _seed{DefaultSeed};
   uint32_t _rngState{0x13579BDFu};
   uint8_t _phase{0};

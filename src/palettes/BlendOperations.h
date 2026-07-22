@@ -10,15 +10,15 @@
 
 namespace lw::palettes
 {
-lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uint8_t progress, uint8_t levels)
+lw::Pixel applyQuantizedBlend(const lw::Pixel& left, const lw::Pixel& right, uint8_t progress, uint8_t levels)
 {
-  using Component = lw::ColorComponent;
+  using Component = lw::PixelComponent;
   const uint32_t clampedLevels = (levels < 2u) ? 2u : static_cast<uint32_t>(levels);
   constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
   const uint32_t step = maxValue / (clampedLevels - 1u);
 
-  lw::Color out = lw::linearBlendProgress(left, right, progress);
-  return lw::mapChannels(out,
+  lw::Pixel blended = lw::linearBlendProgress(left, right, progress);
+  return lw::mapChannels(blended,
                          [&](auto v, char)
                          {
                            uint32_t quantized = ((static_cast<uint32_t>(v) + (step / 2u)) / step) * step;
@@ -29,7 +29,7 @@ lw::Color applyQuantizedBlend(const lw::Color& left, const lw::Color& right, uin
                            return static_cast<Component>(quantized);
                          });
 }
-lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::Color& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
+lw::Pixel applyBlendMode(BlendMode blendMode, const lw::Pixel& left, const lw::Pixel& right, uint8_t progress, size_t sampleIndex, uint8_t quantizedLevels = 8)
 {
   switch (blendMode)
   {
@@ -45,7 +45,7 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
       return lw::linearBlendProgress(left, right, lw::cosineLike(progress));
     case BlendMode::GammaLinear:
     {
-      using Component = lw::ColorComponent;
+      using Component = lw::PixelComponent;
       return lw::mapChannels(left, right,
                              [&](auto lv, auto rv, char)
                              {
@@ -61,10 +61,10 @@ lw::Color applyBlendMode(BlendMode blendMode, const lw::Color& left, const lw::C
       return applyQuantizedBlend(left, right, progress, quantizedLevels);
     case BlendMode::DitheredLinear:
     {
-      using Component = lw::ColorComponent;
+      using Component = lw::PixelComponent;
       constexpr uint32_t maxValue = static_cast<uint32_t>(std::numeric_limits<Component>::max());
 
-      lw::Color out = lw::linearBlendProgress(left, right, progress);
+      lw::Pixel out = lw::linearBlendProgress(left, right, progress);
       return lw::mapChannels(out,
                              [&](auto v, char tag)
                              {

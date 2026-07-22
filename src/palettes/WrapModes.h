@@ -148,14 +148,14 @@ namespace detail
     return NormalizedSampleIndex{normalizedValue, outOfRange, usesBoundarySampling, options.wrapMode, domainMaxIndex, logicalDomain, canonical};
   }
 
-  lw::Color upperBoundarySample(WrapMode wrapMode, span<const PaletteStop> stops)
+  lw::Pixel upperBoundarySample(WrapMode wrapMode, span<const PaletteStop> stops)
   {
     switch (wrapMode)
     {
       case WrapMode::HoldFirst:
         return stops.front().color;
       case WrapMode::Blackout:
-        return lw::Color{};
+        return lw::Pixel{};
       case WrapMode::Clamp:
       case WrapMode::HoldLast:
       case WrapMode::Circular:

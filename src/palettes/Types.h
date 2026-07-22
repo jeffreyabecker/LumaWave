@@ -75,8 +75,8 @@ using palette_canonical_fixed_t = uint32_t;
 
 struct PaletteSampleOptions
 {
-  lw::ColorComponent brightnessScale{std::numeric_limits<lw::ColorComponent>::max()};
-  lw::Color outOfRangeColor{};
+  lw::PixelComponent brightnessScale{std::numeric_limits<lw::PixelComponent>::max()};
+  lw::Pixel outOfRangePixel{};
   WrapMode wrapMode{WrapMode::Clamp};
   BlendMode blendMode{BlendMode::Linear};
   TieBreakPolicy tieBreakPolicy{TieBreakPolicy::Stable};
@@ -86,23 +86,23 @@ struct PaletteSampleOptions
 
 struct PaletteStop
 {
-  using ColorType = lw::Color;
+  using PixelType = lw::Pixel;
 
   static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint32_t rgb)
   {
     return fromRgb8(index, static_cast<uint8_t>((rgb >> 16U) & 0xFFU), static_cast<uint8_t>((rgb >> 8U) & 0xFFU), static_cast<uint8_t>(rgb & 0xFFU));
   }
 
-  static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, lw::colorFromRGB(r, g, b)}; }
+  static constexpr PaletteStop fromRgb8(palette_stop_index_t index, uint8_t r, uint8_t g, uint8_t b) { return PaletteStop{index, lw::pixelFromRGB(r, g, b)}; }
 
   palette_stop_index_t index{0};
-  lw::Color color{};
+  lw::Pixel color{};
 };
 
 enum class PaletteSettingValueType : uint8_t
 {
   UnsignedSize,
-  UnsignedColorComponent,
+  UnsignedPixelComponent,
   UInt32,
   UInt8,
 };
@@ -121,7 +121,7 @@ protected:
   uint32_t _typeCode;
 
 public:
-  using ColorType = lw::Color;
+  using PixelType = lw::Pixel;
   using SettingsEntry = std::pair<const char*, const char*>;
   using SettingsDescriptor = PaletteSettingDescriptor;
   using SettingsView = span<const SettingsEntry>;
@@ -254,13 +254,13 @@ private:
 
     size_t ignoredConsumed = 0;
     size_t ignoredIndex = 0;
-    lw::Color ignoredColor{};
+    lw::Pixel ignoredColor{};
     const bool hasExplicitIndexes = tryParseStop(remaining, ignoredConsumed, ignoredIndex, ignoredColor);
 
     while (!remaining.empty())
     {
       size_t index = 0;
-      lw::Color color{};
+      lw::Pixel color{};
       size_t consumed = 0;
 
       if (hasExplicitIndexes)
@@ -274,7 +274,7 @@ private:
       }
       else
       {
-        if (!tryParseColor(remaining, consumed, color))
+        if (!tryParsePixel(remaining, consumed, color))
         {
           return false;
         }
@@ -372,7 +372,7 @@ private:
     }
   }
 
-  static bool tryParseStop(span<const char> text, size_t& consumed, palette_stop_index_t& index, lw::Color& color)
+  static bool tryParseStop(span<const char> text, size_t& consumed, palette_stop_index_t& index, lw::Pixel& color)
   {
     const span<const char> trimmed = trimLeadingWhitespace(text);
     const size_t leadingWhitespace = text.size() - trimmed.size();
@@ -421,7 +421,7 @@ private:
     return true;
   }
 
-  static bool tryParseColor(span<const char> text, size_t& consumed, lw::Color& color)
+  static bool tryParsePixel(span<const char> text, size_t& consumed, lw::Pixel& color)
   {
     const span<const char> trimmed = trimLeadingWhitespace(text);
     const size_t leadingWhitespace = text.size() - trimmed.size();
@@ -437,7 +437,7 @@ private:
       return false;
     }
 
-    if (!lw::tryParseColor(trimmed.first(tokenLength), color))
+    if (!lw::tryParsePixel(trimmed.first(tokenLength), color))
     {
       return false;
     }

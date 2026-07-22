@@ -12,9 +12,9 @@ namespace lw::palettes
 {
 namespace detail
 {
-  lw::Color applyBrightnessScale(lw::Color color, lw::ColorComponent brightnessScale)
+  lw::Pixel applyBrightnessScale(lw::Pixel color, lw::PixelComponent brightnessScale)
   {
-    using Component = lw::ColorComponent;
+    using Component = lw::PixelComponent;
     constexpr uint32_t MaxComponent = static_cast<uint32_t>(std::numeric_limits<Component>::max());
     const uint32_t scale = static_cast<uint32_t>(brightnessScale);
 
@@ -31,16 +31,16 @@ namespace detail
     size_t written = 0;
     for (; output != outputEnd; ++output)
     {
-      *output = lw::Color{};
+      *output = lw::Pixel{};
       ++written;
     }
 
     return written;
   }
 
-  template <typename TOutputIt, typename TSentinel, typename = void> size_t writeScaledSolid(lw::Color color, lw::ColorComponent brightnessScale, TOutputIt output, TSentinel outputEnd)
+  template <typename TOutputIt, typename TSentinel, typename = void> size_t writeScaledSolid(lw::Pixel color, lw::PixelComponent brightnessScale, TOutputIt output, TSentinel outputEnd)
   {
-    const lw::Color scaled = applyBrightnessScale(color, brightnessScale);
+    const lw::Pixel scaled = applyBrightnessScale(color, brightnessScale);
     size_t written = 0;
     for (; output != outputEnd; ++output)
     {

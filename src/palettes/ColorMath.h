@@ -85,9 +85,9 @@ constexpr uint32_t integerSqrt(uint32_t value)
 // ---------------------------------------------------------------------------
 // Color blending (depth-independent, templated on progress type)
 // ---------------------------------------------------------------------------
-template <typename TProgress, typename = std::enable_if_t<std::is_unsigned_v<TProgress>>> constexpr lw::Color linearBlendProgress(const lw::Color& left, const lw::Color& right, TProgress progress)
+template <typename TProgress, typename = std::enable_if_t<std::is_unsigned_v<TProgress>>> constexpr lw::Pixel linearBlendProgress(const lw::Pixel& left, const lw::Pixel& right, TProgress progress)
 {
-  using Wide = std::conditional_t<(sizeof(ColorComponent) <= 2), uint32_t, uint64_t>;
+  using Wide = std::conditional_t<(sizeof(PixelComponent) <= 2), uint32_t, uint64_t>;
   constexpr Wide maxProgress = static_cast<Wide>(std::numeric_limits<TProgress>::max());
 
   if (progress == 0)
@@ -103,7 +103,7 @@ template <typename TProgress, typename = std::enable_if_t<std::is_unsigned_v<TPr
                            const Wide progressWide = static_cast<Wide>(progress);
                            const Wide inverseProgress = maxProgress - progressWide;
                            const Wide numerator = (leftValue * inverseProgress) + (rightValue * progressWide) + (maxProgress / static_cast<Wide>(2));
-                           return static_cast<ColorComponent>(numerator / maxProgress);
+                           return static_cast<PixelComponent>(numerator / maxProgress);
                          });
 }
 
@@ -165,16 +165,16 @@ namespace detail
   }
 } // namespace detail
 
-constexpr lw::Color hsbToRgb(lw::ColorComponent h, lw::ColorComponent s, lw::ColorComponent b)
+constexpr lw::Pixel hsbToRgb(lw::PixelComponent h, lw::PixelComponent s, lw::PixelComponent b)
 {
   uint8_t r = 0, g = 0, blue = 0;
-  detail::hsbToRgb8(static_cast<uint8_t>((static_cast<uint32_t>(h) * 255u + (std::numeric_limits<ColorComponent>::max() / 2u)) / std::numeric_limits<ColorComponent>::max()),
-                    static_cast<uint8_t>((static_cast<uint32_t>(s) * 255u + (std::numeric_limits<ColorComponent>::max() / 2u)) / std::numeric_limits<ColorComponent>::max()),
-                    static_cast<uint8_t>((static_cast<uint32_t>(b) * 255u + (std::numeric_limits<ColorComponent>::max() / 2u)) / std::numeric_limits<ColorComponent>::max()), r, g, blue);
+  detail::hsbToRgb8(static_cast<uint8_t>((static_cast<uint32_t>(h) * 255u + (std::numeric_limits<PixelComponent>::max() / 2u)) / std::numeric_limits<PixelComponent>::max()),
+                    static_cast<uint8_t>((static_cast<uint32_t>(s) * 255u + (std::numeric_limits<PixelComponent>::max() / 2u)) / std::numeric_limits<PixelComponent>::max()),
+                    static_cast<uint8_t>((static_cast<uint32_t>(b) * 255u + (std::numeric_limits<PixelComponent>::max() / 2u)) / std::numeric_limits<PixelComponent>::max()), r, g, blue);
 
-  return lw::colorFromRGBW(static_cast<ColorComponent>((static_cast<uint32_t>(r) * std::numeric_limits<ColorComponent>::max() + 127u) / 255u),
-                           static_cast<ColorComponent>((static_cast<uint32_t>(g) * std::numeric_limits<ColorComponent>::max() + 127u) / 255u),
-                           static_cast<ColorComponent>((static_cast<uint32_t>(blue) * std::numeric_limits<ColorComponent>::max() + 127u) / 255u), static_cast<ColorComponent>(0));
+  return lw::pixelFromRGBW(static_cast<PixelComponent>((static_cast<uint32_t>(r) * std::numeric_limits<PixelComponent>::max() + 127u) / 255u),
+                           static_cast<PixelComponent>((static_cast<uint32_t>(g) * std::numeric_limits<PixelComponent>::max() + 127u) / 255u),
+                           static_cast<PixelComponent>((static_cast<uint32_t>(blue) * std::numeric_limits<PixelComponent>::max() + 127u) / 255u), static_cast<PixelComponent>(0));
 }
 
 // ---------------------------------------------------------------------------

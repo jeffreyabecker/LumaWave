@@ -88,7 +88,7 @@ namespace detail
     }
   }
 
-  lw::Color sampleWrappedSpan(span<const PaletteStop> stops, detail::PaletteCanonicalCoordinate sampleCoordinate, size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
+  lw::Pixel sampleWrappedSpan(span<const PaletteStop> stops, detail::PaletteCanonicalCoordinate sampleCoordinate, size_t blendSampleIndex, BlendMode blendMode, uint8_t quantizedLevels)
   {
     const auto& left = stops.back();
     const auto& right = stops.front();
@@ -117,20 +117,20 @@ size_t sampleInterpolated(const IPalette& palette, TIndexRange&& paletteIndexes,
 
 template <typename TOutputIt> void writeOutOfRangeSample(TOutputIt& output, PaletteSampleOptions options)
 {
-  *output = detail::applyBrightnessScale(options.outOfRangeColor, options.brightnessScale);
+  *output = detail::applyBrightnessScale(options.outOfRangePixel, options.brightnessScale);
 }
 
-lw::Color sampleNearestAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
+lw::Pixel sampleNearestAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (stops.empty())
   {
-    return lw::Color{};
+    return lw::Pixel{};
   }
 
   const detail::NormalizedSampleIndex normalized = detail::normalizeForDomain(options, rawSampleIndex);
   if (normalized.outOfRange)
   {
-    return detail::applyBrightnessScale(options.outOfRangeColor, options.brightnessScale);
+    return detail::applyBrightnessScale(options.outOfRangePixel, options.brightnessScale);
   }
 
   size_t nearestStopIndex = 0;
@@ -154,22 +154,22 @@ lw::Color sampleNearestAt(span<const PaletteStop> stops, size_t rawSampleIndex, 
   return detail::applyBrightnessScale(stops[nearestStopIndex].color, options.brightnessScale);
 }
 
-lw::Color sampleInterpolatedAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
+lw::Pixel sampleInterpolatedAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (stops.empty())
   {
-    return lw::Color{};
+    return lw::Pixel{};
   }
 
   const detail::NormalizedSampleIndex normalized = detail::normalizeForDomain(options, rawSampleIndex);
   if (normalized.outOfRange)
   {
-    return detail::applyBrightnessScale(options.outOfRangeColor, options.brightnessScale);
+    return detail::applyBrightnessScale(options.outOfRangePixel, options.brightnessScale);
   }
 
   const palette_logical_index_t sampleIndex = normalized.value;
   const palette_canonical_fixed_t sampleFixed = normalized.canonical.fixed;
-  lw::Color sampled{};
+  lw::Pixel sampled{};
 
   const size_t stopIndex = detail::firstStopAtOrAfterFixed(stops, sampleFixed);
   if (stopIndex < static_cast<size_t>(stops.size()))
@@ -207,7 +207,7 @@ lw::Color sampleInterpolatedAt(span<const PaletteStop> stops, size_t rawSampleIn
   return detail::applyBrightnessScale(sampled, options.brightnessScale);
 }
 
-lw::Color samplePaletteAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
+lw::Pixel samplePaletteAt(span<const PaletteStop> stops, size_t rawSampleIndex, PaletteSampleOptions options)
 {
   if (options.blendMode == BlendMode::Nearest)
   {

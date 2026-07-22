@@ -203,20 +203,5 @@ inline bool tryParsePixel(const char* t, Pixel& c)
 {
   return tryParsePixel(detail::cStringSpan(t), c);
 }
-// Brightness application — scalar and pixel-level overloads
-template <typename TValue, typename TBrightness, typename = std::enable_if_t<std::is_integral_v<TValue> && std::is_unsigned_v<TValue> && std::is_integral_v<TBrightness> && std::is_unsigned_v<TBrightness>>>
-constexpr TValue applyBrightness(TValue value, TBrightness brightness)
-{
-  using ScaleWide = uint64_t;
-  constexpr ScaleWide brightnessMax = static_cast<ScaleWide>(std::numeric_limits<TBrightness>::max());
-  if constexpr (brightnessMax == 0)
-    return static_cast<TValue>(0);
-  return static_cast<TValue>(((static_cast<ScaleWide>(value) * static_cast<ScaleWide>(brightness)) + (brightnessMax / 2u)) / brightnessMax);
-}
 
-inline constexpr Pixel applyBrightness(Pixel c, PixelComponent brightness)
-{
-  if (brightness == std::numeric_limits<PixelComponent>::max())
-    return c;
-  return pixelFromRGBW(applyBrightness(pixelR(c), brightness), applyBrightness(pixelG(c), brightness), applyBrightness(pixelB(c), brightness), applyBrightness(pixelW(c), brightness));
-}
+} // namespace lw

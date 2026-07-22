@@ -18,7 +18,7 @@ namespace samplingtransition
   public:
     BlendAssignProxy(TOutputIt output, uint8_t blendProgress) : _output(output), _blendProgress(blendProgress) {}
 
-    BlendAssignProxy& operator=(const lw::Color& sampled)
+    BlendAssignProxy& operator=(const lw::Pixel& sampled)
     {
       *_output = lw::linearBlendProgress(*_output, sampled, _blendProgress);
       return *this;
@@ -33,9 +33,9 @@ namespace samplingtransition
   {
   public:
     using iterator_category = std::input_iterator_tag;
-    using value_type = lw::Color;
+    using value_type = lw::Pixel;
     using difference_type = std::ptrdiff_t;
-    using reference = BlendAssignProxy<lw::Color, TOutputIt>;
+    using reference = BlendAssignProxy<lw::Pixel, TOutputIt>;
     using pointer = void;
 
     BlendOutputIterator(TOutputIt output, uint8_t blendProgress) : _output(output), _blendProgress(blendProgress) {}
@@ -67,7 +67,7 @@ namespace samplingtransition
   template <typename TOutputRange, typename = std::enable_if_t<true && IsBeginEndRange<std::remove_reference_t<TOutputRange>>::value>> class BlendOutputRange
   {
   public:
-    using Iterator = BlendOutputIterator<lw::Color, decltype(std::declval<TOutputRange&>().begin())>;
+    using Iterator = BlendOutputIterator<lw::Pixel, decltype(std::declval<TOutputRange&>().begin())>;
 
     BlendOutputRange(TOutputRange& outputColors, uint8_t blendProgress) : _outputColors(outputColors), _blendProgress(blendProgress) {}
 

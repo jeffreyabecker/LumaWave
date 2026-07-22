@@ -133,18 +133,18 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-10 | todo | Update `PaletteStop` field type: `ColorType = lw::Color` → `PixelType = lw::Pixel`; field name `color` stays per CPR-DEC-1 | CPR-01 | Type alias renamed; field `color` retains name, type becomes `lw::Pixel` |
-| CPR-11 | todo | Update `PaletteSampleOptions` field `outOfRangeColor` → `outOfRangePixel`, and type `ColorComponent` → `PixelComponent` in `Types.h` | CPR-01 | Fields renamed; type updated |
-| CPR-12 | todo | Update `ColorType` → `PixelType` in `PaletteStop`, `IPalette`, `Palette` in `Types.h` | CPR-01 | Alias renamed |
-| CPR-13 | todo | Update `IsPaletteLike` trait to reference `PixelType` in `Traits.h` | CPR-12 | Trait references new alias name |
-| CPR-14 | todo | Update `src/palettes/ColorMath.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent` internally; filename stays per CPR-DEC-2 | CPR-01, CPR-DEC-2 | All type references updated; filename unchanged |
-| CPR-15 | todo | Update `BlendOperations.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01, CPR-03 | All type/function references updated |
-| CPR-16 | todo | Update `Blends.h` — `lw::Color` → `lw::Pixel` in all signatures and locals; field access `.color` stays per CPR-DEC-1 | CPR-10 | All type references updated; `.color` field access unchanged |
-| CPR-17 | todo | Update `Detail.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent` | CPR-01 | All type references updated |
-| CPR-18 | todo | Update `Generators.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`; local var `color` and field `.color` stay per CPR-DEC-1 and CPR-DEC-4 | CPR-10, CPR-01 | All type references updated; local var names and field access unchanged |
-| CPR-19 | todo | Update `Sampling.h` — `value_type = lw::Color` → `value_type = lw::Pixel` | CPR-01 | Iterator value_type updated |
-| CPR-20 | todo | Update `SamplingTransition.h` — `BlendAssignProxy::operator=(const lw::Color&)` → `const lw::Pixel&`, `value_type` | CPR-01 | All type references updated |
-| CPR-21 | todo | Update `WrapModes.h` — `lw::Color` → `lw::Pixel`; field access `.color` stays per CPR-DEC-1 | CPR-10, CPR-01 | All type references updated; `.color` field access unchanged |
+| CPR-10 | done | Update `PaletteStop` field type: `ColorType = lw::Color` → `PixelType = lw::Pixel`; field name `color` stays per CPR-DEC-1 | CPR-01 | Type alias renamed; field `color` retains name, type becomes `lw::Pixel` |
+| CPR-11 | done | Update `PaletteSampleOptions` field `outOfRangeColor` → `outOfRangePixel`, and type `ColorComponent` → `PixelComponent` in `Types.h` | CPR-01 | Fields renamed; type updated |
+| CPR-12 | done | Update `ColorType` → `PixelType` in `PaletteStop`, `IPalette`, `Palette` in `Types.h` | CPR-01 | Alias renamed |
+| CPR-13 | done | Update `IsPaletteLike` trait to reference `PixelType` in `Traits.h` | CPR-12 | Trait references new alias name |
+| CPR-14 | done | Update `src/palettes/ColorMath.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent` internally; filename stays per CPR-DEC-2 | CPR-01, CPR-DEC-2 | All type references updated; filename unchanged |
+| CPR-15 | done | Update `BlendOperations.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01, CPR-03 | All type/function references updated |
+| CPR-16 | done | Update `Blends.h` — `lw::Color` → `lw::Pixel` in all signatures and locals; field access `.color` stays per CPR-DEC-1 | CPR-10 | All type references updated; `.color` field access unchanged |
+| CPR-17 | done | Update `Detail.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent` | CPR-01 | All type references updated |
+| CPR-18 | done | Update `Generators.h` — `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`; local var `color` and field `.color` stay per CPR-DEC-1 and CPR-DEC-4 | CPR-10, CPR-01 | All type references updated; local var names and field access unchanged |
+| CPR-19 | done | Update `Sampling.h` — `value_type = lw::Color` → `value_type = lw::Pixel` | CPR-01 | Iterator value_type updated |
+| CPR-20 | done | Update `SamplingTransition.h` — `BlendAssignProxy::operator=(const lw::Color&)` → `const lw::Pixel&`, `value_type` | CPR-01 | All type references updated |
+| CPR-21 | done | Update `WrapModes.h` — `lw::Color` → `lw::Pixel`; field access `.color` stays per CPR-DEC-1 | CPR-10, CPR-01 | All type references updated; `.color` field access unchanged |
 
 ## Phase 3 — Protocol Layer (`src/protocols/`)
 
