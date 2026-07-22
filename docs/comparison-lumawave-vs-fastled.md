@@ -136,7 +136,7 @@ This is the closest analog to FastLED's `addLeds<...>()` — a single-line const
 |--------|---------|----------|
 | Core capability | Built-in power budgeting (`setMaxPowerInVoltsAndMilliamps`) | `CurrentLimiterShader` as an explicit shader stage |
 | Application model | Brightness constrained around `show()` lifecycle | Shader-enforced budget inside pipeline, applied before protocol encoding |
-| Extensibility | Power model structs (`PowerModelRGB`, RGBW/RGBWW placeholders) | Any shader can implement current-limiting policy |
+| Extensibility | Power model structs (`PowerModelRGB`, RGBW/RGBWW placeholders) | Any shader can implement current-limiting policy; protocols with native per-LED current control (e.g. TLC59711, SM168x) do not require a shader |
 
 ---
 
