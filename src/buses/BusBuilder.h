@@ -7,6 +7,7 @@
 
 #include "buses/BusStorage.h"
 #include "buses/detail/BufferManager.h"
+#include "buses/detail/PresetTraits.h"
 #include "buses/detail/ProtocolHolder.h"
 #include "buses/detail/ShaderList.h"
 #include "buses/detail/TransportHolder.h"
@@ -61,6 +62,9 @@ public:
     return *this;
   }
 
+  /// Current pixel count (set by setPixelCount or setPixelStorage).
+  size_t pixelCount() const { return _pixelCount; }
+
   // --- Transport ---
 
   /// Attach a fully-constructed transport by move. The builder takes ownership.
@@ -99,6 +103,28 @@ public:
   BusBuilder& enableDestructiveShaders()
   {
     _shaders.setDestructiveMode(true);
+    return *this;
+  }
+
+  // --- Preset strips ---
+
+  /// Add a strip using protocol and transport presets.
+  /// Each preset's configure() is called in order: protocol, then transport.
+  template <typename TProtoPreset, typename TTransPreset, typename = std::enable_if_t<detail::is_preset_v<TProtoPreset> && detail::is_preset_v<TTransPreset>>>
+  BusBuilder& addStrip(TProtoPreset protocol, TTransPreset transport)
+  {
+    protocol.configure(*this);
+    transport.configure(*this);
+    return *this;
+  }
+
+  /// Add a strip with protocol, transport, and shader presets.
+  template <typename TProtoPreset, typename TTransPreset, typename TShaderPreset, typename = std::enable_if_t<detail::is_preset_v<TProtoPreset> && detail::is_preset_v<TTransPreset> && detail::is_preset_v<TShaderPreset>>>
+  BusBuilder& addStrip(TProtoPreset protocol, TTransPreset transport, TShaderPreset shader)
+  {
+    protocol.configure(*this);
+    transport.configure(*this);
+    shader.configure(*this);
     return *this;
   }
 

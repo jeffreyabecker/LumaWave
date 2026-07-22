@@ -7,12 +7,15 @@
 #include "buses/detail/ProtocolHolder.h"
 #include "buses/detail/ShaderList.h"
 #include "buses/detail/BufferManager.h"
+#include "buses/detail/PresetTraits.h"
 #include "buses/BusStorage.h"
 #include "buses/BusBuilder.h"
 #include "core/Compat.h"
 #include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
 #include "protocols/Protocol.h"
+#include "protocols/Ws2812xPreset.h"
+#include "transports/NilTransportPreset.h"
 #include "protocols/ShaderProtocol.h"
 #include "protocols/IShader.h"
 #include "protocols/Ws2812xProtocol.h"
@@ -657,6 +660,83 @@ void test_builder_set_pixel_count_and_storage_conflict(void)
   TEST_ASSERT_FALSE(err.empty()); // transport not set, but no crash
 }
 
+// ---------------------------------------------------------------------------
+// Preset composition tests (BBL-31)
+// ---------------------------------------------------------------------------
+
+// Mock shader preset for testing (BrightnessShader doesn't exist yet in-tree)
+struct brightness
+{
+  uint8_t level = 128;
+  void configure(lw::buses::BusBuilder& b) { b.addShader(MockShader{}); }
+  // Use level to avoid unused-variable warning
+  brightness() = default;
+  explicit brightness(uint8_t l) : level(l) {}
+};
+
+void test_preset_trait_detects_configure(void)
+{
+  // All three preset types should satisfy is_preset
+  TEST_ASSERT_TRUE((lw::buses::detail::is_preset_v<lw::buses::presets::ws2812x>));
+  TEST_ASSERT_TRUE((lw::buses::detail::is_preset_v<lw::buses::presets::nil_transport>));
+  TEST_ASSERT_TRUE((lw::buses::detail::is_preset_v<brightness>));
+}
+
+void test_preset_trait_rejects_non_preset(void)
+{
+  // A plain int has no configure() method
+  TEST_ASSERT_FALSE((lw::buses::detail::is_preset_v<int>));
+  TEST_ASSERT_FALSE((lw::buses::detail::is_preset_v<MockShader>));
+}
+
+void test_add_strip_proto_trans(void)
+{
+  lw::buses::BusBuilder builder;
+  builder.setPixelCount(30).addStrip(lw::buses::presets::ws2812x{}, lw::buses::presets::nil_transport{});
+
+  // Builder should now be valid
+  auto err = builder.validate();
+  TEST_ASSERT_TRUE(err.empty());
+}
+
+void test_add_strip_proto_trans_shader(void)
+{
+  lw::buses::BusBuilder builder;
+  builder.setPixelCount(30).addStrip(lw::buses::presets::ws2812x{}, lw::buses::presets::nil_transport{}, brightness{128});
+
+  auto err = builder.validate();
+  TEST_ASSERT_TRUE(err.empty());
+}
+
+void test_add_strip_build_and_use(void)
+{
+  auto bus = lw::buses::BusBuilder().setPixelCount(30).addStrip(lw::buses::presets::ws2812x{}, lw::buses::presets::nil_transport{}).build();
+
+  TEST_ASSERT_NOT_NULL(bus);
+  bus->begin();
+  bus->pixels()[0] = lw::pixelFromRGB(255, 128, 64);
+  bus->show();
+}
+
+void test_add_strip_inline_field_override(void)
+{
+  lw::buses::BusBuilder builder;
+  builder.setPixelCount(30).addStrip(lw::buses::presets::ws2812x{.channelOrder = "RGB"}, lw::buses::presets::nil_transport{});
+
+  auto err = builder.validate();
+  TEST_ASSERT_TRUE(err.empty());
+}
+
+void test_add_strip_with_shader_build_and_use(void)
+{
+  auto bus = lw::buses::BusBuilder().setPixelCount(30).addStrip(lw::buses::presets::ws2812x{}, lw::buses::presets::nil_transport{}, brightness{200}).build();
+
+  TEST_ASSERT_NOT_NULL(bus);
+  bus->begin();
+  bus->pixels()[0] = lw::pixelFromRGB(1, 2, 3);
+  bus->show();
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -728,6 +808,15 @@ int main(void)
   RUN_TEST(test_builder_build_fails_on_missing_transport);
   RUN_TEST(test_builder_double_build_returns_null);
   RUN_TEST(test_builder_set_pixel_count_and_storage_conflict);
+
+  // Preset composition (BBL-31)
+  RUN_TEST(test_preset_trait_detects_configure);
+  RUN_TEST(test_preset_trait_rejects_non_preset);
+  RUN_TEST(test_add_strip_proto_trans);
+  RUN_TEST(test_add_strip_proto_trans_shader);
+  RUN_TEST(test_add_strip_build_and_use);
+  RUN_TEST(test_add_strip_inline_field_override);
+  RUN_TEST(test_add_strip_with_shader_build_and_use);
 
   return UNITY_END();
 }
