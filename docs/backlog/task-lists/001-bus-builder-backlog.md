@@ -79,7 +79,7 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-20 | `todo` | Resolve open decision BBL-DEC-5 (type erasure: custom vtable vs. std::any) | — | Decision table updated with `done` status and resolution notes |
+| BBL-20 | `done` | Resolve open decision BBL-DEC-5 (type erasure: custom vtable vs. std::any) | — | **Custom vtable.** `TransportHolder` / `ProtocolHolder` use hand-rolled vtables + `unique_ptr<TransportBase>`; no RTTI, no exceptions. |
 | BBL-21 | `todo` | Implement `BusStorage` (heap variant): single-owner RAII struct that owns all members in correct dependency order for a single run | BBL-10 | Header `src/buses/BusStorage.h` exists; holds `vector<Pixel>` pixels, `ProtocolHolder`, `TransportHolder`, `ShaderList`, `BufferManager`, `ShaderProtocol`, `ProtocolTransportPipeline`, `PipelineRun`, `Bus`; constructor wires everything in order; non-copyable, non-movable (internal references); unit tested |
 | BBL-22 | `todo` | Extend `BusStorage` to support multi-run (composite) buses | BBL-11, BBL-21 | `BusStorage` supports N runs: `vector<ProtocolTransportPipeline>`, `vector<PipelineRun>`; constructor takes run descriptors; unit tested with 2+ runs |
 | BBL-23 | `todo` | Implement `BusBuilder` class with `setPixelCount()` and `setPixelStorage()` | BBL-01, BBL-02, BBL-03, BBL-20 | Header `src/buses/BusBuilder.h` exists; `setPixelCount(n)` allocates internal pixel storage; `setPixelStorage(span)` uses external pixels; calling both is rejected; unit tested |
