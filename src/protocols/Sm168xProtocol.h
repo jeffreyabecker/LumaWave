@@ -21,7 +21,7 @@ class Sm168xProtocol : public Protocol
 public:
   using SettingsType = Sm168xProtocolSettings;
 
-  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Sm168xProtocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::PixelComponent, uint8_t> || std::is_same_v<lw::PixelComponent, uint16_t>), "Sm168xProtocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings) { return (static_cast<size_t>(pixelCount) * resolveChannelCount(settings.channelOrder)) + SettingsSize; }
 
@@ -32,7 +32,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -97,9 +97,9 @@ private:
     }
   }
 
-  static constexpr uint8_t toWireComponent8(lw::ColorComponent value)
+  static constexpr uint8_t toWireComponent8(lw::PixelComponent value)
   {
-    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::PixelComponent, uint8_t>)
     {
       return value;
     }
@@ -107,7 +107,7 @@ private:
     return static_cast<uint8_t>(value >> 8);
   }
 
-  void serializePixels(span<const lw::Color> colors)
+  void serializePixels(span<const lw::Pixel> colors)
   {
     size_t offset = 0;
     const size_t payloadSize = _frameBuffer.size() - SettingsSize;
@@ -120,7 +120,7 @@ private:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < _channelCount; ++channel)
       {
-        _frameBuffer[offset++] = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[channel]));
+        _frameBuffer[offset++] = toWireComponent8(lw::pixelComponentByTag(color, _settings.channelOrder[channel]));
       }
     }
   }

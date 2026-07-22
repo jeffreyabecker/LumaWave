@@ -17,7 +17,7 @@ class IShader
 public:
   virtual ~IShader() = default;
 
-  virtual void apply(span<const lw::Color> source, span<lw::Color> dest) = 0;
+  virtual void apply(span<const lw::Pixel> source, span<lw::Pixel> dest) = 0;
 
   virtual void setRuntimeConfig(RuntimeConfig type, void* value)
   {

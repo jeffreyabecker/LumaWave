@@ -35,7 +35,7 @@ class Lpd6803ProtocolT : public Protocol
 public:
   using SettingsType = Lpd6803ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::PixelComponent, uint8_t> || std::is_same_v<lw::PixelComponent, uint16_t>), "Lpd6803Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + ((static_cast<size_t>(pixelCount) + 7u) / 8u); }
 
@@ -43,7 +43,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -61,9 +61,9 @@ public:
     for (size_t index = 0; index < pixelLimit; ++index)
     {
       const auto& color = colors[index];
-      uint8_t ch1 = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[0])) & 0xF8;
-      uint8_t ch2 = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[1])) & 0xF8;
-      uint8_t ch3 = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[2])) & 0xF8;
+      uint8_t ch1 = toWireComponent8(lw::pixelComponentByTag(color, _settings.channelOrder[0])) & 0xF8;
+      uint8_t ch2 = toWireComponent8(lw::pixelComponentByTag(color, _settings.channelOrder[1])) & 0xF8;
+      uint8_t ch3 = toWireComponent8(lw::pixelComponentByTag(color, _settings.channelOrder[2])) & 0xF8;
 
       // Pack: 1_ccccc_ccccc_ccccc (big-endian)
       uint16_t packed = 0x8000 | (static_cast<uint16_t>(ch1) << 7) | (static_cast<uint16_t>(ch2) << 2) | (static_cast<uint16_t>(ch3) >> 3);
@@ -79,9 +79,9 @@ private:
   static constexpr size_t BytesPerPixel = 2;
   static constexpr size_t StartFrameSize = 4;
 
-  static constexpr uint8_t toWireComponent8(lw::ColorComponent value)
+  static constexpr uint8_t toWireComponent8(lw::PixelComponent value)
   {
-    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::PixelComponent, uint8_t>)
     {
       return value;
     }

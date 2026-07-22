@@ -36,7 +36,7 @@ class Apa102Protocol : public Protocol
 {
 public:
   using SettingsType = Apa102ProtocolSettings;
-  using InterfaceColorType = lw::Color;
+  using InterfacePixelType = lw::Pixel;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -46,7 +46,7 @@ public:
 
   Apa102Protocol(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -69,7 +69,7 @@ public:
       _byteBuffer[offset++] = encodedGainByte();
       for (size_t channel = 0; channel < StripChannelCount; ++channel)
       {
-        _byteBuffer[offset++] = toStripComponent(lw::colorComponentByTag(color, effectiveChannelOrder[channel]));
+        _byteBuffer[offset++] = toStripComponent(lw::pixelComponentByTag(color, effectiveChannelOrder[channel]));
       }
     }
   }
@@ -95,9 +95,9 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint8_t toStripComponent(lw::ColorComponent value)
+  static constexpr uint8_t toStripComponent(lw::PixelComponent value)
   {
-    if constexpr (sizeof(lw::ColorComponent) > 1)
+    if constexpr (sizeof(lw::PixelComponent) > 1)
     {
       return static_cast<uint8_t>(value >> 8);
     }
@@ -117,13 +117,13 @@ class Hd108Protocol : public Protocol
 {
 public:
   using SettingsType = Hd108ProtocolSettings;
-  using InterfaceColorType = lw::Color;
+  using InterfacePixelType = lw::Pixel;
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return StartFrameSize + (static_cast<size_t>(pixelCount) * BytesPerPixel) + EndFrameSize; }
 
   Hd108Protocol(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -147,7 +147,7 @@ public:
 
       for (size_t channel = 0; channel < StripChannelCount; ++channel)
       {
-        const uint16_t value = toStripComponent(lw::colorComponentByTag(color, effectiveChannelOrder[channel]));
+        const uint16_t value = toStripComponent(lw::pixelComponentByTag(color, effectiveChannelOrder[channel]));
         _byteBuffer[offset++] = static_cast<uint8_t>(value >> 8);
         _byteBuffer[offset++] = static_cast<uint8_t>(value & 0xFF);
       }
@@ -175,7 +175,7 @@ private:
 
   uint8_t encodedGainByte() const { return static_cast<uint8_t>(0xe0u | normalizeGainValue(_gainValue, MaxGain)); }
 
-  static constexpr uint16_t toStripComponent(lw::ColorComponent value) { return static_cast<uint16_t>(value); }
+  static constexpr uint16_t toStripComponent(lw::PixelComponent value) { return static_cast<uint16_t>(value); }
 
   SettingsType _settings;
   size_t _requiredBufferSize{0};

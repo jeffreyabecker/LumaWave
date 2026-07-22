@@ -30,7 +30,7 @@ class Lpd8806ProtocolT : public Protocol
 public:
   using SettingsType = Lpd8806ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Lpd8806Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::PixelComponent, uint8_t> || std::is_same_v<lw::PixelComponent, uint16_t>), "Lpd8806Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&)
   {
@@ -42,7 +42,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -62,7 +62,7 @@ public:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < BytesPerPixel; ++channel)
       {
-        _byteBuffer[offset++] = (toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[channel])) >> 1) | 0x80;
+        _byteBuffer[offset++] = (toWireComponent8(lw::pixelComponentByTag(color, _settings.channelOrder[channel])) >> 1) | 0x80;
       }
     }
   }
@@ -72,9 +72,9 @@ public:
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::GRB::length;
 
-  static constexpr uint8_t toWireComponent8(lw::ColorComponent value)
+  static constexpr uint8_t toWireComponent8(lw::PixelComponent value)
   {
-    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::PixelComponent, uint8_t>)
     {
       return value;
     }

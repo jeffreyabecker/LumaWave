@@ -27,13 +27,13 @@ class Ws2801ProtocolT : public Protocol
 public:
   using SettingsType = Ws2801ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Ws2801Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::PixelComponent, uint8_t> || std::is_same_v<lw::PixelComponent, uint16_t>), "Ws2801Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType&) { return static_cast<size_t>(pixelCount) * BytesPerPixel; }
 
   Ws2801ProtocolT(PixelCount pixelCount, SettingsType settings) : Protocol(pixelCount), _settings{std::move(settings)}, _requiredBufferSize(requiredBufferSize(pixelCount, _settings)) {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -49,7 +49,7 @@ public:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < BytesPerPixel; ++channel)
       {
-        _byteBuffer[offset++] = toWireByte(lw::colorComponentByTag(color, _settings.channelOrder[channel]));
+        _byteBuffer[offset++] = toWireByte(lw::pixelComponentByTag(color, _settings.channelOrder[channel]));
       }
     }
   }
@@ -59,9 +59,9 @@ public:
 private:
   static constexpr size_t BytesPerPixel = ChannelOrder::RGB::length;
 
-  static constexpr uint8_t toWireByte(lw::ColorComponent value)
+  static constexpr uint8_t toWireByte(lw::PixelComponent value)
   {
-    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::PixelComponent, uint8_t>)
     {
       return value;
     }

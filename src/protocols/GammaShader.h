@@ -19,7 +19,7 @@ public:
 
   GammaShader(float gamma = DefaultGamma) : _gammaValue(gamma) { recalculateTable(); }
 
-  void apply(span<const lw::Color> source, span<lw::Color> dest) override
+  void apply(span<const lw::Pixel> source, span<lw::Pixel> dest) override
   {
     for (size_t i = 0; i < source.size(); ++i)
     {

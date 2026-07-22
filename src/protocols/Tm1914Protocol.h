@@ -45,7 +45,7 @@ class Tm1914ProtocolT : public Protocol
 public:
   using SettingsType = Tm1914ProtocolSettings;
 
-  static_assert((std::is_same_v<lw::ColorComponent, uint8_t> || std::is_same_v<lw::ColorComponent, uint16_t>), "Tm1914Protocol requires uint8_t or uint16_t interface components.");
+  static_assert((std::is_same_v<lw::PixelComponent, uint8_t> || std::is_same_v<lw::PixelComponent, uint16_t>), "Tm1914Protocol requires uint8_t or uint16_t interface components.");
 
   static constexpr size_t requiredBufferSize(PixelCount pixelCount, const SettingsType& settings)
   {
@@ -63,7 +63,7 @@ public:
 
   void begin() override {}
 
-  void update(span<const lw::Color> colors, span<uint8_t> buffer = span<uint8_t>{}) override
+  void update(span<const lw::Pixel> colors, span<uint8_t> buffer = span<uint8_t>{}) override
   {
     if (buffer.size() < _requiredBufferSize)
     {
@@ -117,7 +117,7 @@ private:
     _frameBuffer[5] = static_cast<uint8_t>(~_frameBuffer[2]);
   }
 
-  void serializePixels(span<const lw::Color> colors)
+  void serializePixels(span<const lw::Pixel> colors)
   {
     size_t offset = SettingsSize;
     const size_t pixelLimit = std::min(colors.size(), static_cast<size_t>(this->pixelCount()));
@@ -126,14 +126,14 @@ private:
       const auto& color = colors[index];
       for (size_t channel = 0; channel < ChannelCount; ++channel)
       {
-        _frameBuffer[offset++] = toWireComponent8(lw::colorComponentByTag(color, _settings.channelOrder[channel]));
+        _frameBuffer[offset++] = toWireComponent8(lw::pixelComponentByTag(color, _settings.channelOrder[channel]));
       }
     }
   }
 
-  static constexpr uint8_t toWireComponent8(lw::ColorComponent value)
+  static constexpr uint8_t toWireComponent8(lw::PixelComponent value)
   {
-    if constexpr (std::is_same_v<lw::ColorComponent, uint8_t>)
+    if constexpr (std::is_same_v<lw::PixelComponent, uint8_t>)
     {
       return value;
     }

@@ -5,7 +5,7 @@
 #include <memory>
 #include <utility>
 
-#include "colors/Color.h"
+#include "core/Pixel.h"
 #include "colors/ChannelOrder.h"
 #include "core/Compat.h"
 #include "core/RuntimeConfig.h"
@@ -21,7 +21,7 @@ struct ProtocolSettings
 class Protocol
 {
 public:
-  using ColorType = lw::colors::Color;
+  using PixelType = lw::colors::Color;
   using SettingsType = void;
   static constexpr bool RequiresExternalBuffer = true;
   explicit Protocol(PixelCount pixelCount = 0) : _pixelCount{pixelCount} {}

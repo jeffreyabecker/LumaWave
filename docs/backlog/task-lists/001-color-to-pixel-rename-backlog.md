@@ -153,16 +153,16 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-30 | todo | Fix `#include "colors/Color.h"` → `#include "core/Pixel.h"` and update `ColorType` → `PixelType` in `IProtocol.h` | CPR-01, CPR-03 | Bug fixed; alias renamed; `lw::colors::Color` → `lw::Pixel` |
-| CPR-31 | todo | Update `Protocol.h` — `ColorType` → `PixelType`, `lw::Color` → `lw::Pixel` | CPR-01 | Alias and type references updated |
-| CPR-32 | todo | Update `IShader.h` — `lw::Color` → `lw::Pixel` in `apply()` signature | CPR-01 | Signature updated |
-| CPR-33 | todo | Update `ShaderProtocol.h` — `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
+| CPR-30 | done | Fix `#include "colors/Color.h"` → `#include "core/Pixel.h"` and update `ColorType` → `PixelType` in `IProtocol.h` | CPR-01, CPR-03 | Bug fixed; alias renamed; `lw::colors::Color` → `lw::Pixel` |
+| CPR-31 | done | Update `Protocol.h` — `ColorType` → `PixelType`, `lw::Color` → `lw::Pixel` | CPR-01 | Alias and type references updated |
+| CPR-32 | done | Update `IShader.h` — `lw::Color` → `lw::Pixel` in `apply()` signature | CPR-01 | Signature updated |
+| CPR-33 | done | Update `ShaderProtocol.h` — `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
 | CPR-34 | done | Update `BrightnessShader.h` — `BrightnessType = lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
-| CPR-35 | todo | Update `GammaShader.h` — `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
-| CPR-36 | todo | Update `DotStarProtocol.h` — `InterfaceColorType` → `InterfacePixelType`, `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01 | All type/function references updated |
-| CPR-37 | todo | Update `Ws2812xProtocol.h` — `lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01 | All type/function references updated; `static_assert` message updated |
-| CPR-38 | todo | Update `Lpd6803Protocol.h` — `lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel`, accessor functions | CPR-01 | All type/function references updated; `static_assert` message updated |
-| CPR-39 | todo | Update remaining protocol files (`Lpd8806`, `P9813`, `Pixie`, `Sm16716`, `Sm168x`, `Tlc59711`, `Tm1814`, `Tm1914`, `Ws2801`) — `ColorComponent` → `PixelComponent`, `lw::Color` → `lw::Pixel` | CPR-01 | All 8 remaining protocol files updated; all `static_assert` messages updated |
+| CPR-35 | done | Update `GammaShader.h` — `lw::Color` → `lw::Pixel` | CPR-01 | All type references updated |
+| CPR-36 | done | Update `DotStarProtocol.h` — `InterfaceColorType` → `InterfacePixelType`, `lw::Color` → `lw::Pixel`, `lw::ColorComponent` → `lw::PixelComponent`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01 | All type/function references updated |
+| CPR-37 | done | Update `Ws2812xProtocol.h` — `lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel`, `lw::colorComponentByTag` → `lw::pixelComponentByTag` | CPR-01 | All type/function references updated; `static_assert` message updated |
+| CPR-38 | done | Update `Lpd6803Protocol.h` — `lw::ColorComponent` → `lw::PixelComponent`, `lw::Color` → `lw::Pixel`, accessor functions | CPR-01 | All type/function references updated; `static_assert` message updated |
+| CPR-39 | done | Update remaining protocol files (`Lpd8806`, `P9813`, `Pixie`, `Sm16716`, `Sm168x`, `Tlc59711`, `Tm1814`, `Tm1914`, `Ws2801`) — `ColorComponent` → `PixelComponent`, `lw::Color` → `lw::Pixel` | CPR-01 | All 8 remaining protocol files updated; all `static_assert` messages updated |
 
 ## Phase 4 — Bus Layer (`src/buses/`)
 
@@ -197,7 +197,7 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 | CPR-82 | done | Update `test/lights/test_print_light_driver/test_main.cpp` — `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local var `color` → `pixel` | CPR-01 | All references updated; tests compile and pass |
 | CPR-83 | done | Update `test/protocols/test_protocol_spec_sections_1_1_to_1_4_and_1_14/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local `colors` vars → `pixels` | CPR-01, CPR-39 | All references updated; tests compile and pass |
 | CPR-84 | done | Update `test/protocols/test_protocol_spec_sections_1_5_to_1_13/test_main.cpp` — all `lw::Color` → `lw::Pixel`, `colorFromRGB` → `pixelFromRGB`, local `colors` vars → `pixels` | CPR-01, CPR-39 | All references updated; tests compile and pass |
-| CPR-85 | todo | Run full test suite (`ctest`) and confirm all tests pass | CPR-80, CPR-81, CPR-82, CPR-83, CPR-84 | `ctest --test-dir build -C Debug --output-on-failure` exits 0 with no failures |
+| CPR-85 | done | Run full test suite (`ctest`) and confirm all tests pass | CPR-80, CPR-81, CPR-82, CPR-83, CPR-84 | `ctest --test-dir build -C Debug --output-on-failure` exits 0 with no failures |
 
 ## Phase 8 — Examples
 
@@ -221,10 +221,10 @@ instead of `"core/Color.h"`. This will be fixed as part of the rename.
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|---------------------|
-| CPR-110 | todo | Full-text search for remaining `lw::Color` (not in comments/docs about the rename) | All prior phases | `grep` for `lw::Color\b` across `src/`, `test/`, `examples/` returns zero code hits |
-| CPR-111 | todo | Full-text search for remaining `ColorComponent` (not in comments/docs about the rename) | All prior phases | `grep` for `ColorComponent\b` across `src/`, `test/`, `examples/` returns zero code hits |
-| CPR-112 | todo | Full-text search for remaining `colorFromRGB\|colorR\|colorG\|colorB\|colorW` function calls | All prior phases | `grep` returns zero code hits |
-| CPR-113 | todo | Search for remaining `#include.*Color\.h"` include directives | All prior phases | `grep` returns zero hits |
-| CPR-114 | todo | CMake Configure + Build (native test target) | CPR-110, CPR-111, CPR-112, CPR-113 | `cmake --build build --config Debug` succeeds with no errors |
-| CPR-115 | todo | Run clang-format across all changed files | CPR-114 | `clang-format -i --style=file` on all modified files with no unexpected changes |
-| CPR-116 | todo | Resolve all open decisions (CPR-DEC-1 through CPR-DEC-5) and update this document | All prior phases | All decision rows marked `done` with resolution notes |
+| CPR-110 | done | Full-text search for remaining `lw::Color` (not in comments/docs about the rename) | All prior phases | `grep` for `lw::Color\b` across `src/`, `test/`, `examples/` returns zero code hits |
+| CPR-111 | done | Full-text search for remaining `ColorComponent` (not in comments/docs about the rename) | All prior phases | `grep` for `ColorComponent\b` across `src/`, `test/`, `examples/` returns zero code hits |
+| CPR-112 | done | Full-text search for remaining `colorFromRGB\|colorR\|colorG\|colorB\|colorW` function calls | All prior phases | `grep` returns zero code hits |
+| CPR-113 | done | Search for remaining `#include.*Color\.h"` include directives | All prior phases | `grep` returns zero hits |
+| CPR-114 | done | CMake Configure + Build (native test target) | CPR-110, CPR-111, CPR-112, CPR-113 | `cmake --build build --config Debug` succeeds with no errors |
+| CPR-115 | done | Run clang-format across all changed files | CPR-114 | `clang-format -i --style=file` on all modified files with no unexpected changes |
+| CPR-116 | done | Resolve all open decisions (CPR-DEC-1 through CPR-DEC-5) and update this document | All prior phases | All decision rows marked `done` with resolution notes |
