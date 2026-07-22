@@ -34,7 +34,7 @@
 | Tests — PixelBus | `test/busses/test_pixel_bus_dynamic/test_main.cpp` | Dynamic template construction |
 | Design plan | `docs/backlog/plan/bus-builder-lifetime-simplification.md` | Full design, usage examples, open decisions |
 | Test CMake | `test/CMakeLists.txt` | Unity + ArduinoFake test infrastructure |
-| Presets (planned) | `src/buses/BusPresets.h` | `lw::buses::presets` convenience functions |
+| Presets (planned) | `src/protocols/*Preset.h`, `src/transports/*Preset.h` | `lw::buses::presets` structs with `configure(BusBuilder&)` |
 | Reference: NeoPixelBus | `NeoPixelBus.h` (Makuna) | `T_COLOR_FEATURE` + `T_METHOD` composition pattern |
 
 ## Problem Statement
@@ -79,7 +79,7 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-20 | `todo` | Resolve open decisions BBL-DEC-1, BBL-DEC-3, BBL-DEC-5, BBL-DEC-6, BBL-DEC-7, BBL-DEC-8, BBL-DEC-9, BBL-DEC-10 | — | Decision table updated with `done` status and resolution notes |
+| BBL-20 | `todo` | Resolve open decision BBL-DEC-5 (type erasure: custom vtable vs. std::any) | — | Decision table updated with `done` status and resolution notes |
 | BBL-21 | `todo` | Implement `BusStorage` (heap variant): single-owner RAII struct that owns all members in correct dependency order for a single run | BBL-10 | Header `src/buses/BusStorage.h` exists; holds `vector<Pixel>` pixels, `ProtocolHolder`, `TransportHolder`, `ShaderList`, `BufferManager`, `ShaderProtocol`, `ProtocolTransportPipeline`, `PipelineRun`, `Bus`; constructor wires everything in order; non-copyable, non-movable (internal references); unit tested |
 | BBL-22 | `todo` | Extend `BusStorage` to support multi-run (composite) buses | BBL-11, BBL-21 | `BusStorage` supports N runs: `vector<ProtocolTransportPipeline>`, `vector<PipelineRun>`; constructor takes run descriptors; unit tested with 2+ runs |
 | BBL-23 | `todo` | Implement `BusBuilder` class with `setPixelCount()` and `setPixelStorage()` | BBL-01, BBL-02, BBL-03, BBL-20 | Header `src/buses/BusBuilder.h` exists; `setPixelCount(n)` allocates internal pixel storage; `setPixelStorage(span)` uses external pixels; calling both is rejected; unit tested |
@@ -88,8 +88,8 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 | BBL-26 | `todo` | Implement `BusBuilder::addRun()` (low-level) | BBL-11, BBL-23 | Records a run descriptor `{pixelOffset, length, transportIndex, protocolIndex}`; validates offset+length ≤ pixelCount; unit tested with single and multi-run |
 | BBL-27 | `todo` | Implement `BusBuilder::build()` | BBL-21, BBL-22, BBL-24, BBL-25, BBL-26 | Validates configuration (transport set, protocol set, runs defined or implicit single-run); constructs `BusStorage` on heap; returns `unique_ptr<IPixelBus>`; builder consumed (moved-from); unit tested for single strip, multi-strip, with shaders, with external pixels |
 | BBL-28 | `todo` | Implement `BusBuilder::validate()` for early checking | BBL-27 | Returns descriptive error (enum or string) without allocating; unit tested for missing transport, missing protocol, run overflow, empty configuration |
-| BBL-29 | `todo` | Implement `is_preset<T>` SFINAE gate and `BusBuilder::addStrip()` overloads | BBL-24, BBL-25, BBL-20 | `is_preset<T>` SFINAE trait in `src/buses/detail/PresetTraits.h`; four `addStrip` overloads: (proto,trans), (proto,trans,shader), (off,len,proto,trans), (off,len,proto,trans,shader); each calls `configure()` on each preset in order; unit tested with mock presets |
-| BBL-30 | `todo` | Implement protocol, transport, and shader preset structs in `src/buses/BusPresets.h` | BBL-29 | `lw::buses::presets` namespace with structs: `ws2812x`, `ws2812x_rgb`, `ws2812x_wrgb`, `dotstar`, `apa102`, `ws2801`, `lpd8806`, `tm1814`, `p9813`, `spi`, `rp_pio`, `brightness`, `gamma`; each has `configure(BusBuilder&)`; public fields for defaults; unit tested by verifying builder state after `addStrip` |
+| BBL-29 | `todo` | Implement `is_preset<T>` SFINAE gate and `BusBuilder::addStrip()` overloads | BBL-24, BBL-25, BBL-20 | `is_preset<T>` SFINAE trait in `src/buses/detail/PresetTraits.h`; four `addStrip` overloads: (proto,trans), (proto,trans,shader), (off,len,proto,trans), (off,len,proto,trans,shader); offset+length overloads delegate to `addRun` + non-offset overload; each calls `configure()` on each preset in order; unit tested with mock presets |
+| BBL-30 | `todo` | Implement preset structs alongside protocol/transport headers | BBL-29 | Protocol presets in `src/protocols/` (e.g., `Ws2812xPreset.h`); transport presets in `src/transports/` (e.g., `SpiPreset.h`); aggregate headers `ProtocolPresets.h` / `TransportPresets.h`; namespace `lw::buses::presets`; each struct has `configure(BusBuilder&)` and public fields; unit tested by verifying builder state after `addStrip` |
 | BBL-31 | `todo` | Test preset composition: single-strip, multi-strip, inline field override | BBL-29, BBL-30 | Tests: `addStrip(ws2812x{}, rp_pio{2})` single strip; `addStrip(0,30,...)` + `addStrip(30,60,...)` multi-strip; inline override `rp_pio{.pin=5}`; preset + explicit shader; preset + explicit transport; error when non-preset type passed |
 
 ## Phase 4 — Stack / Static Allocation Path
@@ -141,7 +141,7 @@ Constructing a complete `IPixelBus` requires allocating and wiring 7–11 interd
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
 | BBL-70 | `todo` | Write usage doc `docs/usage/bus-builder.md` per usage-doc-authoring conventions | BBL-27, BBL-32 | Document covers all builder methods, ownership model, external pixels, static path, error handling; linked from design plan |
-| BBL-71 | `todo` | Update `src/LumaWave.h` to expose `BusBuilder`, `BusStorage`, `StackBusStorage`, `BusPresets` | BBL-27, BBL-30, BBL-32 | Public headers included in convenience header; examples can `#include <LumaWave.h>` only |
+| BBL-71 | `todo` | Update `src/LumaWave.h` to expose `BusBuilder`, `BusStorage`, `StackBusStorage`, `ProtocolPresets`, `TransportPresets` | BBL-27, BBL-30, BBL-32 | Public headers included in convenience header; examples can `#include <LumaWave.h>` only |
 | BBL-72 | `todo` | Add deprecation notice to `PixelBus.h` and `StackPixelBus.h` recommending `BusBuilder` | BBL-27, BBL-32 | `@deprecated` doxygen comments added; migration guide references builder |
 | BBL-73 | `todo` | Update cross-references in design plan and related docs | BBL-70 | Design plan links to usage doc; source document table updated; complement references consistent |
 | BBL-74 | `todo` | Run full test suite and clang-format | BBL-49 | `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure` passes; `clang-format` clean |

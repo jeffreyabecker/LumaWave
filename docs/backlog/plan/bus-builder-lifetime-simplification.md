@@ -34,7 +34,7 @@
 | Tests — StackPixelBus | `test/busses/test_pixel_bus/test_main.cpp` | Static template construction |
 | Tests — PixelBus | `test/busses/test_pixel_bus_dynamic/test_main.cpp` | Dynamic template construction |
 | Inventory | `docs/internal/platform-transport-inventory.md` | Full transport catalog |
-| Presets (planned) | `src/buses/BusPresets.h` | `lw::buses::presets` convenience functions |
+| Presets (planned) | `src/protocols/*Preset.h`, `src/transports/*Preset.h` | `lw::buses::presets` structs with `configure(BusBuilder&)` |
 | Reference: NeoPixelBus | `NeoPixelBus.h` (Makuna) | `T_COLOR_FEATURE` + `T_METHOD` composition, `NeoGrbFeature`, `Neo800KbpsMethod` |
 
 ## Current State
@@ -212,10 +212,12 @@ public:
     BusBuilder& addStrip(TProtoPreset protocol, TTransPreset transport, TShaderPreset shader);
 
     /// Add a run with explicit pixel offset and length (multi-strip).
+    /// Equivalent to: addRun(pixelOffset, length); addStrip(protocol, transport);
     template<typename TProtoPreset, typename TTransPreset>
     BusBuilder& addStrip(size_t pixelOffset, size_t length, TProtoPreset protocol, TTransPreset transport);
 
     /// Add a run with offset, length, and shader preset.
+    /// Equivalent to: addRun(pixelOffset, length); addStrip(protocol, transport, shader);
     template<typename TProtoPreset, typename TTransPreset, typename TShaderPreset>
     BusBuilder& addStrip(size_t pixelOffset, size_t length, TProtoPreset protocol, TTransPreset transport, TShaderPreset shader);
 
@@ -364,7 +366,27 @@ struct is_preset<T, std::void_t<decltype(std::declval<T&>().configure(std::declv
     : std::true_type {};
 ```
 
-**Preset Catalog** (in `lw::buses::presets`):
+**Preset Catalog** — each preset lives alongside its target type:
+
+| Preset | File | What it configures |
+|--------|------|--------------------|
+| `ws2812x` | `src/protocols/Ws2812xPreset.h` | `Ws2812xProtocol` with GRB color order |
+| `ws2812x_rgb` | `src/protocols/Ws2812xPreset.h` | `Ws2812xProtocol` with RGB color order |
+| `ws2812x_wrgb` | `src/protocols/Ws2812xPreset.h` | `Ws2812xProtocol` with WRGB color order |
+| `dotstar` | `src/protocols/DotStarPreset.h` | `DotStarProtocol` with BGR color order |
+| `apa102` | `src/protocols/Apa102Preset.h` | `Apa102Protocol` with BGR color order |
+| `ws2801` | `src/protocols/Ws2801Preset.h` | `Ws2801Protocol` with RGB color order |
+| `lpd8806` | `src/protocols/Lpd8806Preset.h` | `Lpd8806Protocol` with GRB color order |
+| `tm1814` | `src/protocols/Tm1814Preset.h` | `Tm1814Protocol` with WRGB color order |
+| `p9813` | `src/protocols/P9813Preset.h` | `P9813Protocol` with BGR color order |
+| `spi` | `src/transports/SpiPreset.h` | `SpiTransport` |
+| `rp_pio` | `src/transports/RpPioPreset.h` | `RpPioTransport` |
+| `brightness` | `src/protocols/BrightnessShader.h` (or dedicated preset header) | `BrightnessShader` |
+| `gamma` | `src/protocols/GammaShader.h` (or dedicated preset header) | `GammaShader` |
+
+Aggregate convenience headers (`src/protocols/ProtocolPresets.h`, `src/transports/TransportPresets.h`) collect all presets for each category.
+
+All presets are in namespace `lw::buses::presets`:
 
 ```cpp
 namespace lw::buses::presets
@@ -453,10 +475,11 @@ struct gamma {
 
 - **Protocol and transport are never bundled.** The user always picks both independently: `addStrip(ws2812x{}, rp_pio{2})`.
 - **Presets are plain structs with public fields.** Default values can be overridden inline: `addStrip(ws2812x{.channelOrder = "RGB"}, rp_pio{.pin = 5})`.
+- **Presets live alongside their target types.** Protocol presets in `src/protocols/`, transport presets in `src/transports/`. Aggregate headers (`ProtocolPresets.h`, `TransportPresets.h`) collect them.
 - **Composable.** Any third-party code can define a preset by providing `configure(BusBuilder&)` — no inheritance required.
 - **Non-breaking.** `setTransport`/`setProtocol`/`addRun` remain the explicit low-level path.
-- **SFINAE-friendly.** `is_preset<T>` gives clear compile errors if a non-preset type is passed to `addStrip`.
-- **No template propagation.** Presets are concrete types; the SFINAE gate is internal to `addStrip`.
+- **`addStrip` with offset+length is a wrapper** around `addRun(offset, length)` followed by the matching non-offset `addStrip`.
+- **SFINAE-friendly.** Single `is_preset<T>` gate gives clear compile errors if a non-preset type is passed to `addStrip`.
 
 **Comparison to NeoPixelBus:**
 
@@ -582,13 +605,13 @@ The plan is additive:
 
 | ID | Status | Decision | Notes |
 |----|--------|----------|-------|
-| BBL-DEC-1 | `todo` | Should `BusBuilder` be move-only (unique ownership) or support copy? | Move-only is simpler and matches the single-owner goal. Copy would require deep-cloning type-erased transports, which is problematic for hardware resources. |
-| BBL-DEC-2 | `todo` | Should `StackBusStorage` be hand-authored per permutation or generated? | Hand-authoring the first one is fine. A code-gen script or `constexpr` factory could follow if the pattern stabilizes. |
-| BBL-DEC-3 | `todo` | Should `build()` return `unique_ptr<IPixelBus>` or a concrete `BusStorage` by value? | `unique_ptr<IPixelBus>` preserves interface abstraction and allows the storage object to be opaque. Returning by value would expose the storage type to the caller, breaking encapsulation. |
-| BBL-DEC-4 | `todo` | Should the builder support sharing transports across runs? | Current `ProtocolTransportPipeline` holds references — sharing is already possible at the low level. The builder should allow runs to reference the same transport index. |
+| BBL-DEC-1 | `done` | Should `BusBuilder` be move-only (unique ownership) or support copy? | **Move-only.** Simpler, matches single-owner goal. Copy would require deep-cloning type-erased transports — problematic for hardware resources. |
+| BBL-DEC-2 | `done` | Should `StackBusStorage` be hand-authored per permutation or generated? | **Hand-authored for now.** A code-gen script or `constexpr` factory can follow if the pattern stabilizes. |
+| BBL-DEC-3 | `done` | Should `build()` return `unique_ptr<IPixelBus>` or a concrete `BusStorage` by value? | **`unique_ptr<IPixelBus>`.** Preserves interface abstraction and keeps the storage object opaque. |
+| BBL-DEC-4 | `done` | Should the builder support sharing transports across runs? | **No.** Each run gets its own transport. Transport settings (e.g., pins, clock rate) differ per run in multi-strip scenarios. |
 | BBL-DEC-5 | `todo` | Should `BusBuilder` use `std::any` / `std::function` for type erasure, or a custom vtable approach? | Custom vtable avoids RTTI and exception overhead, which matters for `-fno-rtti -fno-exceptions` embedded targets. A hand-rolled `TransportHolder` with a `unique_ptr<TransportBase>` + move-only semantics is preferred. |
-| BBL-DEC-6 | `todo` | What is the error handling strategy for `build()`? | Options: (a) return `nullptr` on failure, (b) return `expected<unique_ptr<IPixelBus>, Error>` (C++23 style), (c) assert/abort. Given embedded constraints, option (a) or (c) is most practical. The builder can also have a `validate()` method for early checking. |
-| BBL-DEC-7 | `todo` | Should `setPixelStorage()` and `setPixelCount()` be mutually exclusive, or should `setPixelStorage()` override `setPixelCount()`? | Mutual exclusion is clearer and avoids ambiguity about which allocation is authoritative. The builder should reject (at runtime) a configuration that calls both. Should `buildInto()` with `StackBusStorage` also support external pixels, or is that only for `build()`? If `StackBusStorage` owns pixel memory by definition, external pixels would need a different storage concept (e.g., `StackBusStorageNoPixels`). |
-| BBL-DEC-8 | `todo` | Should `addStrip` SFINAE use a single `is_preset<T>` gate or separate `is_protocol_preset` / `is_transport_preset` tags? | A single `is_preset` is simpler — presets are distinguished by argument position. If stronger type safety is needed later, a `preset_category` typedef can be added without breaking the `configure()` contract. |
-| BBL-DEC-9 | `todo` | Should preset structs live in `lw::buses::presets` or be declared inline alongside protocol/transport headers? | A single `src/buses/BusPresets.h` keeps discoverability high. Protocol/transport headers must not depend on `BusBuilder`. |
-| BBL-DEC-10 | `todo` | Should `addStrip` without offset+length always defer the run to `build()`, or add it eagerly? | Deferring to `build()` for the non-offset overloads matches the existing `addRun` semantics. The offset+length overloads add the run immediately (since they exist for multi-strip). |
+| BBL-DEC-6 | `done` | What is the error handling strategy for `build()`? | **Return `nullptr` on failure.** The builder also exposes a `validate()` method for early checking without allocation. |
+| BBL-DEC-7 | `done` | Should `setPixelStorage()` and `setPixelCount()` be mutually exclusive, or should `setPixelStorage()` override `setPixelCount()`? | **Mutual exclusion.** Calling both is rejected at runtime. `StackBusStorage` owns pixel memory by definition; external pixels would need a separate `StackBusStorageNoPixels` concept. |
+| BBL-DEC-8 | `done` | Should `addStrip` SFINAE use a single `is_preset<T>` gate or separate `is_protocol_preset` / `is_transport_preset` tags? | **Single `is_preset` restriction.** Presets are distinguished by argument position. A `preset_category` typedef can be added later if stronger type safety is needed, without breaking the `configure()` contract. |
+| BBL-DEC-9 | `done` | Should preset structs live in `lw::buses::presets` or be declared alongside protocol/transport headers? | **Alongside protocol/transport headers.** Protocol presets in `src/protocols/` (e.g., `Ws2812xPreset.h`), transport presets in `src/transports/` (e.g., `SpiPreset.h`). Convenience aggregate headers (`ProtocolPresets.h`, `TransportPresets.h`) collect them. |
+| BBL-DEC-10 | `done` | Should `addStrip` without offset+length always defer the run to `build()`, or add it eagerly? | **Non-offset overloads defer; offset+length overloads eagerly add the run.** The offset+length overloads are simple wrappers: `addRun(offset, length)` followed by the matching non-offset `addStrip(protocol, transport, shader?)`. Single-strip builds rely on `build()` for the implicit run. |
