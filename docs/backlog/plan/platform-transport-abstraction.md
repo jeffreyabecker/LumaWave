@@ -23,6 +23,8 @@
 | Base | `src/transports/Transport.h` | `Transport` base class, `TransportSettingsBase`, SPI constants |
 | Base | `src/transports/NilTransport.h` | No-op transport for tests and placeholders |
 | Aggregation | `src/LumaWave.h` | Current top-level header — will become platform-agnostic base |
+| Reference | <https://github.com/Makuna/NeoPixelBus> | Platform-level transport patterns: PIO, RMT, DMA SPI, UART output methods across RP2040, ESP32, ESP8266 |
+| Reference | <https://github.com/FastLED/FastLED> | Platform-level transport patterns: clockless/SPI output controllers, pin registration, platform abstraction layers |
 
 ---
 
@@ -122,6 +124,8 @@ This separation means:
 - Platform transports are usable in **non-Arduino** projects (pure Pico SDK, pure ESP-IDF).
 - Arduino-abstraction transports are usable on **any** Arduino-compatible board, regardless of architecture.
 - There is no hidden Arduino dependency in a platform header — if you see `#include <LumaWaveRp2040.h>`, you know it only pulls in Pico SDK.
+
+**Implementation references:** [NeoPixelBus](https://github.com/Makuna/NeoPixelBus) and [FastLED](https://github.com/FastLED/FastLED) are the established references for platform-level transport implementations. Both libraries demonstrate direct-to-SDK output methods (PIO state machines, RMT peripherals, DMA-driven SPI, UART bit-banging) across RP2040, ESP32, ESP8266, and NRF52. The LumaWave platform transports should follow the same patterns — using the vendor SDK directly, not wrapping Arduino APIs.
 
 ```mermaid
 graph TD
