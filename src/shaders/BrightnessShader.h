@@ -7,7 +7,7 @@
 #include "IShader.h"
 #include "core/Pixel.h"
 
-namespace lw::protocols
+namespace lw::shaders
 {
 
 class BrightnessShader : public IShader
@@ -50,4 +50,4 @@ private:
   BrightnessType _brightnessValue{std::numeric_limits<BrightnessType>::max()};
 };
 
-} // namespace lw::protocols
+} // namespace lw::shaders

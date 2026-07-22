@@ -9,7 +9,7 @@
 
 #include "core/Pixel.h"
 
-namespace lw
+namespace lw::shaders
 {
 
 using KelvinRgb = KelvinRgb;
@@ -258,4 +258,4 @@ private:
   static constexpr std::array<Rgb8, TablePointCount> Table = makeTable();
 };
 
-} // namespace lw
+} // namespace lw::shaders

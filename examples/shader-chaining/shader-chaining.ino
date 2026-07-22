@@ -21,8 +21,8 @@ void setup()
                    .setPixelCount(kLedCount)
                    .setTransport(lw::transports::NilTransport{})
                    .setProtocol(lw::protocols::Ws2812xProtocol(kLedCount, lw::protocols::Ws2812xProtocolSettings{lw::ChannelOrder::GRB::value}))
-                   .addShader(lw::protocols::BrightnessShader{128})
-                   .addShader(lw::protocols::GammaShader{2.2f})
+                   .addShader(lw::shaders::BrightnessShader{128})
+                   .addShader(lw::shaders::GammaShader{2.2f})
                    .build();
 
   strip->begin();

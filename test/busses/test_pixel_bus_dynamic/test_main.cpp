@@ -4,10 +4,10 @@
 static lw::buses::PixelBus<lw::protocols::Ws2812xProtocol, lw::transports::NilTransport> bus_no_shaders(30);
 
 // Compile-time instantiation: Ws2812x protocol + NilTransport + BrightnessShader
-static lw::buses::PixelBus<lw::protocols::Ws2812xProtocol, lw::transports::NilTransport, lw::protocols::BrightnessShader> bus_with_shaders(30);
+static lw::buses::PixelBus<lw::protocols::Ws2812xProtocol, lw::transports::NilTransport, lw::shaders::BrightnessShader> bus_with_shaders(30);
 
 // Shader-arg constructor: GammaShader with custom gamma via std::tuple
-static lw::buses::PixelBus<lw::protocols::Ws2812xProtocol, lw::transports::NilTransport, lw::protocols::GammaShader> bus_with_gamma(30, {}, {}, std::tuple{2.2f});
+static lw::buses::PixelBus<lw::protocols::Ws2812xProtocol, lw::transports::NilTransport, lw::shaders::GammaShader> bus_with_gamma(30, {}, {}, std::tuple{2.2f});
 
 // Verify IPixelBus interface is accessible
 static_assert(std::is_base_of_v<lw::IPixelBus, decltype(bus_no_shaders)>);

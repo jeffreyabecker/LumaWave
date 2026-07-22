@@ -24,8 +24,8 @@
 | Pipeline | `src/buses/ProtocolTransportPipeline.h` | `lw::buses::ProtocolTransportPipeline` |
 | Output pipeline | `src/core/OutputPipeline.h` | `lw::OutputPipeline` |
 | Protocol | `src/protocols/Protocol.h` | `lw::protocols::Protocol`, `lw::protocols::ProtocolSettings` |
-| Shader protocol | `src/protocols/ShaderProtocol.h` | `lw::protocols::ShaderProtocol` |
-| Shader interface | `src/protocols/IShader.h` | `lw::protocols::IShader` |
+| Shader protocol | `src/protocols/ShaderProtocol.h` | `lw::shaders::ShaderProtocol` |
+| Shader interface | `src/protocols/IShader.h` | `lw::shaders::IShader` |
 | Transport | `src/transports/Transport.h` | `lw::transports::Transport`, `lw::transports::TransportSettingsBase` |
 | Color / span | `src/core/Compat.h` | `lw::Pixel`, `lw::span`, `lw::PixelCount` |
 | Convenience header | `src/LumaWave.h` | Public include surface |

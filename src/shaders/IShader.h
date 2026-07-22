@@ -7,7 +7,7 @@
 #include "core/Compat.h"
 #include "core/RuntimeConfig.h"
 
-namespace lw::protocols
+namespace lw::shaders
 {
 
 using lw::RuntimeConfig;
@@ -26,4 +26,4 @@ public:
   }
 };
 
-} // namespace lw::protocols
+} // namespace lw::shaders

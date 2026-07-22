@@ -28,28 +28,28 @@ constexpr pixel_count_t ledCount = static_cast<pixel_count_t>(canvasWidth * canv
 lw::Pixel g_pixels[ledCount];
 
 auto strip1 = lw::buses::BusBuilder()
-                    .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 0 * stripLedCount, stripLedCount})
-                    .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin0}})
-                    .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
-                    .build();
+                  .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 0 * stripLedCount, stripLedCount})
+                  .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin0}})
+                  .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
+                  .build();
 
 auto strip2 = lw::buses::BusBuilder()
-                    .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 1 * stripLedCount, stripLedCount})
-                    .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin1}})
-                    .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
-                    .build();
+                  .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 1 * stripLedCount, stripLedCount})
+                  .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin1}})
+                  .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
+                  .build();
 
 auto strip3 = lw::buses::BusBuilder()
-                    .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 2 * stripLedCount, stripLedCount})
-                    .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin2}})
-                    .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
-                    .build();
+                  .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 2 * stripLedCount, stripLedCount})
+                  .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin2}})
+                  .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
+                  .build();
 
 auto strip4 = lw::buses::BusBuilder()
-                    .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 3 * stripLedCount, stripLedCount})
-                    .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin3}})
-                    .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
-                    .build();
+                  .setPixelStorage(lw::span<lw::Pixel>{g_pixels + 3 * stripLedCount, stripLedCount})
+                  .setTransport(lw::transports::RpPioTransport{{.dataPin = dataPin3}})
+                  .setProtocol(lw::protocols::Ws2812xProtocol(stripLedCount, lw::protocols::Ws2812xProtocolSettings{}))
+                  .build();
 
 lw::Topology topology({
     .panelWidth = panelWidth,

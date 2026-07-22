@@ -7,7 +7,7 @@
 #include "IShader.h"
 #include "core/Pixel.h"
 
-namespace lw::protocols
+namespace lw::shaders
 {
 
 class GammaShader : public IShader
@@ -61,4 +61,4 @@ private:
   float _gammaValue{DefaultGamma};
 };
 
-} // namespace lw::protocols
+} // namespace lw::shaders

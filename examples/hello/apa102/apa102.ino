@@ -24,9 +24,9 @@ uint8_t protocolBuffer[protocolBufferSize];
 lw::Pixel scratchPixels[ledCount];
 
 // Shader chain with brightness
-lw::protocols::BrightnessShader brightnessShader;
-lw::protocols::IShader* shaders[] = {&brightnessShader};
-lw::protocols::ShaderProtocol shaderProto(apa102proto, shaders, scratchPixels);
+lw::shaders::BrightnessShader brightnessShader;
+lw::shaders::IShader* shaders[] = {&brightnessShader};
+lw::shaders::ShaderProtocol shaderProto(apa102proto, shaders, scratchPixels);
 
 // Caller-owned pipeline and run array
 lw::busses::ProtocolTransportPipeline pipeline(shaderProto, spiTransport, protocolBuffer);

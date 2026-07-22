@@ -29,8 +29,8 @@
 | Bus — stack storage | `src/buses/StackBusStorage.h` | `lw::buses::StackBusStorage<NPixelCount, TProtocol, TTransport, ...>` |
 | Pipeline | `src/buses/ProtocolTransportPipeline.h` | `lw::buses::ProtocolTransportPipeline` |
 | Protocol | `src/protocols/Protocol.h` | `lw::protocols::Protocol`, `lw::protocols::ProtocolSettings` |
-| Shader protocol | `src/protocols/ShaderProtocol.h` | `lw::protocols::ShaderProtocol` |
-| Shader interface | `src/protocols/IShader.h` | `lw::protocols::IShader` |
+| Shader protocol | `src/protocols/ShaderProtocol.h` | `lw::shaders::ShaderProtocol` |
+| Shader interface | `src/protocols/IShader.h` | `lw::shaders::IShader` |
 | Transport | `src/transports/Transport.h` | `lw::transports::Transport`, `lw::transports::TransportSettingsBase` |
 | Output pipeline | `src/core/OutputPipeline.h` | `lw::OutputPipeline` |
 | Color / span | `src/core/Compat.h` | `lw::Pixel`, `lw::span`, `lw::PixelCount` |
@@ -572,10 +572,10 @@ struct StackBusStorage
     uint8_t protocolBuffer[kProtocolBufferSize]{};
     lw::Pixel scratchPixels[sizeof...(TShaders) > 0 ? NPixelCount : 1]{};
     std::tuple<TShaders...> shaders{};
-    lw::protocols::IShader* shaderPtrs[sizeof...(TShaders)]{};
+    lw::shaders::IShader* shaderPtrs[sizeof...(TShaders)]{};
     TProtocol protocol;
     TTransport transport;
-    lw::protocols::ShaderProtocol shaderProto;
+    lw::shaders::ShaderProtocol shaderProto;
     lw::buses::ProtocolTransportPipeline pipeline;
     lw::buses::PipelineRun runs[1];
     lw::buses::Bus bus;

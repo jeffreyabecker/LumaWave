@@ -17,8 +17,8 @@
 #include "protocols/Protocol.h"
 #include "protocols/Ws2812xPreset.h"
 #include "transports/NilTransportPreset.h"
-#include "protocols/ShaderProtocol.h"
-#include "protocols/IShader.h"
+#include "shaders/ShaderProtocol.h"
+#include "shaders/IShader.h"
 #include "protocols/Ws2812xProtocol.h"
 #include "transports/NilTransport.h"
 
@@ -79,7 +79,7 @@ struct MockProtocol
   }
 };
 
-struct MockShader : public lw::protocols::IShader
+struct MockShader : public lw::shaders::IShader
 {
   bool applied = false;
   size_t sourceCount = 0;
@@ -307,7 +307,7 @@ void test_shader_list_destructive_mode_empty_still_no_scratch(void)
 
 // A shader that overwrites every pixel with a fixed value (for testing
 // that the destructive path actually modifies the input in place).
-struct OverwriteShader : public lw::protocols::IShader
+struct OverwriteShader : public lw::shaders::IShader
 {
   lw::Pixel value;
 
@@ -347,11 +347,11 @@ void test_shader_protocol_destructive_mode_mutates_input(void)
   CaptureProtocol inner;
 
   // Create ShaderProtocol with shaders but NO scratch (destructive mode)
-  lw::protocols::IShader* shaderPtrs[] = {nullptr};
+  lw::shaders::IShader* shaderPtrs[] = {nullptr};
   OverwriteShader shader(lw::pixelFromRGB(99, 88, 77));
   shaderPtrs[0] = &shader;
 
-  lw::protocols::ShaderProtocol shaderProto(inner, lw::span<lw::protocols::IShader*>{shaderPtrs, 1}, lw::span<lw::Pixel>{}); // empty scratch = destructive
+  lw::shaders::ShaderProtocol shaderProto(inner, lw::span<lw::shaders::IShader*>{shaderPtrs, 1}, lw::span<lw::Pixel>{}); // empty scratch = destructive
 
   lw::Pixel pixels[3]{};
   pixels[0] = lw::pixelFromRGB(10, 20, 30);
@@ -378,12 +378,12 @@ void test_shader_protocol_scratch_mode_preserves_input(void)
 {
   CaptureProtocol inner;
 
-  lw::protocols::IShader* shaderPtrs[] = {nullptr};
+  lw::shaders::IShader* shaderPtrs[] = {nullptr};
   OverwriteShader shader(lw::pixelFromRGB(99, 88, 77));
   shaderPtrs[0] = &shader;
 
   lw::Pixel scratch[3]{};
-  lw::protocols::ShaderProtocol shaderProto(inner, lw::span<lw::protocols::IShader*>{shaderPtrs, 1}, lw::span<lw::Pixel>{scratch, 3}); // scratch provided = safe mode
+  lw::shaders::ShaderProtocol shaderProto(inner, lw::span<lw::shaders::IShader*>{shaderPtrs, 1}, lw::span<lw::Pixel>{scratch, 3}); // scratch provided = safe mode
 
   lw::Pixel pixels[3]{};
   pixels[0] = lw::pixelFromRGB(10, 20, 30);
@@ -807,7 +807,7 @@ void test_build_into_validate_first(void)
 
 // BBL-42: Shaders chained in insertion order
 // A shader that records the order in which it was applied.
-struct OrderTrackingShader : public lw::protocols::IShader
+struct OrderTrackingShader : public lw::shaders::IShader
 {
   int* counter;
   int* orderOut;

@@ -13,7 +13,7 @@
 #include "buses/detail/TransportHolder.h"
 #include "core/IPixelBus.h"
 #include "core/Pixel.h"
-#include "protocols/ShaderProtocol.h"
+#include "shaders/ShaderProtocol.h"
 
 namespace lw::buses
 {
@@ -74,7 +74,7 @@ private:
   detail::TransportHolder _transport;         // 3
   detail::ShaderList _shaders;                // 4
   detail::BufferManager _buffers;             // 5 (needs 4)
-  lw::protocols::ShaderProtocol _shaderProto; // 6 (needs 2,4,5)
+  lw::shaders::ShaderProtocol _shaderProto; // 6 (needs 2,4,5)
   ProtocolTransportPipeline _pipeline;        // 7 (needs 3,5,6)
   PipelineRun _run;                           // 8 (needs 7)
   Bus _bus;                                   // 9 (needs 1,8)

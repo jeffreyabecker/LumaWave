@@ -11,9 +11,9 @@
 #include "buses/ProtocolTransportPipeline.h"
 #include "core/IPixelBus.h"
 #include "core/Pixel.h"
-#include "protocols/IShader.h"
+#include "shaders/IShader.h"
 #include "protocols/Protocol.h"
-#include "protocols/ShaderProtocol.h"
+#include "shaders/ShaderProtocol.h"
 #include "transports/Transport.h"
 
 namespace lw::buses
@@ -49,7 +49,7 @@ template <size_t NPixelCount, typename TProtocol, typename TTransport, typename.
 public:
   StackBusStorage(ProtocolSettings protocolSettings = {}, TransportSettings transportSettings = {})
       : _protocol(NPixelCount, std::move(protocolSettings)), _transport(std::move(transportSettings)),
-        _shaderProto(_protocol, lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}, lw::span<lw::Pixel>{_scratchPixels, kHasShaders ? NPixelCount : 0u}),
+        _shaderProto(_protocol, lw::span<lw::shaders::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}, lw::span<lw::Pixel>{_scratchPixels, kHasShaders ? NPixelCount : 0u}),
         _pipeline(_shaderProto, _transport, lw::span<uint8_t>{_protocolBuffer}), _runs{{&_pipeline, NPixelCount}}, _bus(lw::span<lw::Pixel>{_pixels}, lw::span<const PipelineRun>{_runs})
   {
     _populateShaderPtrs(std::index_sequence_for<TShaders...>{});
@@ -72,8 +72,8 @@ private:
   uint8_t _protocolBuffer[kProtocolBufferSize]{};                         // 4
   lw::Pixel _scratchPixels[kHasShaders ? NPixelCount : 1]{};              // 5
   std::tuple<TShaders...> _shaders{};                                     // 6
-  std::array<lw::protocols::IShader*, sizeof...(TShaders)> _shaderPtrs{}; // 7
-  lw::protocols::ShaderProtocol _shaderProto;                             // 8 (needs 2,5,7)
+  std::array<lw::shaders::IShader*, sizeof...(TShaders)> _shaderPtrs{}; // 7
+  lw::shaders::ShaderProtocol _shaderProto;                             // 8 (needs 2,5,7)
   ProtocolTransportPipeline _pipeline;                                    // 9 (needs 3,4,8)
   PipelineRun _runs[1];                                                   // 10 (needs 9)
   Bus _bus;                                                               // 11 (needs 1,10)

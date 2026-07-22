@@ -8,7 +8,7 @@
 #include "core/Compat.h"
 #include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
-#include "protocols/IShader.h"
+#include "shaders/IShader.h"
 
 namespace lw::buses::detail
 {
@@ -57,9 +57,9 @@ public:
   bool isDestructiveMode() const { return _destructive; }
 
   /// Return a span of raw IShader* suitable for ShaderProtocol.
-  lw::span<lw::protocols::IShader*> shaders() { return lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}; }
+  lw::span<lw::shaders::IShader*> shaders() { return lw::span<lw::shaders::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}; }
 
-  lw::span<lw::protocols::IShader* const> shaders() const { return lw::span<lw::protocols::IShader* const>{_shaderPtrs.data(), _shaderPtrs.size()}; }
+  lw::span<lw::shaders::IShader* const> shaders() const { return lw::span<lw::shaders::IShader* const>{_shaderPtrs.data(), _shaderPtrs.size()}; }
 
   /// Forward setRuntimeConfig to every shader.
   void setRuntimeConfig(lw::RuntimeConfig type, void* value)
@@ -71,8 +71,8 @@ public:
   }
 
 private:
-  std::vector<std::unique_ptr<lw::protocols::IShader>> _shaders;
-  std::vector<lw::protocols::IShader*> _shaderPtrs;
+  std::vector<std::unique_ptr<lw::shaders::IShader>> _shaders;
+  std::vector<lw::shaders::IShader*> _shaderPtrs;
   bool _destructive = false;
 };
 

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "protocols/BrightnessShader.h"
+#include "shaders/BrightnessShader.h"
 #include "protocols/DotStarProtocol.h"
-#include "protocols/GammaShader.h"
+#include "shaders/GammaShader.h"
 #include "protocols/Protocol.h"
-#include "protocols/IShader.h"
+#include "shaders/IShader.h"
 #include "protocols/Lpd6803Protocol.h"
 #include "protocols/Lpd8806Protocol.h"
 #include "protocols/P9813Protocol.h"

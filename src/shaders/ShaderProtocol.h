@@ -4,19 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "Protocol.h"
+#include "../protocols/Protocol.h"
 #include "IShader.h"
 #include "core/Pixel.h"
 
-namespace lw::protocols
+namespace lw::shaders
 {
 
-class ShaderProtocol : public Protocol
+class ShaderProtocol : public lw::protocols::Protocol
 {
 public:
-  ShaderProtocol(Protocol& inner, span<IShader*> shaders, span<lw::Pixel> scratchPixels) : _inner(inner), _shaders(shaders), _scratchPixels(scratchPixels) {}
+  ShaderProtocol(lw::protocols::Protocol& inner, span<IShader*> shaders, span<lw::Pixel> scratchPixels) : _inner(inner), _shaders(shaders), _scratchPixels(scratchPixels) {}
 
-  PixelCount pixelCount() const { return _inner.pixelCount(); }
+  lw::PixelCount pixelCount() const { return _inner.pixelCount(); }
 
   void begin() override { _inner.begin(); }
 
@@ -60,11 +60,11 @@ public:
     _inner.update(dst.first(colors.size()), buffer);
   }
 
-  ProtocolSettings& settings() override { return _inner.settings(); }
+  lw::protocols::ProtocolSettings& settings() override { return _inner.settings(); }
 
   bool alwaysUpdate() const override { return _inner.alwaysUpdate(); }
 
-  void setRuntimeConfig(RuntimeConfig type, void* value) override
+  void setRuntimeConfig(lw::RuntimeConfig type, void* value) override
   {
     for (auto* shader : _shaders)
     {
@@ -74,9 +74,9 @@ public:
   }
 
 private:
-  Protocol& _inner;
+  lw::protocols::Protocol& _inner;
   span<IShader*> _shaders;
   span<lw::Pixel> _scratchPixels;
 };
 
-} // namespace lw::protocols
+} // namespace lw::shaders

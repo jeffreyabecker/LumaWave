@@ -34,7 +34,7 @@ void setup()
 
   // --- Presets with explicit shader ---
   // Use addStrip for protocol+transport presets, then addShader for the raw shader.
-  auto strip3 = lw::buses::BusBuilder().setPixelCount(kLedCount).addStrip(ws2812x{}, nil_transport{}).addShader(lw::protocols::BrightnessShader{128}).build();
+  auto strip3 = lw::buses::BusBuilder().setPixelCount(kLedCount).addStrip(ws2812x{}, nil_transport{}).addShader(lw::shaders::BrightnessShader{128}).build();
 
   strip3->begin();
   strip3->show();

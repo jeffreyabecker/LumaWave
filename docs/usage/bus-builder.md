@@ -52,7 +52,7 @@ The `unique_ptr<IPixelBus>` returned by `build()` is the sole owner of all pixel
         .setPixelCount(30)
         .setTransport(lw::transports::RpPioTransport{})
         .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-        .addShader(lw::protocols::BrightnessShader{128})
+        .addShader(lw::shaders::BrightnessShader{128})
         .build();
 
     bus->begin();
@@ -157,8 +157,8 @@ auto bus = lw::buses::BusBuilder()
     .setPixelCount(60)
     .setTransport(lw::transports::NilTransport{})
     .setProtocol(lw::protocols::Ws2812xProtocol(60, {}))
-    .addShader(lw::protocols::BrightnessShader{128})    // applied first
-    .addShader(lw::protocols::GammaShader{2.2f})        // applied second
+    .addShader(lw::shaders::BrightnessShader{128})    // applied first
+    .addShader(lw::shaders::GammaShader{2.2f})        // applied second
     .build();
 
 // Destructive mode: no scratch, shaders mutate pixels in-place
@@ -166,7 +166,7 @@ auto bus2 = lw::buses::BusBuilder()
     .setPixelCount(60)
     .setTransport(lw::transports::NilTransport{})
     .setProtocol(lw::protocols::Ws2812xProtocol(60, {}))
-    .addShader(lw::protocols::BrightnessShader{128})
+    .addShader(lw::shaders::BrightnessShader{128})
     .enableDestructiveShaders()
     .build();
 ```
@@ -203,13 +203,13 @@ auto bus2 = lw::buses::BusBuilder()
 lw::buses::StackBusStorage<30,
     lw::protocols::Ws2812xProtocol,
     lw::transports::NilTransport,
-    lw::protocols::BrightnessShader> storage;
+    lw::shaders::BrightnessShader> storage;
 
 auto& bus = lw::buses::BusBuilder()
     .setPixelCount(30)
     .setTransport(lw::transports::NilTransport{})
     .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-    .addShader(lw::protocols::BrightnessShader{128})
+    .addShader(lw::shaders::BrightnessShader{128})
     .buildInto(storage);
 ```
 
@@ -306,7 +306,7 @@ The builder queries `TProtocol::SettingsType` for the settings parameter type an
 
 ### Rule 4.3 — Shaders must be move-constructible and implement `IShader`
 
-Shaders are stored in a type-erased list. They must derive from `lw::protocols::IShader` (or satisfy its duck-type: `apply(span<const Color>, span<Pixel>)`).
+Shaders are stored in a type-erased list. They must derive from `lw::shaders::IShader` (or satisfy its duck-type: `apply(span<const Color>, span<Pixel>)`).
 
 ---
 
