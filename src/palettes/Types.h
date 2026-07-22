@@ -390,7 +390,7 @@ private:
     }
 
     size_t colorConsumed = 0;
-    if (!tryParseColor(remaining.subspan(1), colorConsumed, color))
+    if (!tryParsePixel(remaining.subspan(1), colorConsumed, color))
     {
       return false;
     }
