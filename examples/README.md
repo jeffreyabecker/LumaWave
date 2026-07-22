@@ -19,6 +19,7 @@ The `BusBuilder` API replaces manual construction of protocol, transport, buffer
 - `stack-allocation/stack-allocation.ino`: Zero-heap construction via `StackBusStorage` + `buildInto()`.
 - `shader-chaining/shader-chaining.ino`: Multiple shaders applied in insertion order via `addShader()`.
 - `presets/presets.ino`: Protocol/transport presets with `addStrip()`, inline field overrides.
+- `multi-strip/builder-multi/builder-multi.ino`: Two strips sharing one pixel buffer via `setPixelStorage()` sub-spans.
 
 ## Strip Composition
 
