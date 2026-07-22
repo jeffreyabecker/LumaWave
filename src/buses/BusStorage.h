@@ -27,40 +27,27 @@ namespace lw::buses
 // would dangle).
 //
 // Constructed by BusBuilder::build() and returned as unique_ptr<IPixelBus>.
+//
+// Multi-strip configurations are achieved by using separate BusBuilder
+// instances with setPixelStorage() over sub-spans of a shared pixel buffer.
 // ---------------------------------------------------------------------------
 
 class BusStorage : public lw::IPixelBus
 {
 public:
-  /// @param pixelCount          Number of pixels in the strip.
-  /// @param protocol            Pre-configured protocol (moved in).
-  /// @param transport           Pre-configured transport (moved in).
-  /// @param shaders             Pre-populated shader list (moved in).
-  /// @param protocolBufferSize  Byte size from TProtocol::requiredBufferSize().
+  /// Owned pixel storage: allocates pixelCount pixels internally.
   BusStorage(size_t pixelCount, detail::ProtocolHolder protocol, detail::TransportHolder transport, detail::ShaderList shaders, size_t protocolBufferSize)
-      : _ownedPixels(pixelCount)
-      , _protocol(std::move(protocol))
-      , _transport(std::move(transport))
-      , _shaders(std::move(shaders))
-      , _buffers(protocolBufferSize, pixelCount, _shaders.needsScratchBuffer())
-      , _shaderProto(*_protocol.get(), _shaders.shaders(), _buffers.scratchPixels())
-      , _pipeline(_shaderProto, *_transport.get(), _buffers.protocolBuffer())
-      , _run{&_pipeline, pixelCount}
-      , _bus(lw::span<lw::Pixel>{_ownedPixels.data(), _ownedPixels.size()}, lw::span<const PipelineRun>{&_run, 1})
+      : _ownedPixels(pixelCount), _protocol(std::move(protocol)), _transport(std::move(transport)), _shaders(std::move(shaders)), _buffers(protocolBufferSize, pixelCount, _shaders.needsScratchBuffer()),
+        _shaderProto(*_protocol.get(), _shaders.shaders(), _buffers.scratchPixels()), _pipeline(_shaderProto, *_transport.get(), _buffers.protocolBuffer()), _run{&_pipeline, pixelCount},
+        _bus(lw::span<lw::Pixel>{_ownedPixels.data(), _ownedPixels.size()}, lw::span<const PipelineRun>{&_run, 1})
   {
   }
 
-  /// External pixel storage variant. The provided span must outlive this object.
-  BusStorage(lw::span<lw::Pixel> externalPixels, detail::ProtocolHolder protocol, detail::TransportHolder transport,
-             detail::ShaderList shaders, size_t protocolBufferSize)
-      : _protocol(std::move(protocol))
-      , _transport(std::move(transport))
-      , _shaders(std::move(shaders))
-      , _buffers(protocolBufferSize, externalPixels.size(), _shaders.needsScratchBuffer())
-      , _shaderProto(*_protocol.get(), _shaders.shaders(), _buffers.scratchPixels())
-      , _pipeline(_shaderProto, *_transport.get(), _buffers.protocolBuffer())
-      , _run{&_pipeline, externalPixels.size()}
-      , _bus(externalPixels, lw::span<const PipelineRun>{&_run, 1})
+  /// External pixel storage: the provided span must outlive this object.
+  BusStorage(lw::span<lw::Pixel> externalPixels, detail::ProtocolHolder protocol, detail::TransportHolder transport, detail::ShaderList shaders, size_t protocolBufferSize)
+      : _protocol(std::move(protocol)), _transport(std::move(transport)), _shaders(std::move(shaders)), _buffers(protocolBufferSize, externalPixels.size(), _shaders.needsScratchBuffer()),
+        _shaderProto(*_protocol.get(), _shaders.shaders(), _buffers.scratchPixels()), _pipeline(_shaderProto, *_transport.get(), _buffers.protocolBuffer()), _run{&_pipeline, externalPixels.size()},
+        _bus(externalPixels, lw::span<const PipelineRun>{&_run, 1})
   {
   }
 
@@ -81,7 +68,6 @@ public:
   void setRuntimeConfig(lw::RuntimeConfig type, void* value) override { _bus.setRuntimeConfig(type, value); }
 
 private:
-  // _ownedPixels must be declared before _bus (bus references it).
   // Declaration order = initialization order (dependencies go top-to-bottom).
   std::vector<lw::Pixel> _ownedPixels;        // 1 (empty when external)
   detail::ProtocolHolder _protocol;           // 2

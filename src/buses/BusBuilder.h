@@ -169,13 +169,11 @@ public:
     std::unique_ptr<BusStorage> storage;
     if (_hasExternalPixels)
     {
-      storage = std::make_unique<BusStorage>(_externalPixels, std::move(_protocol), std::move(_transport),
-                                             std::move(_shaders), _protocolBufferSize);
+      storage = std::make_unique<BusStorage>(_externalPixels, std::move(_protocol), std::move(_transport), std::move(_shaders), _protocolBufferSize);
     }
     else
     {
-      storage = std::make_unique<BusStorage>(_pixelCount, std::move(_protocol), std::move(_transport),
-                                             std::move(_shaders), _protocolBufferSize);
+      storage = std::make_unique<BusStorage>(_pixelCount, std::move(_protocol), std::move(_transport), std::move(_shaders), _protocolBufferSize);
     }
 
     // Mark as consumed
