@@ -6,7 +6,6 @@
 
 #include "IShader.h"
 #include "core/Pixel.h"
-#include "palettes/ColorMath.h"
 
 namespace lw::protocols
 {
