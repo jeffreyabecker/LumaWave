@@ -7,12 +7,16 @@
 #include "buses/detail/ProtocolHolder.h"
 #include "buses/detail/ShaderList.h"
 #include "buses/detail/BufferManager.h"
+#include "buses/BusStorage.h"
+#include "buses/BusBuilder.h"
 #include "core/Compat.h"
 #include "core/Pixel.h"
 #include "core/RuntimeConfig.h"
 #include "protocols/Protocol.h"
 #include "protocols/ShaderProtocol.h"
 #include "protocols/IShader.h"
+#include "protocols/Ws2812xProtocol.h"
+#include "transports/NilTransport.h"
 
 // ---------------------------------------------------------------------------
 // Mock types for testing holders
@@ -509,6 +513,150 @@ void test_buffer_manager_single_run_const_access(void)
   TEST_ASSERT_EQUAL_UINT32(10, static_cast<uint32_t>(bm.scratchPixels().size()));
 }
 
+// ---------------------------------------------------------------------------
+// BusStorage tests
+// ---------------------------------------------------------------------------
+
+void test_bus_storage_single_run_no_shaders(void)
+{
+  lw::buses::BusStorage storage(30, lw::buses::detail::ProtocolHolder(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})), lw::buses::detail::TransportHolder(lw::transports::NilTransport{}),
+                                lw::buses::detail::ShaderList{}, lw::protocols::Ws2812xProtocol::requiredBufferSize(30, lw::protocols::Ws2812xProtocolSettings{}));
+
+  storage.begin();
+
+  storage.pixels()[0] = lw::pixelFromRGB(255, 128, 64);
+  TEST_ASSERT_EQUAL_UINT8(255, lw::pixelR(storage.pixels()[0]));
+  TEST_ASSERT_EQUAL_UINT8(128, lw::pixelG(storage.pixels()[0]));
+  TEST_ASSERT_EQUAL_UINT8(64, lw::pixelB(storage.pixels()[0]));
+
+  storage.show();
+  TEST_ASSERT_TRUE(storage.isReadyToUpdate());
+}
+
+void test_bus_storage_with_shader_scratch(void)
+{
+  lw::buses::detail::ShaderList shaders;
+  shaders.addShader(MockShader{});
+
+  lw::buses::BusStorage storage(30, lw::buses::detail::ProtocolHolder(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})), lw::buses::detail::TransportHolder(lw::transports::NilTransport{}),
+                                std::move(shaders), lw::protocols::Ws2812xProtocol::requiredBufferSize(30, lw::protocols::Ws2812xProtocolSettings{}));
+
+  storage.begin();
+  storage.pixels()[0] = lw::pixelFromRGB(10, 20, 30);
+  storage.show();
+  TEST_ASSERT_TRUE(storage.isReadyToUpdate());
+}
+
+void test_bus_storage_const_pixels_access(void)
+{
+  lw::buses::BusStorage storage(10, lw::buses::detail::ProtocolHolder(lw::protocols::Ws2812xProtocol(10, lw::protocols::Ws2812xProtocolSettings{})), lw::buses::detail::TransportHolder(lw::transports::NilTransport{}),
+                                lw::buses::detail::ShaderList{}, lw::protocols::Ws2812xProtocol::requiredBufferSize(10, lw::protocols::Ws2812xProtocolSettings{}));
+
+  const auto& cstorage = storage;
+  TEST_ASSERT_EQUAL_UINT32(10, static_cast<uint32_t>(cstorage.pixels().size()));
+}
+
+// ---------------------------------------------------------------------------
+// BusBuilder tests
+// ---------------------------------------------------------------------------
+
+void test_builder_simple_build(void)
+{
+  auto bus = lw::buses::BusBuilder().setPixelCount(30).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).build();
+
+  TEST_ASSERT_NOT_NULL(bus);
+
+  bus->begin();
+  bus->pixels()[0] = lw::pixelFromRGB(42, 0, 0);
+  TEST_ASSERT_EQUAL_UINT8(42, lw::pixelR(bus->pixels()[0]));
+  bus->show();
+}
+
+void test_builder_with_shader(void)
+{
+  auto bus = lw::buses::BusBuilder().setPixelCount(30).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).addShader(MockShader{}).build();
+
+  TEST_ASSERT_NOT_NULL(bus);
+  bus->begin();
+  bus->pixels()[0] = lw::pixelFromRGB(1, 2, 3);
+  bus->show();
+}
+
+void test_builder_destructive_shaders(void)
+{
+  auto bus = lw::buses::BusBuilder()
+                 .setPixelCount(30)
+                 .setTransport(lw::transports::NilTransport{})
+                 .setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{}))
+                 .addShader(MockShader{})
+                 .enableDestructiveShaders()
+                 .build();
+
+  TEST_ASSERT_NOT_NULL(bus);
+  bus->begin();
+  bus->pixels()[0] = lw::pixelFromRGB(1, 2, 3);
+  bus->show();
+}
+
+void test_builder_validate_missing_transport(void)
+{
+  auto err = lw::buses::BusBuilder().setPixelCount(30).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).validate();
+
+  TEST_ASSERT_FALSE(err.empty());
+}
+
+void test_builder_validate_missing_protocol(void)
+{
+  auto err = lw::buses::BusBuilder().setPixelCount(30).setTransport(lw::transports::NilTransport{}).validate();
+
+  TEST_ASSERT_FALSE(err.empty());
+}
+
+void test_builder_validate_missing_pixel_count(void)
+{
+  auto err = lw::buses::BusBuilder().setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).validate();
+
+  TEST_ASSERT_FALSE(err.empty());
+}
+
+void test_builder_validate_success(void)
+{
+  auto err = lw::buses::BusBuilder().setPixelCount(30).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).validate();
+
+  TEST_ASSERT_TRUE(err.empty());
+}
+
+void test_builder_build_fails_on_missing_transport(void)
+{
+  auto bus = lw::buses::BusBuilder().setPixelCount(30).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{})).build();
+
+  TEST_ASSERT_NULL(bus);
+}
+
+void test_builder_double_build_returns_null(void)
+{
+  lw::buses::BusBuilder builder;
+  builder.setPixelCount(30).setTransport(lw::transports::NilTransport{}).setProtocol(lw::protocols::Ws2812xProtocol(30, lw::protocols::Ws2812xProtocolSettings{}));
+
+  auto bus1 = builder.build();
+  TEST_ASSERT_NOT_NULL(bus1);
+
+  auto bus2 = builder.build();
+  TEST_ASSERT_NULL(bus2);
+}
+
+void test_builder_set_pixel_count_and_storage_conflict(void)
+{
+  lw::Pixel buf[30]{};
+  lw::buses::BusBuilder builder;
+  builder.setPixelCount(30).setPixelStorage(lw::span<lw::Pixel>{buf, 30});
+
+  // setPixelStorage overrides setPixelCount (last setter wins)
+  auto err = builder.validate();
+  // transport not set, but pixel storage should be valid
+  TEST_ASSERT_FALSE(err.empty()); // transport not set, but no crash
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -563,6 +711,23 @@ int main(void)
   RUN_TEST(test_buffer_manager_multi_run_no_scratch);
   RUN_TEST(test_buffer_manager_empty_run);
   RUN_TEST(test_buffer_manager_single_run_const_access);
+
+  // BusStorage
+  RUN_TEST(test_bus_storage_single_run_no_shaders);
+  RUN_TEST(test_bus_storage_with_shader_scratch);
+  RUN_TEST(test_bus_storage_const_pixels_access);
+
+  // BusBuilder
+  RUN_TEST(test_builder_simple_build);
+  RUN_TEST(test_builder_with_shader);
+  RUN_TEST(test_builder_destructive_shaders);
+  RUN_TEST(test_builder_validate_missing_transport);
+  RUN_TEST(test_builder_validate_missing_protocol);
+  RUN_TEST(test_builder_validate_missing_pixel_count);
+  RUN_TEST(test_builder_validate_success);
+  RUN_TEST(test_builder_build_fails_on_missing_transport);
+  RUN_TEST(test_builder_double_build_returns_null);
+  RUN_TEST(test_builder_set_pixel_count_and_storage_conflict);
 
   return UNITY_END();
 }

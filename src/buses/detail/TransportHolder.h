@@ -5,6 +5,7 @@
 
 #include "core/Compat.h"
 #include "core/RuntimeConfig.h"
+#include "transports/Transport.h"
 
 namespace lw::buses::detail
 {
@@ -120,6 +121,11 @@ public:
   }
 
   /// True when a transport has been set.
+
+  /// Raw pointer to the owned Transport. Valid as long as this holder is alive.
+  lw::transports::Transport* get() { return static_cast<lw::transports::Transport*>(_storage); }
+
+  const lw::transports::Transport* get() const { return static_cast<const lw::transports::Transport*>(_storage); }
   explicit operator bool() const { return _vtable != nullptr; }
 
 private:

@@ -130,6 +130,11 @@ public:
   /// True when a protocol has been set.
   explicit operator bool() const { return _vtable != nullptr; }
 
+  /// Raw pointer to the owned Protocol. Valid as long as this holder is alive.
+  lw::protocols::Protocol* get() { return static_cast<lw::protocols::Protocol*>(_storage); }
+
+  const lw::protocols::Protocol* get() const { return static_cast<const lw::protocols::Protocol*>(_storage); }
+
 private:
   void _destroy()
   {
