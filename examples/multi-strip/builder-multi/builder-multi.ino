@@ -31,20 +31,14 @@ void setup()
   g_strip1 = lw::buses::BusBuilder()
                  .setPixelStorage(lw::span<lw::Pixel>{g_pixels, kStrip1Len})
                  .setTransport(lw::transports::NilTransport{})
-                 .setProtocol(lw::protocols::Ws2812xProtocol(
-                     kStrip1Len,
-                     lw::protocols::Ws2812xProtocolSettings{
-                         lw::ChannelOrder::GRB::value}))
+                 .setProtocol(lw::protocols::Ws2812xProtocol(kStrip1Len, lw::protocols::Ws2812xProtocolSettings{lw::ChannelOrder::GRB::value}))
                  .build();
 
   // Strip 2: pixels [30..89], RGB channel order
   g_strip2 = lw::buses::BusBuilder()
                  .setPixelStorage(lw::span<lw::Pixel>{g_pixels + kStrip1Len, kStrip2Len})
                  .setTransport(lw::transports::NilTransport{})
-                 .setProtocol(lw::protocols::Ws2812xProtocol(
-                     kStrip2Len,
-                     lw::protocols::Ws2812xProtocolSettings{
-                         lw::ChannelOrder::RGB::value}))
+                 .setProtocol(lw::protocols::Ws2812xProtocol(kStrip2Len, lw::protocols::Ws2812xProtocolSettings{lw::ChannelOrder::RGB::value}))
                  .build();
 
   g_strip1->begin();
@@ -58,20 +52,14 @@ void setup()
     auto& p1 = g_strip1->pixels();
     for (size_t i = 0; i < kStrip1Len; ++i)
     {
-      p1[i] = lw::pixelFromRGB(
-          static_cast<uint8_t>((i + frame) & 0xFF),
-          static_cast<uint8_t>((2U * i + frame) & 0xFF),
-          0);
+      p1[i] = lw::pixelFromRGB(static_cast<uint8_t>((i + frame) & 0xFF), static_cast<uint8_t>((2U * i + frame) & 0xFF), 0);
     }
 
     // Paint strip 2 directly into g_pixels[30..89]
     auto& p2 = g_strip2->pixels();
     for (size_t i = 0; i < kStrip2Len; ++i)
     {
-      p2[i] = lw::pixelFromRGB(
-          0,
-          static_cast<uint8_t>((i + frame) & 0xFF),
-          static_cast<uint8_t>((2U * i + frame) & 0xFF));
+      p2[i] = lw::pixelFromRGB(0, static_cast<uint8_t>((i + frame) & 0xFF), static_cast<uint8_t>((2U * i + frame) & 0xFF));
     }
 
     g_strip1->show();
