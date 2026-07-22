@@ -3,10 +3,6 @@
 #include <cstdint>
 #include <cstddef>
 
-#if __has_include(<Arduino.h>)
-#include <Arduino.h>
-#endif
-
 #include "core/Compat.h"
 #include "core/RuntimeConfig.h"
 
