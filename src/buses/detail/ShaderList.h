@@ -39,6 +39,11 @@ public:
   /// True when no shaders are stored.
   bool empty() const { return _shaderPtrs.empty(); }
 
+  /// True when a scratch pixel buffer is required for shader transforms.
+  /// This is the signal BufferManager uses to decide whether to allocate
+  /// the scratch buffer alongside the protocol buffer.
+  bool needsScratchBuffer() const { return !_shaderPtrs.empty(); }
+
   /// Return a span of raw IShader* suitable for ShaderProtocol.
   lw::span<lw::protocols::IShader*> shaders() { return lw::span<lw::protocols::IShader*>{_shaderPtrs.data(), _shaderPtrs.size()}; }
 

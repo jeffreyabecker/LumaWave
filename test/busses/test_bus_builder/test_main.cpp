@@ -214,6 +214,7 @@ void test_shader_list_empty(void)
 {
   lw::buses::detail::ShaderList list;
   TEST_ASSERT_TRUE(list.empty());
+  TEST_ASSERT_FALSE(list.needsScratchBuffer());
   TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(list.size()));
   TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(list.shaders().size()));
 }
@@ -224,6 +225,7 @@ void test_shader_list_add_one(void)
   list.addShader(MockShader{});
 
   TEST_ASSERT_FALSE(list.empty());
+  TEST_ASSERT_TRUE(list.needsScratchBuffer());
   TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(list.size()));
   TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(list.shaders().size()));
   TEST_ASSERT_NOT_NULL(list.shaders()[0]);
@@ -236,6 +238,7 @@ void test_shader_list_add_multiple(void)
   list.addShader(MockShader{});
   list.addShader(MockShader{});
 
+  TEST_ASSERT_TRUE(list.needsScratchBuffer());
   TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(list.size()));
   TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(list.shaders().size()));
 
@@ -243,6 +246,18 @@ void test_shader_list_add_multiple(void)
   TEST_ASSERT_NOT_NULL(list.shaders()[0]);
   TEST_ASSERT_NOT_NULL(list.shaders()[1]);
   TEST_ASSERT_NOT_NULL(list.shaders()[2]);
+}
+
+void test_shader_list_needs_scratch_buffer(void)
+{
+  lw::buses::detail::ShaderList list;
+
+  // Empty: no scratch needed
+  TEST_ASSERT_FALSE(list.needsScratchBuffer());
+
+  // One shader: scratch needed
+  list.addShader(MockShader{});
+  TEST_ASSERT_TRUE(list.needsScratchBuffer());
 }
 
 void test_shader_list_applies_shaders(void)
@@ -302,6 +317,7 @@ int main(void)
   RUN_TEST(test_shader_list_empty);
   RUN_TEST(test_shader_list_add_one);
   RUN_TEST(test_shader_list_add_multiple);
+  RUN_TEST(test_shader_list_needs_scratch_buffer);
   RUN_TEST(test_shader_list_applies_shaders);
   RUN_TEST(test_shader_list_set_runtime_config);
 
