@@ -1,5 +1,10 @@
 #pragma once
 
+/// @deprecated Use StackBusStorage + BusBuilder::buildInto() instead.
+/// StackPixelBus remains available for backward compatibility but
+/// StackBusStorage provides the same zero-heap result decoupled from the
+/// builder, with BusBuilder handling validation. See docs/usage/bus-builder.md.
+
 #include <array>
 #include <tuple>
 #include <type_traits>

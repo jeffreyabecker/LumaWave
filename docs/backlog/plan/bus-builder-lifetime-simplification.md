@@ -1,8 +1,8 @@
 # Bus Builder & Lifetime Simplification
 
-> **Purpose:** Provide a single-owner, cascading-lifetime root entity (the "Bus Builder") that simplifies construction of both single-pipeline and composite multi-pipeline `IPixelBus` instances, eliminating manual wiring of 7–10 interdependent objects.
+> **Purpose:** Provide a single-owner, cascading-lifetime root entity (the "Bus Builder") that simplifies construction of `IPixelBus` instances, eliminating manual wiring of 7–10 interdependent objects. Multi-strip configurations use separate builders over sub-spans of a shared pixel buffer — see [Decision: No Composite Buses](#decision-no-composite-buses).
 >
-> **Companion usage doc:** [bus-builder.md](../../usage/bus-builder.md) — the target-state API contract and usage rules.
+> **Companion usage doc:** [bus-builder.md](../../usage/bus-builder.md) — the API contract and usage rules.
 
 ## Status Legend
 
@@ -23,6 +23,9 @@
 | Bus — dynamic template | `src/buses/PixelBus.h` | `lw::buses::PixelBus<TProtocol, TTransport, ...TShaders>` |
 | Bus — static template | `src/buses/StackPixelBus.h` | `lw::buses::StackPixelBus<NPixelCount, TProtocol, TTransport, ...TShaders>` |
 | Bus — convenience header | `src/buses/Busses.h` | — |
+| Bus — builder | `src/buses/BusBuilder.h` | `lw::buses::BusBuilder` |
+| Bus — heap storage | `src/buses/BusStorage.h` | `lw::buses::BusStorage` |
+| Bus — stack storage | `src/buses/StackBusStorage.h` | `lw::buses::StackBusStorage<NPixelCount, TProtocol, TTransport, ...>` |
 | Pipeline | `src/buses/ProtocolTransportPipeline.h` | `lw::buses::ProtocolTransportPipeline` |
 | Protocol | `src/protocols/Protocol.h` | `lw::protocols::Protocol`, `lw::protocols::ProtocolSettings` |
 | Shader protocol | `src/protocols/ShaderProtocol.h` | `lw::protocols::ShaderProtocol` |
@@ -31,10 +34,11 @@
 | Output pipeline | `src/core/OutputPipeline.h` | `lw::OutputPipeline` |
 | Color / span | `src/core/Compat.h` | `lw::Pixel`, `lw::span`, `lw::PixelCount` |
 | Tests — Bus | `test/busses/test_bus/test_main.cpp` | Manual `Bus` + `PipelineRun` construction |
+| Tests — BusBuilder | `test/busses/test_bus_builder/test_main.cpp` | Full builder test suite (54 tests) |
 | Tests — StackPixelBus | `test/busses/test_pixel_bus/test_main.cpp` | Static template construction |
 | Tests — PixelBus | `test/busses/test_pixel_bus_dynamic/test_main.cpp` | Dynamic template construction |
-| Inventory | `docs/internal/platform-transport-inventory.md` | Full transport catalog |
-| Presets (planned) | `src/protocols/*Preset.h`, `src/transports/*Preset.h` | `lw::buses::presets` structs with `configure(BusBuilder&)` |
+| Usage doc | `docs/usage/bus-builder.md` | Builder API contract and usage rules |
+| Presets | `src/protocols/Ws2812xPreset.h`, `src/transports/NilTransportPreset.h` | `lw::buses::presets` structs with `configure(BusBuilder&)` |
 | Reference: NeoPixelBus | `NeoPixelBus.h` (Makuna) | `T_COLOR_FEATURE` + `T_METHOD` composition, `NeoGrbFeature`, `Neo800KbpsMethod` |
 
 ## Current State

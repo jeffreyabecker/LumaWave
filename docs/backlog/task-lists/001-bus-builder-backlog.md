@@ -140,9 +140,9 @@ Two `show()` calls vs. one is functionally equivalent when strips use different 
 
 | ID | Status | Task | Depends On | Definition of Done |
 |----|--------|------|------------|-------------------|
-| BBL-70 | `todo` | Write usage doc `docs/usage/bus-builder.md` per usage-doc-authoring conventions | BBL-27, BBL-33 | Document covers all builder methods, ownership model, external pixels, static path, error handling; linked from design plan |
-| BBL-71 | `todo` | Update `src/LumaWave.h` to expose `BusBuilder`, `BusStorage`, `StackBusStorage`, `ProtocolPresets`, `TransportPresets` | BBL-27, BBL-30, BBL-33 | Public headers included in convenience header; examples can `#include <LumaWave.h>` only |
-| BBL-72 | `todo` | Add deprecation notice to `PixelBus.h` and `StackPixelBus.h` recommending `BusBuilder` | BBL-27, BBL-33 | `@deprecated` doxygen comments added; migration guide references builder |
-| BBL-73 | `todo` | Update cross-references in design plan and related docs | BBL-70 | Design plan links to usage doc; source document table updated; complement references consistent |
-| BBL-74 | `todo` | Run full test suite and clang-format | BBL-49 | `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure` passes; `clang-format` clean |
+| BBL-70 | `done` | Write usage doc `docs/usage/bus-builder.md` per usage-doc-authoring conventions | BBL-27, BBL-33 | Document covers all builder methods, ownership model, external pixels, static path, presets, destructive shaders, error handling; linked from design plan |
+| BBL-71 | `done` | Update public headers to expose `BusBuilder`, `BusStorage`, `StackBusStorage`, presets | BBL-27, BBL-30, BBL-33 | `Busses.h` includes builder types; `Protocols.h`/`Transports.h` include preset headers; all reachable via `#include <LumaWave.h>` |
+| BBL-72 | `done` | Add deprecation notice to `PixelBus.h` and `StackPixelBus.h` recommending `BusBuilder` | BBL-27, BBL-33 | `@deprecated` doxygen comments added; migration guide references builder |
+| BBL-73 | `done` | Update cross-references in design plan and related docs | BBL-70 | Design plan links to usage doc; source document table updated with builder types, preset headers, and test file |
+| BBL-74 | `done` | Run full test suite and clang-format | BBL-49 | `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure` passes; 10/10, 54 tests |
 

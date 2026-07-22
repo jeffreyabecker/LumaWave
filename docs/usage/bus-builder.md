@@ -1,6 +1,6 @@
 # Bus Builder
 
-> **Target state.** This document describes the `BusBuilder` API as it will exist once implemented.
+> **Current state.** This document describes the `BusBuilder` API as implemented.
 > For the architecture rationale, see the [Bus Builder design plan](../backlog/plan/bus-builder-lifetime-simplification.md).
 
 ## Purpose
@@ -126,64 +126,68 @@ bus->pixels()[0] = lw::pixelFromRGB(255, 0, 0);  // writes to ledStrip[0]
 
 ### Rule 2.2 — setTransport() and setProtocol() form a pair
 
-Each `setTransport()` / `setProtocol()` pair defines the pipeline for the next `addRun()` call. For a single-strip bus where no explicit `addRun()` is called, `build()` implicitly creates one run covering `[0, pixelCount)`.
+Each builder constructs exactly one strip. `setTransport()` and `setProtocol()` define the pipeline for that strip. For multi-strip configurations, use separate `BusBuilder` instances with `setPixelStorage()` over sub-spans of a shared pixel buffer.
 
 ```cpp
-// Single strip — implicit run
-auto bus = lw::buses::BusBuilder()
-    .setPixelCount(60)
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})  // implicit run [0, 60)
-    .build();
+// Single strip
+    auto bus = lw::buses::BusBuilder()
+        .setPixelCount(60)
+        .setTransport(lw::transports::NilTransport{})
+        .setProtocol(lw::protocols::Ws2812xProtocol(60, {}))
+        .build();
 
-// Multi-strip — explicit runs
-auto bus2 = lw::buses::BusBuilder()
-    .setPixelCount(90)
-    .setTransport(lw::transports::SpiTransport{})
-    .setProtocol(lw::protocols::Ws2801Protocol{}, {})
-    .addRun(0, 30)                                      // strip 1: [0, 30)
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-    .addRun(30, 60)                                     // strip 2: [30, 90)
-    .build();
-```
+    // Multi-strip: shared buffer, separate builders
+    lw::Pixel allPixels[90];
+    auto strip1 = lw::buses::BusBuilder()
+        .setPixelStorage(lw::span<lw::Pixel>{allPixels, 30})
+        .setTransport(...)
+        .setProtocol(lw::protocols::Ws2812xProtocol(30, {}))
+        .build();
+    auto strip2 = lw::buses::BusBuilder()
+        .setPixelStorage(lw::span<lw::Pixel>{allPixels + 30, 60})
+        .setTransport(...)
+        .setProtocol(lw::protocols::Ws2812xProtocol(60, {}))
 
-### Rule 2.3 — addShader() applies to the current protocol+transport pair
+### Rule 2.3 — addShader() chains shaders in insertion order
 
-Shaders are attached to the most recently set protocol/transport pair. They are applied in insertion order via a `ShaderProtocol` decorator.
+Shaders are applied in insertion order via a `ShaderProtocol` decorator. A scratch pixel buffer is automatically allocated when shaders are present. Call `enableDestructiveShaders()` to skip scratch allocation and mutate the pixel buffer in place.
 
 ```cpp
 auto bus = lw::buses::BusBuilder()
     .setPixelCount(60)
-    .setTransport(lw::transports::SpiTransport{})
-    .setProtocol(lw::protocols::Apa102Protocol{}, {})
+    .setTransport(lw::transports::NilTransport{})
+    .setProtocol(lw::protocols::Ws2812xProtocol(60, {}))
     .addShader(lw::protocols::BrightnessShader{128})    // applied first
     .addShader(lw::protocols::GammaShader{2.2f})        // applied second
     .build();
+
+// Destructive mode: no scratch, shaders mutate pixels in-place
+auto bus2 = lw::buses::BusBuilder()
+    .setPixelCount(60)
+    .setTransport(lw::transports::NilTransport{})
+    .setProtocol(lw::protocols::Ws2812xProtocol(60, {}))
+    .addShader(lw::protocols::BrightnessShader{128})
+    .enableDestructiveShaders()
+    .build();
 ```
 
-### Rule 2.4 — addRun() offsets must be non-overlapping and within bounds
+### Rule 2.4 — addStrip() uses presets for discoverable configuration
 
-Each `addRun(offset, length)` specifies a sub-range of the pixel buffer. Offsets must be monotonically non-decreasing and ranges must not overlap. `build()` validates this.
+Protocol and transport presets live in `lw::buses::presets`. Each preset is a plain struct with a `configure(BusBuilder&)` method. Fields can be overridden inline. Aggregate headers `ProtocolPresets.h` and `TransportPresets.h` collect all presets.
 
 ```cpp
-// Correct — contiguous, non-overlapping
+using namespace lw::buses::presets;
+
 auto bus = lw::buses::BusBuilder()
-    .setPixelCount(90)
-    .setTransport(lw::transports::SpiTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-    .addRun(0, 30)
-    .setTransport(lw::transports::RpPioTransport{})
-    .setProtocol(lw::protocols::Ws2812xProtocol{}, {})
-    .addRun(30, 60)
+    .setPixelCount(30)
+    .addStrip(ws2812x{}, nil_transport{})
     .build();
 
-// Error — overlapping ranges
-// .addRun(0, 30)
-// .addRun(20, 60)   // overlaps [20, 30) with previous run
-
-// Error — exceeds total pixel count
-// .addRun(0, 100)   // only 90 pixels total
+// Inline field override
+auto bus2 = lw::buses::BusBuilder()
+    .setPixelCount(30)
+    .addStrip(ws2812x{.channelOrder = "RGB"}, nil_transport{})
+    .build();
 ```
 
 ---
@@ -380,39 +384,7 @@ auto bus1 = lw::buses::BusBuilder().setPixelCount(30)...build();
 auto bus2 = lw::buses::BusBuilder().setPixelCount(60)...build();
 ```
 
-### Anti-Pattern 6.3 — Interleaving shaders between protocol and addRun
-
-Each `addRun()` snapshots the current protocol+transport+shaders state. Do not add shaders after `addRun()` expecting them to apply to the previous run — they will apply to the next protocol/transport pair.
-
-```cpp
-// ❌ Shader after addRun applies to next run, not this one
-builder
-    .setProtocol(proto1, {})
-    .addRun(0, 30)
-    .addShader(shader1)       // applies to the NEXT protocol/transport pair!
-
-// ✅ Add shaders before the run they belong to
-builder
-    .setProtocol(proto1, {})
-    .addShader(shader1)       // applies to run [0, 30)
-    .addRun(0, 30)
-    .setProtocol(proto2, {})
-    .addShader(shader2)       // applies to run [30, 60)
-    .addRun(30, 60);
-```
-
-### Anti-Pattern 6.4 — Calling build() without setting a transport or protocol
-
-`build()` (or the implicit-run path) requires at least one transport+protocol pair. Calling it without one is a runtime error.
-
-```cpp
-// ❌ No transport or protocol set
-auto bus = lw::buses::BusBuilder()
-    .setPixelCount(30)
-    .build();  // error: no pipeline defined
-```
-
-### Anti-Pattern 6.5 — Letting an external pixel buffer go out of scope before the bus
+### Anti-Pattern 6.3 — Letting an external pixel buffer go out of scope before the bus
 
 When using `setPixelStorage()`, the external buffer must outlive the `IPixelBus`. Destroying the buffer while the bus is still in use produces a dangling span — reads and writes corrupt unrelated memory.
 
@@ -442,12 +414,23 @@ auto bus = lw::buses::BusBuilder()
 
 ## 7  Build Validation and Error Reporting
 
-### Rule 7.1 — build() validates before allocating
+### Rule 7.1 — validate() checks configuration before build()
 
-`build()` checks:
+`validate()` returns an empty string on success, or an error description on failure. It does not allocate or consume the builder. `build()` calls `validate()` internally and returns `nullptr` on failure.
 
-1. Exactly one of `setPixelCount()` or `setPixelStorage()` was called, and the resulting pixel count is `> 0`
-2. At least one transport+protocol pair is set (or explicit runs are added)
+Checks performed:
+1. Pixel count is set (`setPixelCount()` or `setPixelStorage()`)
+2. A transport is set
+3. A protocol is set
+4. External pixel storage is non-empty (if used)
+
+```cpp
+auto err = lw::buses::BusBuilder()
+    .setPixelCount(30)
+    .setTransport(lw::transports::NilTransport{})
+    .validate();
+// err == "protocol not set"
+```
 3. All `addRun()` offsets are non-overlapping and within `[0, pixelCount)`
 4. The sum of run lengths equals `pixelCount` (warning, not error)
 

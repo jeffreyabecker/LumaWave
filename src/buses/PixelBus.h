@@ -1,5 +1,10 @@
 #pragma once
 
+/// @deprecated Use BusBuilder instead. PixelBus remains available for backward
+/// compatibility but BusBuilder provides the same result with a simpler API,
+/// no template parameter packs, and built-in support for external pixel storage,
+/// destructive shaders, and presets. See docs/usage/bus-builder.md.
+
 #include <cstddef>
 #include <tuple>
 #include <type_traits>
