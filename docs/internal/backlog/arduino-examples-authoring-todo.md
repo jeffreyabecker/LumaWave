@@ -9,7 +9,7 @@ Example sketches should be authored as `.ino` files (not `.cpp`) unless a specif
 
 - [x] `LumaWave.h` is the single public include for examples.
 - [x] `makePixelBus`/`MakePixelBus.h` have been removed.
-- [x] Examples should use direct bus constructors (`PixelBus`, `LightBus`, `AggregateBus`, `CompositeBus`).
+- [x] Examples should use direct bus constructors or BusBuilder.
 - [x] Global aliases are optional and can be disabled via `LW_USE_EXPLICIT_NAMESPACES`.
 - [ ] Maintain dual-compatibility where practical:
   - [ ] default alias mode (macro not set),
@@ -61,9 +61,8 @@ Status notes:
 
 ### Bus Composition Coverage
 
-- [ ] Add one example demonstrating `CompositeBus` owning multiple buses.
-- [ ] Add one example demonstrating `AggregateBus` over existing bus references.
-- [ ] Document when to choose `CompositeBus` (ownership) vs `AggregateBus` (non-owning).
+- [x] Add multi-strip example using BusBuilder with shared pixel buffer (`setPixelStorage` sub-spans).
+- [x] Document multi-strip approach: separate BusBuilder instances over sub-spans.
 - [ ] Add one example demonstrating using `Topology` with a 4x4 grid of 16x16 tiles
 
 ### Platform Transport Examples
@@ -72,7 +71,7 @@ Status notes:
 ### Shader Coverage
 
 - [ ] Add one deterministic shader example using `GammaShader`.
-- [ ] Add one shader-chain example (`AggregateShader` over `AutoWhiteBalanceShader` and `GammaShader`).
+- [x] Add shader-chaining example (`addShader` with multiple shaders).
 
 ## 4) Platform and Behavior Validation
 

@@ -15,7 +15,7 @@ Color-related compile-time controls remain supported.
 
 | Flag | Default | Controls | Allowed Values | Notes |
 |------|---------|----------|----------------|-------|
-| `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` | `0` | Removes high-risk combinatorial template types from the exported surface | `0`, `1` | When `1`, disables `PixelBus` and `CompositeBus` exports and their public aliases. Runtime/interface-based alternatives such as `IPixelBus`, `AggregateBus`, and `LightBus` remain available. |
+| `LW_DISABLE_TEMPLATE_COMBINATORIAL_TYPES` | `0` | Removes high-risk combinatorial template types from the exported surface | `0`, `1` | When `1`, disables `PixelBus` exports and their public aliases. Runtime/interface-based alternatives such as `IPixelBus` and BusBuilder remain available. |
 | `LW_PIXEL_COMPONENT_SIZE` | `8` | Minimum internal component bit depth for color storage | `8`, `16` | When set to `16`, `DefaultColorType` becomes `Rgbw16Color`; otherwise `Rgbw8Color`. Channel count is always 4 (RGBW). |
 
 ### Validation Constraints

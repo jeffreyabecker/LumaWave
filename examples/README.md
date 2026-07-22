@@ -23,13 +23,8 @@ The `BusBuilder` API replaces manual construction of protocol, transport, buffer
 
 ## Strip Composition
 
-- `multi-strip/composite-strip/composite-strip.ino`: Composite strip composition (ownership model).
-- `multi-strip/aggregate-strip/aggregate-strip.ino`: Aggregate strip composition (non-owning references).
-- `multi-strip/topology-tiled-grid/topology-tiled-grid.ino`: `Topology` mapping for a 4x4 grid of 16x16 tiles.
-
-Choose composite strip composition when you want ownership in one composed object.
-Choose aggregate strip composition when child strips are created elsewhere and only referenced.
-Choose `AggregateStrip` when the aggregate should own heap-allocated child strips.
+- `multi-strip/builder-multi/builder-multi.ino`: Two strips sharing one pixel buffer via `setPixelStorage()` sub-spans.
+- `multi-strip/topology-tiled-grid/topology-tiled-grid.ino`: `Topology` mapping for a 2x2 grid of 16x16 tiles using separate BusBuilder instances.
 
 ## Palette Examples
 

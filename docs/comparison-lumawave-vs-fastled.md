@@ -32,7 +32,7 @@ LumaWave places explicit architectural seams at bus/protocol/transport/shader bo
 | Protocol encoding | Typically embedded in chipset/controller templates | Isolated in `Protocol::update(span<const Color>, span<uint8_t>)` |
 | Hardware transfer | Platform controller classes (RMT/SPI/clockless/etc.) | Isolated in `Transport::transmitBytes(span<uint8_t>)` |
 | Protocol↔transport wiring | Implicit in controller class hierarchy | Explicit `ProtocolTransportPipeline(Protocol&, Transport&, span<uint8_t>)` |
-| Color transforms | Global brightness/dither/correction pipeline + utility functions | Shader pipeline (`IShader::apply`), chained via `ShaderProtocol` / aggregate shaders |
+| Color transforms | Global brightness/dither/correction pipeline + utility functions | Shader pipeline (`IShader::apply`), chained via `ShaderProtocol` |
 | Public composition seam | Primarily through `FastLED` global API and controller registration | `Bus` + `PipelineRun` array, all dependencies injected by reference |
 
 #### Deeper Analysis: Coupling Profile
@@ -127,7 +127,7 @@ This is the closest analog to FastLED's `addLeds<...>()` — a single-line const
 |--------|---------|----------|
 | Brightness | Global `FastLED.setBrightness()` applied at show-time | `BrightnessShader` in shader chain, configured via `setRuntimeConfig(RuntimeConfig::Brightness, &value)` |
 | Gamma correction | Built-in correction tables, configurable | `GammaShader` as an explicit shader stage |
-| Shader composition | Implicit global pipeline | Explicit ordered `IShader*` array passed to `ShaderProtocol`; `AggregateShader` for grouping |
+| Shader composition | Implicit global pipeline | Explicit ordered `IShader*` array passed to `ShaderProtocol` |
 | Extensibility | Fixed pipeline stages | Any `IShader` implementation can be inserted at any position in the chain |
 
 ### 4.3  Power Management

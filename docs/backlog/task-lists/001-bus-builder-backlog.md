@@ -17,7 +17,7 @@
 | Category | File | Key Symbols |
 |----------|------|-------------|
 | Bus — interface | `src/core/IPixelBus.h` | `lw::IPixelBus` |
-| Bus — composite | `src/buses/Bus.h` | `lw::buses::Bus`, `lw::buses::PipelineRun` |
+| Bus | `src/buses/Bus.h` | `lw::buses::Bus`, `lw::buses::PipelineRun` |
 | Bus — dynamic template | `src/buses/PixelBus.h` | `lw::buses::PixelBus<TProtocol, TTransport, ...TShaders>` |
 | Bus — static template | `src/buses/StackPixelBus.h` | `lw::buses::StackPixelBus<NPixelCount, TProtocol, TTransport, ...TShaders>` |
 | Bus — convenience header | `src/buses/Busses.h` | — |

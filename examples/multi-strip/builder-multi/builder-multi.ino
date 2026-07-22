@@ -9,9 +9,7 @@
 //
 // Each strip owns its own protocol, transport, buffers, and pipeline.
 // The pixel buffer is caller-owned and split into sub-spans — each strip
-// reads/writes its own region. No multi-run BusStorage complexity needed.
-//
-// Compare with multi-strip/composite-strip/ for the manual equivalent.
+// reads/writes its own region. No composite or aggregate types needed.
 // ---------------------------------------------------------------------------
 
 constexpr size_t kStrip1Len = 30;

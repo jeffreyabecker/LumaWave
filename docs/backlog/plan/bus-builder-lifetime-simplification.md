@@ -19,7 +19,8 @@
 | Category | File | Key Symbols |
 |----------|------|-------------|
 | Bus — interface | `src/core/IPixelBus.h` | `lw::IPixelBus` |
-| Bus — composite | `src/buses/Bus.h` | `lw::buses::Bus`, `lw::buses::PipelineRun` |
+| Bus — interface | `src/core/IPixelBus.h` | `lw::IPixelBus` |
+| Bus | `src/buses/Bus.h` | `lw::buses::Bus`, `lw::buses::PipelineRun` |
 | Bus — dynamic template | `src/buses/PixelBus.h` | `lw::buses::PixelBus<TProtocol, TTransport, ...TShaders>` |
 | Bus — static template | `src/buses/StackPixelBus.h` | `lw::buses::StackPixelBus<NPixelCount, TProtocol, TTransport, ...TShaders>` |
 | Bus — convenience header | `src/buses/Busses.h` | — |
@@ -143,7 +144,7 @@ These costs make it harder to add new bus topologies (e.g., matrix, serpentine),
 
 3. **Unified static/dynamic allocation.** A single API surface supports both compile-time-sized (stack/static) and runtime-sized (heap/dynamic) allocation, without duplicating all template logic.
 
-4. **Multi-run (composite) support.** The same API should handle single-strip and multi-strip (aggregate) cases, including the ability to share a transport or protocol across runs.
+4. **Multi-strip support.** The same API should handle single-strip and multi-strip cases via shared pixel buffers and separate builder instances.
 
 5. **Non-breaking.** Existing `PixelBus`, `StackPixelBus`, `Bus`, `ProtocolTransportPipeline`, `Protocol`, `Transport`, and `IShader` types remain unchanged and fully functional. The new system is additive.
 
